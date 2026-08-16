@@ -16,7 +16,9 @@ public class Transaction {
     @ManyToOne
     @JoinColumn(name = "orderId")
     private Order orderId;
+    @Enumerated(EnumType.STRING)
     private TransactionMethod transactionMethod;
+    @Enumerated(EnumType.STRING)
     private TransactionStatus transactionStatus;
     private BigDecimal amount;
     @CreatedBy

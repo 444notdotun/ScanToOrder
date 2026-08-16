@@ -1,9 +1,10 @@
 package com.scantoorder.scantoorder.data.model;
 
 public enum OrderStatus {
-    PENDING,
+    PENDING_PAYMENT,
+    PAID,
     PREPARING,
     READY,
-    COMPLETED,
+    DELIVERED,
     CANCELED;
 }

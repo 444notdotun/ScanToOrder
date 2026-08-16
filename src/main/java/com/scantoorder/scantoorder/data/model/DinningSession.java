@@ -1,0 +1,40 @@
+package com.scantoorder.scantoorder.data.model;
+
+import jakarta.annotation.Nullable;
+import jakarta.persistence.*;
+import lombok.Data;
+import org.springframework.data.annotation.CreatedBy;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Data
+public class DinningSession {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String sessionId;
+    @ManyToOne
+    @JoinColumn(name = "tableId")
+    private RestaurantTable tableId;
+    private String customerName;
+    @Nullable
+    private String customerEmail;
+    private String customerPhone;
+    private DinningSessionStatus sessionStatus;
+    @ManyToMany
+    @JoinTable(name = "dinning_session_seat",
+             joinColumns = @JoinColumn(name = "seatId")
+    )
+
+    private List<Seat> seats;
+    @CreatedBy
+    private String createdAt;
+    private String completedAt;
+    @PrePersist
+    public void persist(){
+        this.sessionStatus=DinningSessionStatus.ACTIVE;
+        seats=new ArrayList<>();
+    }
+
+}

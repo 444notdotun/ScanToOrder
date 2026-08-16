@@ -1,9 +1,7 @@
 package com.scantoorder.scantoorder.data.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.scantoorder.scantoorder.utils.CodeGenerator;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
@@ -13,6 +11,7 @@ public class Menu {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String menuId;
     private String menuName;
+    private boolean isActive;
 
     private static Menu instance;
 
@@ -21,6 +20,11 @@ public class Menu {
             instance = new Menu();
         }
         return instance;
+    }
+    @PrePersist
+    public void prePersist(){
+        isActive=true;
+        menuName = CodeGenerator.generate(CodePrefix.MENU);
     }
 
 

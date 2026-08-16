@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.data.model;
 
+import com.scantoorder.scantoorder.utils.CodeGenerator;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -13,5 +14,11 @@ public class Category{
     @ManyToOne
     @JoinColumn
     private Menu menuId;
+    private boolean isActive;
+    @PrePersist
+    public void prePersist(){
+        isActive=true;
+        categoryName = CodeGenerator.generate(CodePrefix.CATEGORY);
+    }
 
 }
