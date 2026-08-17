@@ -5,7 +5,9 @@ import com.scantoorder.scantoorder.data.model.Seat;
 import com.scantoorder.scantoorder.data.model.SeatStatus;
 import com.scantoorder.scantoorder.data.repository.SeatRepo;
 import com.scantoorder.scantoorder.data.repository.TableRepo;
+import com.scantoorder.scantoorder.dtos.request.UpdateSeatRequest;
 import com.scantoorder.scantoorder.exception.SeatNotFoundException;
+import com.scantoorder.scantoorder.exception.SeatStatusException;
 import com.scantoorder.scantoorder.exception.TableNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,12 +33,12 @@ public class SeatServiceImplementation implements SeatService{
     }
 
     @Override
-    public boolean SeatTableSync(String tableId) {
-        Optional<RestaurantTable> table = Optional.of(tableRepo.findById(tableId).orElseThrow(() -> new TableNotFoundException("table not found")));
-        List<Seat> seats = seatRepo.findSeatByTableId(table.get());
-        int totalSeat = seats.size();
+    public boolean SeatTableSync(String tableNumber) {
+        Optional<RestaurantTable> table = Optional.of(tableRepo.findByTableNumber(tableNumber).orElseThrow(() -> new TableNotFoundException("table not found")));
+        Optional<List<Seat>> seats = seatRepo.findSeatByTableId(table.get());
+        int totalSeat = seats.get().size();
         int counter = 0;
-        for(Seat newSeat:seats){
+        for(Seat newSeat:seats.get()){
          if(newSeat.getStatus()== SeatStatus.OCCUPIED||newSeat.getStatus()==SeatStatus.HELD){
             counter++;
          }
@@ -45,10 +47,25 @@ public class SeatServiceImplementation implements SeatService{
     }
 
     @Override
-    public String updateSeat(String update, String seatId) {
-        Seat seat =seatRepo.findSeatBySeatId(seatId).orElseThrow(()-> new SeatNotFoundException("seat not found"));
-        seat.setStatus(SeatStatus.valueOf(update));
+    public String updateSeat(UpdateSeatRequest updateSeatRequest) {
+        Seat seat =seatRepo.findSeatBySeatId(updateSeatRequest.getSeatId()).orElseThrow(()-> new SeatNotFoundException("seat not found"));
+        if(!isSeatStateValid(seat.getStatus().toString(),updateSeatRequest.getNewState())) throw  new SeatStatusException("seat Can Not Move to  This State");
+        switch (updateSeatRequest.getNewState()) {
+            case "OCCUPIED" -> seat.setStatus(SeatStatus.OCCUPIED);
+            case "VACANT" -> seat.setStatus(SeatStatus.VACANT);
+            case "HELD" -> seat.setStatus(SeatStatus.HELD);
+        }
         seatRepo.save(seat);
-        return "your"+seat.getSeatNumber()+" is claimed";
+        return "your"+seat.getSeatNumber()+" is updated";
+    }
+
+
+    private boolean isSeatStateValid(String currentState,String newState){
+        return switch (currentState) {
+            case "VACANT" -> newState.equals("OCCUPIED")||newState.equals("HELD");
+            case "OCCUPIED" -> newState.equals("VACANT");
+            case "HELD" -> newState.equals("VACANT") || newState.equals("OCCUPIED");
+            default -> false;
+        };
     }
 }

@@ -4,7 +4,6 @@ public enum CodePrefix {
     SEAT,
     ORDER,
     PAYMENT,
-    CATEGORY,
     MENU,
     TABLE;
 

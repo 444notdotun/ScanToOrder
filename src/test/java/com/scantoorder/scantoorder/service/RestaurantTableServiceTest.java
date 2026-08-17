@@ -6,6 +6,8 @@ import com.scantoorder.scantoorder.data.model.SeatStatus;
 import com.scantoorder.scantoorder.data.model.TableStatus;
 import com.scantoorder.scantoorder.data.repository.SeatRepo;
 import com.scantoorder.scantoorder.data.repository.TableRepo;
+import com.scantoorder.scantoorder.dtos.respond.CreateRestaurantTableResponse;
+import com.scantoorder.scantoorder.dtos.respond.ViewTableAndSeatAvailabilityResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,8 +53,8 @@ class RestaurantTableServiceTest {
     @Test
     void testThatRestaurantTableCanBeCreated(){
         int seatCapacity=4;
-        String result =restaurantTableService.createTable( seatCapacity);
-        assertEquals("Table created successfully", result);
+        CreateRestaurantTableResponse result =restaurantTableService.createTable( seatCapacity);
+        assertEquals("Table created successfully", result.getMessage());
         assertEquals(2, tableRepo.count());
     }
 
@@ -87,8 +89,35 @@ class RestaurantTableServiceTest {
        TableStatus tableStatus =   restaurantTableService.syncTableStatus(tableId);
        assertEquals(TableStatus.AVAILABLE, tableStatus);
    }
+
+
+   @Test
+    void testThatAllTablesCanBeSeen(){
+        restaurantTableService.createTable(4);
+        restaurantTableService.createTable(5);
+        restaurantTableService.createTable(6);
+        restaurantTableService.createTable(7);
+        restaurantTableService.createTable(8);
+        assertNotNull(restaurantTableService.viewAllTable());
+
+        assertEquals(6, tableRepo.count());
+   }
+
+   @Test
+    void testThatTableAvailabilityAndItsSeatCanBeSeen(){
+       CreateRestaurantTableResponse response = restaurantTableService.createTable(4);
+        ViewTableAndSeatAvailabilityResponse result = restaurantTableService.viewTableAndSeatAvailability(response.getTableNumber());
+        assertNotNull(result);
+        assertEquals(response.getTableNumber(), result.getTableNumber());
+
+    }
+
+//    @Test
+//    void testThatMenuCanBeGenerated(){
 //
-//   @Test
+//    }
+
+
 
 
 
