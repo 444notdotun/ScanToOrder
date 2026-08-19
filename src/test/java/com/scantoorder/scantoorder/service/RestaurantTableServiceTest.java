@@ -60,7 +60,7 @@ class RestaurantTableServiceTest {
 
    @Test
     void testThatRestaurantTableStatusIsNotOccupied(){
-        String tableId = table.getTableId();
+        String tableId = table.getTableNumber();
         TableStatus tableStatus =   restaurantTableService.syncTableStatus(tableId);
         assertEquals(TableStatus.AVAILABLE, tableStatus);
    }
@@ -73,7 +73,7 @@ class RestaurantTableServiceTest {
         seatRepo.save(seat);
         seatRepo.save(seat1);
         seatRepo.save(seat2);
-       String tableId = table.getTableId();
+       String tableId = table.getTableNumber();
        TableStatus tableStatus =   restaurantTableService.syncTableStatus(tableId);
        assertEquals(TableStatus.OCCUPIED, tableStatus);
    }
@@ -85,7 +85,7 @@ class RestaurantTableServiceTest {
        seatRepo.save(seat);
        seatRepo.save(seat1);
        seatRepo.save(seat2);
-       String tableId = table.getTableId();
+       String tableId = table.getTableNumber();
        TableStatus tableStatus =   restaurantTableService.syncTableStatus(tableId);
        assertEquals(TableStatus.AVAILABLE, tableStatus);
    }
