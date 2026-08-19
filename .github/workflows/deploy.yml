@@ -54,4 +54,6 @@ jobs:
           JWT_EXPIRATION: 86400000
           PAYSTACK_SECRET_KEY: test-key
           ENVIRONMENT: test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
         run: ./mvnw test
