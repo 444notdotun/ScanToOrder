@@ -68,13 +68,15 @@ No order reaches the kitchen without confirmed payment.
 
 Payment is required before kitchen dispatch. Multiple payment methods supported: CARD, BANK_TRANSFER, CASH. Each attempt creates a new Payment record. If payment fails, the order stays in PENDING_PAYMENT and the customer retries. End of day scheduler cancels all orders still in PENDING_PAYMENT.
 
+Paystack webhook is verified using HMAC SHA512 on every incoming event. The backend acknowledges with 200 immediately before processing to prevent Paystack retries.
+
 ---
 
 ## Scheduled Jobs
 
 Two jobs run automatically:
 
-**End of day cleanup** — cancels all orders stuck in PENDING_PAYMENT at midnight. Handles abandoned orders where the customer left without paying.
+**End of day cleanup** — cancels all orders stuck in PENDING_PAYMENT at midnight. Handles abandoned orders where the customer left without paying. Silent, no notification sent.
 
 **Stale READY auto-complete** — marks orders in READY status as DELIVERED after 90 minutes if no waiter has manually updated the status. Safety net for busy service periods.
 
@@ -88,43 +90,85 @@ All staff use a single `workers` table with a role enum.
 |---|---|
 | MANAGER | Full access: menu management, table setup, order oversight, worker management |
 | CHEF | Kitchen display: view PAID orders, update to PREPARING and READY |
-| WAITER | Floor operations: mark DELIVERED, handle service calls, release ghost seats |
+| WAITER | Floor operations: mark DELIVERED, handle service calls, release ghost seats, close sessions |
 
 ---
 
-## API Overview
+## API Reference
 
-**Customer (no authentication required, sessionToken from seat claim)**
+### Public — no token required
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | /api/tables/{tableId}/seat-map | View table and seat availability |
-| POST | /api/seats/{seatId}/claim | Claim a seat, receive sessionToken |
-| GET | /api/menu | Browse active menu |
-| POST | /api/orders | Submit cart and create order |
-| POST | /api/orders/{id}/pay | Initiate payment |
-| POST | /api/orders/{id}/review | Submit session review |
-| POST | /api/service-calls | Request waiter assistance |
+| GET | /api/tables/{tableId}/seat-map | View table info and seat availability |
+| POST | /api/seats/{seatId}/claim | Claim a seat, receive customer JWT |
+| POST | /api/workers/login | Worker login, receive worker JWT |
+| POST | /webhooks/paystack | Paystack payment webhook (HMAC SHA512 verified) |
 
-**Kitchen (CHEF role)**
+### Customer — customer JWT required
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | /api/menu | Browse active menu with categories and items |
+| POST | /api/orders | Submit cart and create order |
+| GET | /api/orders/{id} | Poll order status |
+| POST | /api/orders/{id}/pay | Initiate payment |
+| POST | /api/service-calls | Request waiter assistance |
+| GET | /api/sessions/table-view | View all seats and orders at the table |
+| POST | /api/sessions/{id}/review | Submit session review (one per session) |
+
+### Kitchen — CHEF role required
 
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | /kitchen/orders | View all PAID orders |
 | PATCH | /kitchen/orders/{id}/status | Update order to PREPARING or READY |
 
-**Management (MANAGER role)**
+### Waiter — WAITER role required
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | /api/menu | Create menu (singleton) |
+| GET | /api/orders/ready | View all READY orders |
+| PATCH | /api/orders/{id}/deliver | Mark order as DELIVERED |
+| GET | /api/service-calls | View open service calls |
+| PATCH | /api/service-calls/{id} | Claim and resolve service call |
+| POST | /api/seats/{id}/release | Release ghost seat back to VACANT |
+| POST | /api/sessions/{id}/close | Close dining session and reset table |
+
+### Manager — MANAGER role required
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /api/menu | Create menu (singleton enforcement) |
 | POST | /api/categories | Create category |
 | POST | /api/items | Create item |
-| PATCH | /api/items/{id}/toggle | Toggle item availability (86) |
-| POST | /api/tables | Create table |
-| GET | /api/tables | List all tables |
-| GET | /api/orders | View all orders with filters |
+| PATCH | /api/items/{id}/toggle | Toggle item availability (86 toggle) |
+| POST | /api/tables | Create table and its seats |
+| GET | /api/tables | List all tables with status |
+| GET | /api/tables/{id}/qrcode | Generate QR code for table |
+| GET | /api/orders | View all orders with status filter |
 | GET | /api/service-calls | View all service calls |
+| GET | /api/workers | List all workers |
+| POST | /api/workers | Create worker account |
+| PATCH | /api/workers/{id} | Update worker details |
+
+---
+
+## Auth Design
+
+One JWT secret, two token types distinguished by a `type` claim.
+
+**Customer JWT** — issued on seat claim, set as HttpOnly cookie
+- type: CUSTOMER
+- sessionId, seatId, tableId
+- Expiry: 4 hours
+
+**Worker JWT** — issued on login
+- type: WORKER
+- workerId, role
+- Expiry: 8 hours
+
+The JWT filter reads the `type` claim and builds the appropriate principal. `@AuthenticationPrincipal CustomerPrincipal` injects sessionId into customer endpoints. `@AuthenticationPrincipal WorkerPrincipal` injects workerId and role into worker endpoints. The sessionId is never accepted from the request body.
 
 ---
 
@@ -136,7 +180,8 @@ All staff use a single `workers` table with a role enum.
 | Framework | Spring Boot 3 |
 | Database | PostgreSQL |
 | ORM | Spring Data JPA with HikariCP |
-| Auth | JWT — one secret, two token types. Customer token embeds sessionId, seatId, tableId. Worker token embeds workerId and role. Backend extracts sessionId from token claim, never from request body. |
+| Auth | JWT — one secret, two token types (CUSTOMER and WORKER) |
+| Payment | Paystack with HMAC SHA512 webhook verification |
 | Scheduler | Spring @Scheduled |
 | Deployment | Render |
 | CI/CD | GitHub Actions — test gate → build → deploy |
@@ -163,7 +208,7 @@ cp .env.example .env
 ./mvnw spring-boot:run
 ```
 
-App runs on `http://localhost:8080`. Swagger UI at `http://localhost:8080/swagger-ui.html`.
+App runs on `http://localhost:8080`.
 
 ---
 
@@ -172,9 +217,12 @@ App runs on `http://localhost:8080`. Swagger UI at `http://localhost:8080/swagge
 | Variable | Description |
 |---|---|
 | DATABASE_URL | PostgreSQL connection string |
-| JWT_SECRET | Secret for signing all JWTs. One secret, two token types distinguished by a `type` claim. Customer tokens carry sessionId, seatId, tableId, and a 4-hour expiry matching a meal duration. Worker tokens carry workerId, role, and an 8-hour expiry matching a shift. |
-| PAYSTACK_SECRET_KEY | Paystack secret key for webhook verification |
+| JWT_SECRET | Secret for signing all JWTs. One secret, two token types distinguished by a `type` claim. Customer tokens carry sessionId, seatId, tableId with 4-hour expiry. Worker tokens carry workerId and role with 8-hour expiry. |
+| PAYSTACK_SECRET_KEY | Paystack secret key for HMAC SHA512 webhook verification |
+| MANAGER_USERNAME | Manager account username, seeded on startup |
+| MANAGER_PASSWORD | Manager account password, BCrypt hashed on seed |
 | ENVIRONMENT | development or production |
+| PORT | Injected by Render. Spring Boot reads from ${PORT:8080} |
 
 ---
 
@@ -182,9 +230,10 @@ App runs on `http://localhost:8080`. Swagger UI at `http://localhost:8080/swagge
 
 GitHub Actions pipeline runs on every push to main:
 
-1. Run tests — pipeline fails if any test fails
-2. Build JAR
-3. Deploy to Render
+1. Spin up PostgreSQL service container
+2. Run tests against the container — pipeline fails if any test fails
+3. Build JAR
+4. Render auto-deploys on push to main after tests pass
 
 No broken code reaches production.
 

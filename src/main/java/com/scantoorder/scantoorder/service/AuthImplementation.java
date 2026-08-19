@@ -1,6 +1,7 @@
 package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.data.model.Manager;
+import com.scantoorder.scantoorder.data.model.Worker;
 import com.scantoorder.scantoorder.data.repository.ManagerRepo;
 import com.scantoorder.scantoorder.dtos.request.LoginRequest;
 import com.scantoorder.scantoorder.dtos.respond.AuthResponse;
@@ -31,9 +32,11 @@ public class AuthImplementation implements Auth {
                         loginRequest.getPassword()
                 )
         );
-        Manager manager = (Manager) authentication.getPrincipal();
-        AuthResponse authResponse = modelMapper.map(manager, AuthResponse.class);
-        authResponse.setToken(jwtService.generateToken(manager));
+        Worker worker = (Worker) authentication.getPrincipal();
+        AuthResponse authResponse = new AuthResponse();
+        authResponse.setUsername(worker.getWorkerId());
+        authResponse.setRole(worker.getRole());
+        authResponse.setToken(jwtService.generateToken(worker));
         return authResponse;
     }
 

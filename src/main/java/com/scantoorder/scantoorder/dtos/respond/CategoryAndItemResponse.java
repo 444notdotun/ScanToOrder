@@ -8,11 +8,11 @@ import java.util.List;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class MenuResponse {
-    private List<CategoryAndItemResponse> categoryAndItemResponse;
+public class CategoryAndItemResponse {
+    private String CategoryName;
+    private List<ItemResponse> itemResponse;
 
-
-    public MenuResponse(){
-        categoryAndItemResponse=new ArrayList<>();
+    public CategoryAndItemResponse(){
+        itemResponse=new ArrayList<>();
     }
 }

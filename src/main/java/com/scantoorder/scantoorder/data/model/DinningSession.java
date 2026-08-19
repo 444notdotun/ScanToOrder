@@ -3,6 +3,7 @@ package com.scantoorder.scantoorder.data.model;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.CreatedBy;
 
 import java.util.ArrayList;
@@ -20,17 +21,22 @@ public class DinningSession {
     private String customerName;
     @Nullable
     private String customerEmail;
+    @Column(nullable = false)
     private String customerPhone;
     private DinningSessionStatus sessionStatus;
     @ManyToMany
     @JoinTable(name = "dinning_session_seat",
              joinColumns = @JoinColumn(name = "seatId")
     )
-
     private List<Seat> seats;
-    @CreatedBy
+    @CreationTimestamp
     private String createdAt;
     private String completedAt;
+
+
+    public DinningSession(){
+        persist();
+    }
     @PrePersist
     public void persist(){
         this.sessionStatus=DinningSessionStatus.ACTIVE;

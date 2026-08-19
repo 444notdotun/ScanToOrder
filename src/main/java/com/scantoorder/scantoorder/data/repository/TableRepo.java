@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface TableRepo extends JpaRepository<RestaurantTable, String> {
 
     Optional<RestaurantTable> findByTableNumber(String tableNumber);
+
+    boolean existsByTableNumber(String tableNumber);
 }

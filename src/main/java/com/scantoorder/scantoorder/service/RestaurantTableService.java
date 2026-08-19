@@ -3,9 +3,9 @@ package com.scantoorder.scantoorder.service;
 import com.scantoorder.scantoorder.data.model.RestaurantTable;
 import com.scantoorder.scantoorder.data.model.TableStatus;
 import com.scantoorder.scantoorder.dtos.respond.CreateRestaurantTableResponse;
+import com.scantoorder.scantoorder.dtos.respond.CategoryAndItemResponse;
 import com.scantoorder.scantoorder.dtos.respond.MenuResponse;
 import com.scantoorder.scantoorder.dtos.respond.ViewTableAndSeatAvailabilityResponse;
-import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

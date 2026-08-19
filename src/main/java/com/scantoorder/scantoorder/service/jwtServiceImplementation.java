@@ -1,6 +1,7 @@
 package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.data.model.Manager;
+import com.scantoorder.scantoorder.data.model.Worker;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -19,12 +20,15 @@ public class jwtServiceImplementation implements JwtService{
     private Long expiration;
 
     @Override
-    public String generateToken(Manager manager) {
+    public String generateToken(Worker worker) {
         return Jwts.builder()
+                .claim("type", "WORKER")
+                .claim("workerId", worker.getWorkerId())
+                .claim("role", worker.getRole())
                 .signWith(encodeKey(secretKey))
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis()+expiration))
-                .subject(manager.getUsername())
+                .subject(worker.getUsername())
                 .compact();
     }
 
@@ -32,6 +36,18 @@ public class jwtServiceImplementation implements JwtService{
     public boolean validateToken(String token, UserDetails player) {
         String email = extractClaims(token).getSubject();
         return email.equals(player.getUsername()) && !isTokenExpired(token) ;
+    }
+
+    public String generateCustomerToken(String sessionId, String seatId, String tableId) {
+        return Jwts.builder()
+                .claim("type", "CUSTOMER")
+                .claim("sessionId", sessionId)
+                .claim("seatId", seatId)
+                .claim("tableId", tableId)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(encodeKey(secretKey))
+                .compact();
     }
 
     @Override

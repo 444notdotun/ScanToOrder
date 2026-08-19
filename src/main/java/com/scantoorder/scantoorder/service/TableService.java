@@ -1,25 +1,22 @@
 package com.scantoorder.scantoorder.service;
 
-import com.scantoorder.scantoorder.data.model.Category;
-import com.scantoorder.scantoorder.data.model.RestaurantTable;
-import com.scantoorder.scantoorder.data.model.Seat;
-import com.scantoorder.scantoorder.data.model.TableStatus;
+import com.scantoorder.scantoorder.data.model.*;
 import com.scantoorder.scantoorder.data.repository.CategoryRepository;
 import com.scantoorder.scantoorder.data.repository.ItemRepo;
 import com.scantoorder.scantoorder.data.repository.SeatRepo;
 import com.scantoorder.scantoorder.data.repository.TableRepo;
-import com.scantoorder.scantoorder.dtos.respond.CreateRestaurantTableResponse;
-import com.scantoorder.scantoorder.dtos.respond.MenuResponse;
-import com.scantoorder.scantoorder.dtos.respond.ViewTableAndSeatAvailabilityResponse;
-import com.scantoorder.scantoorder.dtos.respond.ViewTableSeatResponse;
+import com.scantoorder.scantoorder.dtos.respond.*;
 import com.scantoorder.scantoorder.exception.TableNotFoundException;
+import jakarta.validation.constraints.NotNull;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class TableService implements RestaurantTableService{
@@ -35,6 +32,11 @@ public class TableService implements RestaurantTableService{
     private CategoryRepository categoryRepository;
   @Autowired
   private ItemRepo itemRepo;
+
+  @Autowired
+  private RedisTemplate<String,Object> redisTemplate;
+
+  private static final String MENU_KEY = "menu:active";
 
 
 
@@ -79,13 +81,32 @@ public class TableService implements RestaurantTableService{
 
     @Override
     public MenuResponse generateMenu() {
-        List<Category> categories = categoryRepository.findAll();
-        for(Category newCategory:categories){
-            itemRepo.
-
+        Object cachedMenu = redisTemplate.opsForValue().get(MENU_KEY);
+        if(cachedMenu!=null){
+            return (MenuResponse) cachedMenu;
         }
 
-        return null;
+        List<Category> categories = categoryRepository.findAllByIsActiveTrue();
+        List<CategoryAndItemResponse> categoryAndItemResponseList = new ArrayList<>();
+
+        for (Category category : categories) {
+            CategoryAndItemResponse categoryResponse = new CategoryAndItemResponse();
+            categoryResponse.setCategoryName(category.getCategoryName());
+            List<Item> items = itemRepo.findAllByCategoryIdAndIsAvailableTrue(category);
+            List<ItemResponse> itemResponses = items.stream()
+                    .map(item -> modelMapper.map(item, ItemResponse.class))
+                    .toList();
+
+            categoryResponse.setItemResponse(itemResponses);
+            categoryAndItemResponseList.add(categoryResponse);
+        }
+
+
+        MenuResponse menuResponse = new MenuResponse();
+        menuResponse.setCategoryAndItemResponse(categoryAndItemResponseList);
+
+        redisTemplate.opsForValue().set(MENU_KEY, menuResponse,24, TimeUnit.HOURS);
+        return menuResponse;
     }
 
     private List<ViewTableSeatResponse> serializeViewTable(Optional<RestaurantTable> table) {
