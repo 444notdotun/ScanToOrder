@@ -50,7 +50,7 @@ jobs:
           DB_URL: jdbc:postgresql://localhost:5432/scan_to_order_test
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
-          JWT_SECRET: test-secret-ci-only
+          JWT_SECRET: your-secure-custom-secret-key-that-is-at-least-32-chars-long
           JWT_EXPIRATION: 86400000
           PAYSTACK_SECRET_KEY: test-key
           ENVIRONMENT: test
