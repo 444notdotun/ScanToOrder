@@ -4,6 +4,7 @@ import com.scantoorder.scantoorder.data.model.RestaurantTable;
 import com.scantoorder.scantoorder.data.model.Seat;
 import com.scantoorder.scantoorder.data.model.SeatStatus;
 import com.scantoorder.scantoorder.data.model.TableStatus;
+import com.scantoorder.scantoorder.data.repository.DinningSessionRepo;
 import com.scantoorder.scantoorder.data.repository.SeatRepo;
 import com.scantoorder.scantoorder.data.repository.TableRepo;
 import com.scantoorder.scantoorder.dtos.respond.CreateRestaurantTableResponse;
@@ -28,14 +29,19 @@ class RestaurantTableServiceTest {
     private Seat seat;
     private Seat seat1;
     private Seat seat2;
+    @Autowired
+    private DinningSessionRepo dinningSessionRepo;
 
     @AfterEach
     void tearDown() {
-        seatRepo.deleteAll();
-        tableRepo.deleteAll();
+
     }
     @BeforeEach
     void setUp() {
+        dinningSessionRepo.deleteAll();
+        seatRepo.deleteAll();
+        tableRepo.deleteAll();
+
          table = new RestaurantTable();
         table = tableRepo.save(table);
          seat = new Seat();
