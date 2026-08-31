@@ -36,8 +36,10 @@ public class Order {
 
     @PrePersist
     public void prePersist(){
+        orderStatus=OrderStatus.PENDING_PAYMENT;
         OrderNumber= CodeGenerator.generate(CodePrefix.ORDER);
     }
+
 
 
 }

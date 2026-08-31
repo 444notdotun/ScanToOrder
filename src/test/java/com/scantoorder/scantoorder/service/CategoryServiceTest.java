@@ -1,19 +1,16 @@
 package com.scantoorder.scantoorder.service;
 
-import com.scantoorder.scantoorder.data.model.Category;
 import com.scantoorder.scantoorder.data.model.Menu;
 import com.scantoorder.scantoorder.data.repository.CategoryRepository;
 import com.scantoorder.scantoorder.data.repository.MenuRepository;
 import com.scantoorder.scantoorder.dtos.request.CreateCategoryRequest;
-import com.scantoorder.scantoorder.exception.MenuNotFoundException;
+import com.scantoorder.scantoorder.service.Interface.CategoryService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.CannotLoadBeanClassException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 
 import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest

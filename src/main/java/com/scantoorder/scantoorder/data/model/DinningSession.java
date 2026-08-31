@@ -23,6 +23,7 @@ public class DinningSession {
     private String customerEmail;
     @Column(nullable = false)
     private String customerPhone;
+    @Enumerated(EnumType.STRING)
     private DinningSessionStatus sessionStatus;
     @ManyToMany
     @JoinTable(name = "dinning_session_seat",

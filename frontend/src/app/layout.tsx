@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "@/components/Providers";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Scan to Order - Restaurant Management & Ordering",
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-bg-warm text-stone-900">
         <Providers>
           <div className="flex-1 flex flex-col">{children}</div>
+          <Toaster richColors position="top-right" />
         </Providers>
       </body>
     </html>

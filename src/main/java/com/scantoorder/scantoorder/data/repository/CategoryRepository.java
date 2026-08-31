@@ -11,5 +11,5 @@ import java.util.Optional;
 public interface CategoryRepository extends JpaRepository<Category, String> {
     Optional<Category> findCategoryByCategoryName(String categoryName);
     List<Category> findAllByIsActiveTrue();
-    
+    Optional<Category> findCategoryByCategoryId(String categoryId);
 }

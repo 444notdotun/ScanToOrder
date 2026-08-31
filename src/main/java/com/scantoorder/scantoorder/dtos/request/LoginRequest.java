@@ -1,9 +1,16 @@
 package com.scantoorder.scantoorder.dtos.request;
 
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class LoginRequest {
-    private String Username;
-    private String Password;
+    @NotBlank(message = "Username cannot be blank")
+    private String username;
+    @NotBlank(message = "Password cannot be blank")
+    private String password;
 }

@@ -10,10 +10,18 @@ export type PaymentMethod = 'CARD' | 'BANK_TRANSFER' | 'CASH';
 
 export type WorkerRole = 'WAITER' | 'CHEF' | 'MANAGER';
 
+export type TableStatus = 'AVAILABLE' | 'OCCUPIED';
+
 export interface RestaurantTable {
+  /** Normalized id — set from backend's tableId or id */
   id: string;
-  tableNumber: number;
+  /** Backend UUID key (raw from API, kept for reference) */
+  tableId?: string;
+  tableNumber: string | number;
   capacity: number;
+  status?: TableStatus;
+  isOccupied?: boolean;
+  isActive?: boolean;
   qrCodeUrl?: string;
   seats?: Seat[];
   currentSessionId?: string;
@@ -67,7 +75,7 @@ export interface Order {
   seatId: string;
   seatNumber?: number;
   tableId: string;
-  tableNumber?: number;
+  tableNumber?: string | number;
   sessionId: string;
   status: OrderStatus;
   totalAmount: number;
@@ -81,7 +89,7 @@ export interface ServiceCall {
   seatId: string;
   seatNumber?: number;
   tableId: string;
-  tableNumber?: number;
+  tableNumber?: string | number;
   requestType: ServiceCallType;
   status: ServiceCallStatus;
   note?: string;

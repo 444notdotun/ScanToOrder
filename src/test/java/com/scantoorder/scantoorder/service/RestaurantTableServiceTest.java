@@ -9,8 +9,8 @@ import com.scantoorder.scantoorder.data.repository.SeatRepo;
 import com.scantoorder.scantoorder.data.repository.TableRepo;
 import com.scantoorder.scantoorder.dtos.respond.CreateRestaurantTableResponse;
 import com.scantoorder.scantoorder.dtos.respond.ViewTableAndSeatAvailabilityResponse;
+import com.scantoorder.scantoorder.service.Interface.RestaurantTableService;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 class RestaurantTableServiceTest {
     @Autowired
-    private  RestaurantTableService restaurantTableService;
+    private RestaurantTableService restaurantTableService;
     @Autowired
     private TableRepo tableRepo;
     @Autowired
@@ -130,4 +130,18 @@ class RestaurantTableServiceTest {
 
 
 
+    @Test
+    void testGetQrCodeReturnsValidPng() {
+        String tableNumber = table.getTableNumber();
+        byte[] qrCodeBytes = restaurantTableService.getQrCode(tableNumber);
+
+        assertNotNull(qrCodeBytes);
+        assertTrue(qrCodeBytes.length > 0);
+
+        // Assert valid PNG header bytes
+        assertEquals((byte) -119, qrCodeBytes[0]);
+        assertEquals((byte) 80, qrCodeBytes[1]);
+        assertEquals((byte) 78, qrCodeBytes[2]);
+        assertEquals((byte) 71, qrCodeBytes[3]);
+    }
 }

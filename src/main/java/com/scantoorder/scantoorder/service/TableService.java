@@ -7,19 +7,34 @@ import com.scantoorder.scantoorder.data.repository.SeatRepo;
 import com.scantoorder.scantoorder.data.repository.TableRepo;
 import com.scantoorder.scantoorder.dtos.respond.*;
 import com.scantoorder.scantoorder.exception.TableNotFoundException;
-import jakarta.validation.constraints.NotNull;
+import com.scantoorder.scantoorder.exception.ResourceNotFoundException;
+import com.scantoorder.scantoorder.service.Interface.MenuService;
+import com.scantoorder.scantoorder.service.Interface.RestaurantTableService;
+import com.scantoorder.scantoorder.service.Interface.SeatService;
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @Service
-public class TableService implements RestaurantTableService{
+public class TableService implements RestaurantTableService {
   @Autowired
   private  SeatRepo seatRepo;
   @Autowired
@@ -28,15 +43,11 @@ public class TableService implements RestaurantTableService{
   ModelMapper modelMapper;
   @Autowired
   private SeatService seatService;
-  @Autowired
-    private CategoryRepository categoryRepository;
-  @Autowired
-  private ItemRepo itemRepo;
 
-  @Autowired
-  private RedisTemplate<String,Object> redisTemplate;
+    @Autowired
+    private MenuService menuService;
 
-  private static final String MENU_KEY = "menu:active";
+
 
 
 
@@ -79,34 +90,10 @@ public class TableService implements RestaurantTableService{
        return response;
     }
 
+
     @Override
     public MenuResponse generateMenu() {
-        Object cachedMenu = redisTemplate.opsForValue().get(MENU_KEY);
-        if(cachedMenu!=null){
-            return (MenuResponse) cachedMenu;
-        }
-
-        List<Category> categories = categoryRepository.findAllByIsActiveTrue();
-        List<CategoryAndItemResponse> categoryAndItemResponseList = new ArrayList<>();
-
-        for (Category category : categories) {
-            CategoryAndItemResponse categoryResponse = new CategoryAndItemResponse();
-            categoryResponse.setCategoryName(category.getCategoryName());
-            List<Item> items = itemRepo.findAllByCategoryIdAndIsAvailableTrue(category);
-            List<ItemResponse> itemResponses = items.stream()
-                    .map(item -> modelMapper.map(item, ItemResponse.class))
-                    .toList();
-
-            categoryResponse.setItemResponse(itemResponses);
-            categoryAndItemResponseList.add(categoryResponse);
-        }
-
-
-        MenuResponse menuResponse = new MenuResponse();
-        menuResponse.setCategoryAndItemResponse(categoryAndItemResponseList);
-
-        redisTemplate.opsForValue().set(MENU_KEY, menuResponse,24, TimeUnit.HOURS);
-        return menuResponse;
+        return menuService.generateMenu();
     }
 
     private List<ViewTableSeatResponse> serializeViewTable(Optional<RestaurantTable> table) {
@@ -122,4 +109,35 @@ public class TableService implements RestaurantTableService{
         return seatService.SeatTableSync(tableNumber);
     }
 
+    @Override
+    public byte[] getQrCode(String tableNumber) {
+        RestaurantTable table = tableRepo.findByTableNumber(tableNumber)
+                .orElseThrow(() -> new ResourceNotFoundException("Table not found"));
+
+        try {
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
+
+            String url = "https://scantoorder.com/table/" + tableNumber;
+            BitMatrix bitMatrix = qrCodeWriter.encode(url, BarcodeFormat.QR_CODE, 350, 350, hints);
+
+            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
+            return pngOutputStream.toByteArray();
+        } catch (WriterException | IOException e) {
+            throw new RuntimeException("Failed to generate QR code for table " + tableNumber, e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteTable(String tableId) {
+        RestaurantTable table = tableRepo.findById(tableId)
+                .orElseThrow(() -> new ResourceNotFoundException("Table not found"));
+        seatRepo.findSeatByTableId(table).ifPresent(seats -> {
+            seatRepo.deleteAll(seats);
+        });
+        tableRepo.delete(table);
+    }
 }

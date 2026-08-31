@@ -13,10 +13,10 @@ public class OrderItem {
     private String orderItemId;
     @ManyToOne
     @JoinColumn(name = "orderId")
-    private Order orderId;
+    private Order order;
     @ManyToOne
     @JoinColumn(name = "itemId")
-    private Item itemId;
+    private Item item;
     private int quantity;
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;

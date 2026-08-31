@@ -18,9 +18,6 @@ public class Category{
     private String categoryId;
     @Column(unique = true)
     private String categoryName;
-    @ManyToOne
-    @JoinColumn
-    private Menu menuId;
     private boolean isActive;
     @PrePersist
     public void prePersist(){

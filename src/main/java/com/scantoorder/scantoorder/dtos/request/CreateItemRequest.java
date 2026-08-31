@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+
 @Data
 public class CreateItemRequest {
     @NotBlank(message = "Item name cannot be blank")
@@ -12,7 +13,7 @@ public class CreateItemRequest {
     private String itemDescription;
     @NotBlank(message = "Item category cannot be blank")
     private String CategoryName;
-    @NotBlank(message = "Item price cannot be blank")
+    @NotNull(message = "Item price cannot be null")
     private int itemPrice;
 
 }

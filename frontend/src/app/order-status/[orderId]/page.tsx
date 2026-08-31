@@ -133,7 +133,7 @@ export default function OrderStatusPage() {
           </div>
 
           <div className="flex justify-between items-center text-xs font-semibold text-stone-500 pt-1">
-            <span>Table {order.tableNumber} &bull; Seat {order.seatNumber}</span>
+            <span>{order.tableNumber} &bull; {order.seatNumber}</span>
             <span>{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         </div>

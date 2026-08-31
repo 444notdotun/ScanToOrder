@@ -1,7 +1,7 @@
 package com.scantoorder.scantoorder.service;
 
-import com.scantoorder.scantoorder.data.model.Manager;
 import com.scantoorder.scantoorder.data.model.Worker;
+import com.scantoorder.scantoorder.service.Interface.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -11,10 +11,9 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Date;
 @Service
-public class jwtServiceImplementation implements JwtService{
+public class jwtServiceImplementation implements JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
     @Value("${jwt.expiration}")

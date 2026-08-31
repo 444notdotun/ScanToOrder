@@ -6,7 +6,8 @@ import lombok.Data;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class ViewTableSeatResponse {
+public class
+ViewTableSeatResponse {
     private String seatNumber;
     private SeatStatus status;
 
