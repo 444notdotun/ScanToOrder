@@ -53,7 +53,8 @@ jobs:
           JWT_SECRET: your-secure-custom-secret-key-that-is-at-least-32-chars-long
           JWT_EXPIRATION: 86400000
           PAYSTACK_SECRET_KEY: test-key
+          PAYSTACK_BASE_URL: https://api.paystack.co
           ENVIRONMENT: test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
-        run: ./mvnw test -e -DtrimStackTrace=false
+        run: ./mvnw test
