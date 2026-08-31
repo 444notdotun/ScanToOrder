@@ -68,7 +68,7 @@ class OrderServiceTest {
     @Transactional
     @Test
     void testThatOrderCanBeCreated() {
-        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableNumber(),session.getSessionId());
+        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableId(),session.getSessionId());
         assertNotNull(createOrderResponse);
         assertEquals(BigDecimal.valueOf(280000),createOrderResponse.getTotalPrice());
         assertEquals(OrderStatus.PENDING_PAYMENT, createOrderResponse.getOrderStatus());
@@ -77,7 +77,7 @@ class OrderServiceTest {
     @Transactional
     @Test
     void testThatOrderCanBeCanceled() {
-        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableNumber(),session.getSessionId());
+        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableId(),session.getSessionId());
         assertNotNull(createOrderResponse);
        Order order = orderRepo.findOrderByOrderId(createOrderResponse.getOrderId());
         assertEquals(BigDecimal.valueOf(280000),createOrderResponse.getTotalPrice());
@@ -90,7 +90,7 @@ class OrderServiceTest {
     @Transactional
     @Test
     void testThatOrderCanBeCompletedPreparing(){
-        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableNumber(),session.getSessionId());
+        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableId(),session.getSessionId());
         assertNotNull(createOrderResponse);
         Order order = orderRepo.findOrderByOrderId(createOrderResponse.getOrderId());
         order.setOrderStatus(OrderStatus.PAID);
@@ -104,7 +104,7 @@ class OrderServiceTest {
     @Transactional
     @Test
     void testThatOrderCanBeCompletedAsReady(){
-        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableNumber(),session.getSessionId());
+        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableId(),session.getSessionId());
         assertNotNull(createOrderResponse);
         Order order = orderRepo.findOrderByOrderId(createOrderResponse.getOrderId());
         order.setOrderStatus(OrderStatus.PREPARING);
@@ -117,7 +117,7 @@ class OrderServiceTest {
     @Transactional
     @Test
     void testThatOrderCanBeCompletedAsDelivered(){
-        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableNumber(),session.getSessionId());
+        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableId(),session.getSessionId());
         assertNotNull(createOrderResponse);
         Order order = orderRepo.findOrderByOrderId(createOrderResponse.getOrderId());
         order.setOrderStatus(OrderStatus.READY);
@@ -131,7 +131,7 @@ class OrderServiceTest {
     @Transactional
     @Test
     void testThatExceptionIsThrownWhenOrderStatusIsInvalid(){
-        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableNumber(),session.getSessionId());
+        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableId(),session.getSessionId());
         assertNotNull(createOrderResponse);
         assertEquals(BigDecimal.valueOf(280000),createOrderResponse.getTotalPrice());
         String newState = "PREPARING";
@@ -141,7 +141,7 @@ class OrderServiceTest {
     @Transactional
     @Test
     void testThatStatusOfAnOrderCheck(){
-        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableNumber(),session.getSessionId());
+        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableId(),session.getSessionId());
         assertNotNull(createOrderResponse);
         assertEquals(BigDecimal.valueOf(280000),createOrderResponse.getTotalPrice());
         assertEquals(OrderStatus.PENDING_PAYMENT, createOrderResponse.getOrderStatus());
@@ -155,11 +155,11 @@ class OrderServiceTest {
     @Test
     void testThatPaidOrdersCanBeSeen(){
 
-        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableNumber(),session.getSessionId());
+        CreateOrderResponse createOrderResponse = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableId(),session.getSessionId());
         assertNotNull(createOrderResponse);
         assertEquals(BigDecimal.valueOf(280000),createOrderResponse.getTotalPrice());
         assertEquals(OrderStatus.PENDING_PAYMENT, createOrderResponse.getOrderStatus());
-        CreateOrderResponse createOrderResponse1 = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableNumber(),session.getSessionId());
+        CreateOrderResponse createOrderResponse1 = orderService.createOrder(createOrderRequest,seat.getSeatId(),table.getTableId(),session.getSessionId());
         assertNotNull(createOrderResponse1);
         orderService.updateOrder("PAID",createOrderResponse1.getOrderId());
         assertEquals(1,orderService.getAllPaidOrders().size());
