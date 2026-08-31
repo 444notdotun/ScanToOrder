@@ -33,12 +33,13 @@ class ItemServiceTest {
     @BeforeEach
     void setUp() {
         category = new Category();
+        category.setCategoryName("test category");
         categoryRepository.save(category);
         createitemRequest = new CreateItemRequest();
         createitemRequest.setItemName("AMALA WITH EWEDU");
         createitemRequest.setItemPrice(20000);
         createitemRequest.setItemDescription("originated and owned by the yoruba, best in its league");
-        createitemRequest.setCategoryName(category.getCategoryId());
+        createitemRequest.setCategoryName(category.getCategoryName());
     }
     @AfterEach
     void tearDown() {
