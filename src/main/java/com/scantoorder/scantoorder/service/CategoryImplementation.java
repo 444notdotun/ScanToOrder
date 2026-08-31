@@ -6,6 +6,7 @@ import com.scantoorder.scantoorder.data.repository.MenuRepository;
 import com.scantoorder.scantoorder.dtos.request.CreateCategoryRequest;
 import com.scantoorder.scantoorder.dtos.respond.CategoryResponse;
 import com.scantoorder.scantoorder.service.Interface.CategoryService;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -30,7 +31,7 @@ public class CategoryImplementation implements CategoryService {
             categoryRepository.save(category);
             redisTemplate.delete("menu:active");
             return category.getCategoryName()+" category created successfully";
-        }catch (DataIntegrityViolationException e){
+        }catch (ConstraintViolationException e){
             throw new DataIntegrityViolationException("Duplicate key exception");
         }
     }

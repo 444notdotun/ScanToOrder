@@ -49,36 +49,36 @@ public class ScanToOrderApplication implements CommandLineRunner {
             workerRepo.save(manager);
             redisTemplate.delete("menu:active");
         }
-
-        if (categoryRepository.count() == 0) {
-            Category food = new Category();
-            food.setCategoryName("Food");
-            categoryRepository.save(food);
-
-            Category drinks = new Category();
-            drinks.setCategoryName("Drinks");
-            categoryRepository.save(drinks);
-
-            Item burger = new Item();
-            burger.setItemName("Classic Burger");
-            burger.setItemDescription("A delicious classic burger with cheese");
-            burger.setItemPrice(new BigDecimal("9.99"));
-            burger.setCategoryId(food);
-            itemRepo.save(burger);
-
-            Item pizza = new Item();
-            pizza.setItemName("Pepperoni Pizza");
-            pizza.setItemDescription("Large pepperoni pizza");
-            pizza.setItemPrice(new BigDecimal("14.99"));
-            pizza.setCategoryId(food);
-            itemRepo.save(pizza);
-
-            Item coke = new Item();
-            coke.setItemName("Coca Cola");
-            coke.setItemDescription("Chilled Coca Cola Can");
-            coke.setItemPrice(new BigDecimal("1.99"));
-            coke.setCategoryId(drinks);
-            itemRepo.save(coke);
-        }
+//
+//        if (categoryRepository.count() == 0) {
+//            Category food = new Category();
+//            food.setCategoryName("Food");
+//            categoryRepository.save(food);
+//
+//            Category drinks = new Category();
+//            drinks.setCategoryName("Drinks");
+//            categoryRepository.save(drinks);
+//
+//            Item burger = new Item();
+//            burger.setItemName("Classic Burger");
+//            burger.setItemDescription("A delicious classic burger with cheese");
+//            burger.setItemPrice(new BigDecimal("9.99"));
+//            burger.setCategoryId(food);
+//            itemRepo.save(burger);
+//
+//            Item pizza = new Item();
+//            pizza.setItemName("Pepperoni Pizza");
+//            pizza.setItemDescription("Large pepperoni pizza");
+//            pizza.setItemPrice(new BigDecimal("14.99"));
+//            pizza.setCategoryId(food);
+//            itemRepo.save(pizza);
+//
+//            Item coke = new Item();
+//            coke.setItemName("Coca Cola");
+//            coke.setItemDescription("Chilled Coca Cola Can");
+//            coke.setItemPrice(new BigDecimal("1.99"));
+//            coke.setCategoryId(drinks);
+//            itemRepo.save(coke);
+//        }
     }
 }

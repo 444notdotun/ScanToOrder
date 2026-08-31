@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
@@ -20,13 +21,13 @@ class CategoryServiceTest {
     private CategoryService categoryService;
     @Autowired
     private CategoryRepository categoryRepository;
-    @Autowired
-    private MenuRepository menuRepository;
+
 
     private CreateCategoryRequest  createCategoryRequest;
 
     @BeforeEach
     public void setUp() {
+        categoryRepository.deleteAll();
         createCategoryRequest = new CreateCategoryRequest();
         createCategoryRequest.setCategoryName("Africa delicacy");
     }
@@ -35,24 +36,17 @@ class CategoryServiceTest {
         categoryRepository.deleteAll();
     }
 
+
     @Test
     void testThatCategoryCanBeCreated() {
-        Menu menu = new Menu();
-        menuRepository.save(menu);
         assertEquals(createCategoryRequest.getCategoryName()+" category created successfully",categoryService.createCategory(createCategoryRequest));
     }
 
-//    @Test
-////    void testThatCategoryCanNotBeCreatedWithoutValidMenuId() {
-////        String menuId = "menu67";
-////        createCategoryRequest.setMenuId(menuId);
-////        assertThrows(MenuNotFoundException.class, () -> categoryService.createCategory(createCategoryRequest));
-////    }
+
+
 
     @Test
     void testThatCategoryWithTheSameNameCanBeCreatedTwice() {
-        Menu menu = new Menu();
-        menuRepository.save(menu);
         assertEquals(createCategoryRequest.getCategoryName()+" category created successfully",categoryService.createCategory(createCategoryRequest));
         assertThrows(DataIntegrityViolationException.class,()->categoryService.createCategory(createCategoryRequest));
     }
