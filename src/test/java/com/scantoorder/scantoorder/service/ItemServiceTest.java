@@ -5,6 +5,7 @@ import com.scantoorder.scantoorder.data.repository.CategoryRepository;
 import com.scantoorder.scantoorder.data.repository.ItemRepo;
 import com.scantoorder.scantoorder.dtos.request.CreateCategoryRequest;
 import com.scantoorder.scantoorder.dtos.request.CreateItemRequest;
+import com.scantoorder.scantoorder.dtos.respond.CreateItemResponse;
 import com.scantoorder.scantoorder.service.Interface.CategoryService;
 import com.scantoorder.scantoorder.service.Interface.ItemService;
 import org.junit.jupiter.api.AfterEach;
@@ -25,22 +26,19 @@ class ItemServiceTest {
     private CategoryRepository categoryRepository;
     @Autowired
     private ItemRepo itemRepo;
-
-    @Autowired
-    private CategoryService categoryService;
-    private  CreateCategoryRequest  createCategoryRequest;
     private CreateItemRequest createitemRequest;
+
+    private Category category;
 
     @BeforeEach
     void setUp() {
-        createCategoryRequest = new CreateCategoryRequest();
-        createCategoryRequest.setCategoryName("African Meals");
-        categoryService.createCategory(createCategoryRequest);
+        category = new Category();
+        categoryRepository.save(category);
         createitemRequest = new CreateItemRequest();
         createitemRequest.setItemName("AMALA WITH EWEDU");
         createitemRequest.setItemPrice(20000);
         createitemRequest.setItemDescription("originated and owned by the yoruba, best in its league");
-        createitemRequest.setCategoryName(createCategoryRequest.getCategoryName());
+        createitemRequest.setCategoryName(category.getCategoryId());
     }
     @AfterEach
     void tearDown() {
@@ -50,17 +48,13 @@ class ItemServiceTest {
 
     @Test
     void testThatItemCanBeCreated() {
-        Optional<Category> category = categoryRepository.findCategoryByCategoryName(createCategoryRequest.getCategoryName());
-        assertNotNull(category.get());
-        com.scantoorder.scantoorder.dtos.respond.CreateItemResponse response = itemService.createItem(createitemRequest);
+        CreateItemResponse response = itemService.createItem(createitemRequest);
         assertNotNull(response);
         assertEquals("Item created successfully", response.getMessage());
     }
 
     @Test
     void testThatItemCanNotHaveTheSameNameTwice(){
-        Optional<Category> category = categoryRepository.findCategoryByCategoryName(createCategoryRequest.getCategoryName());
-        assertNotNull(category.get());
         com.scantoorder.scantoorder.dtos.respond.CreateItemResponse response = itemService.createItem(createitemRequest);
         assertNotNull(response);
         assertEquals("Item created successfully", response.getMessage());

@@ -36,9 +36,6 @@ class SeatServiceTest {
     private SeatRepo seatRepo;
 
     @Autowired
-    private TableService tableService;
-
-    @Autowired
     private DinningSessionRepo dinningSessionRepo;
 
     private Seat seat;
