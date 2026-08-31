@@ -56,4 +56,4 @@ jobs:
           ENVIRONMENT: test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
-        run: ./mvnw test
+        run: ./mvnw test -e -DtrimStackTrace=false
