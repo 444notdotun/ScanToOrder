@@ -34,7 +34,7 @@ public class ItemImplementation implements ItemService {
     @Transactional
     @Override
     public CreateItemResponse createItem(CreateItemRequest createitemRequest) {
-        Category category = categoryRepository.findCategoryByCategoryId((createitemRequest.getCategoryName())).orElseThrow(()-> new CategoryCanNotBeFoundException("category not found"));
+        Category category = categoryRepository.findCategoryByCategoryName((createitemRequest.getCategoryName())).orElseThrow(()-> new CategoryCanNotBeFoundException("category not found"));
         try {
             Item item = modelMapper.map(createitemRequest, Item.class);
             item.setCategoryId(category);

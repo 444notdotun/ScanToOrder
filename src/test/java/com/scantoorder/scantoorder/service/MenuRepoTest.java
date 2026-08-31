@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.data.model.Category;
 import com.scantoorder.scantoorder.data.repository.CategoryRepository;
 import com.scantoorder.scantoorder.data.repository.ItemRepo;
 import com.scantoorder.scantoorder.dtos.request.CreateCategoryRequest;
@@ -32,17 +33,21 @@ class MenuRepoTest {
     private ItemRepo itemRepo;
     CreateCategoryRequest createCategoryRequest;
     CreateItemRequest createitemRequest;
+    private Category category;
 
     @BeforeEach
     void setUp() {
-         createCategoryRequest = new CreateCategoryRequest();
+        createCategoryRequest = new CreateCategoryRequest();
         createCategoryRequest.setCategoryName("Testing");
+        category = new Category();
+        category.setCategoryName(createCategoryRequest.getCategoryName());
+        categoryRepository.save(category);
         createitemRequest = new CreateItemRequest();
         createitemRequest.setItemDescription("Test item description");
         createitemRequest.setItemName("Test item name");
         createitemRequest.setItemPrice(7000);
-        createitemRequest.setCategoryName(createCategoryRequest.getCategoryName());
-        categoryService.createCategory(createCategoryRequest);
+        createitemRequest.setCategoryName(category.getCategoryName());
+
         itemService.createItem(createitemRequest);
 
     }
@@ -57,7 +62,7 @@ class MenuRepoTest {
     void testThatMenuCanBeGenerated(){
         MenuResponse menuResponse =tableService.generateMenu();
         assertNotNull(menuResponse);
-        assertEquals(createCategoryRequest.getCategoryName(),menuResponse.getCategoryAndItemResponse().get(0).getCategoryName());
+        assertEquals(category.getCategoryName(),menuResponse.getCategoryAndItemResponse().get(0).getCategoryName());
         assertEquals(createitemRequest.getItemDescription(),menuResponse.getCategoryAndItemResponse().get(0).getItemResponse().get(0).getItemDescription());
     }
 }
