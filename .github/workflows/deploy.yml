@@ -54,6 +54,7 @@ jobs:
           JWT_EXPIRATION: 86400000
           PAYSTACK_SECRET_KEY: test-key
           PAYSTACK_BASE_URL: https://api.paystack.co
+          PAYSTACK_CALLBACK_URL: http://localhost:3000/order-success
           ENVIRONMENT: test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
