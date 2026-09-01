@@ -32,7 +32,7 @@ public class SeatController {
         ResponseCookie jwtCookie = ResponseCookie.from("access_token", response.getToken())
                 .httpOnly(true)
                 .secure(true)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/")
                 .maxAge(Duration.ofHours(4))
                 .build();

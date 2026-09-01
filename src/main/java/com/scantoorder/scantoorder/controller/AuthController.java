@@ -29,7 +29,7 @@ public class AuthController {
         ResponseCookie jwtCookie = org.springframework.http.ResponseCookie.from("access_token", response.getToken())
                 .httpOnly(true)
                 .secure(true)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/")
                 .maxAge(java.time.Duration.ofHours(8))
                 .build();
