@@ -430,7 +430,7 @@ function WaiterFloorContent() {
                                     </button>
                                   ) : (
                                     <button 
-                                      onClick={() => updateSeatMutation.mutate({ seatId: seat.seatNumber, newState: 'OCCUPIED' })}
+                                      onClick={() => updateSeatMutation.mutate({ seatId: seat.id, newState: 'OCCUPIED' })}
                                       disabled={updateSeatMutation.isPending}
                                       className="mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-md w-full"
                                     >

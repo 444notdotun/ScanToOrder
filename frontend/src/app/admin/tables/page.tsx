@@ -53,7 +53,7 @@ function TablesManagerContent() {
 
   const triggerQrDownload = (tableNumber: string) => {
     // Construct QR code image endpoint directly
-    const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/tables/${tableNumber}/qrcode`;
+    const url = `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || ''}/api/v1/tables/${tableNumber}/qrcode`;
     
     // Create an anchor tag to download
     const link = document.createElement('a');
@@ -134,7 +134,7 @@ function TablesManagerContent() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
               {tables.map((table, index) => {
-                const qrEndpoint = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/tables/${table.tableNumber}/qrcode`;
+                const qrEndpoint = `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || ''}/api/v1/tables/${table.tableNumber}/qrcode`;
                 return (
                   <div 
                     key={table.id || table.tableNumber || index}
