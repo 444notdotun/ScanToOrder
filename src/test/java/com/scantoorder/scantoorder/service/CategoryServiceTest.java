@@ -2,6 +2,7 @@ package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.data.model.Menu;
 import com.scantoorder.scantoorder.data.repository.CategoryRepository;
+import com.scantoorder.scantoorder.data.repository.ItemRepo;
 import com.scantoorder.scantoorder.data.repository.MenuRepository;
 import com.scantoorder.scantoorder.dtos.request.CreateCategoryRequest;
 import com.scantoorder.scantoorder.service.Interface.CategoryService;
@@ -21,15 +22,18 @@ class CategoryServiceTest {
     private CategoryService categoryService;
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private ItemRepo itemRepo;
 
 
     private CreateCategoryRequest  createCategoryRequest;
 
     @BeforeEach
     public void setUp() {
+        itemRepo.deleteAll();
         categoryRepository.deleteAll();
         createCategoryRequest = new CreateCategoryRequest();
-        createCategoryRequest.setCategoryName("Africa delicacy");
+        createCategoryRequest.setCategoryName("Africa delicacys");
     }
     @AfterEach
     public void tearDown() {
