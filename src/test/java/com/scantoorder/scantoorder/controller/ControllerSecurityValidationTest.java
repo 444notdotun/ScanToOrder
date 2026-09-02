@@ -140,7 +140,7 @@ public class ControllerSecurityValidationTest {
         request.setTableNumber("T1");
         request.setCustomerEmail("customer@example.com");
         request.setCustomerName("Jane Doe");
-        request.setCustomerPhone("11");
+        request.setCustomerPhone("08149048149");
 
         CreateSessionResponse createResponse = new CreateSessionResponse();
         createResponse.setSessionId("sess-123");
