@@ -31,7 +31,7 @@ function PaymentSuccessContent() {
         const response = await customerService.verifyPayment(reference);
         if (!isMounted) return;
 
-        if (response?.status === 'SUCCESSFUL' || response?.status === 'PAID') {
+        if (response?.paymentStatus === 'SUCCESSFUL' || response?.orderStatus === 'PAID') {
           setStatus('success');
           try {
             const receiptData = await customerService.getReceipt(reference);
