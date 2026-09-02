@@ -96,12 +96,23 @@ function WaiterFloorContent() {
     }
   });
 
+  const closeSessionBySeatMutation = useMutation({
+    mutationFn: (seatId: string) => waiterService.closeSessionBySeat(seatId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['waiterTables'] });
+      toast.success("Session closed successfully. Associated seats are now free.");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to close session by seat.");
+    }
+  });
+
   const handleClaimCall = (id: string) => {
-    updateCallMutation.mutate({ id, status: 'IN_PROGRESS', waiterId: staffName });
+    updateCallMutation.mutate({ id, status: 'IN_PROGRESS', waiterId: workerProfile?.workerId || staffName });
   };
 
   const handleResolveCall = (id: string) => {
-    updateCallMutation.mutate({ id, status: 'RESOLVED', waiterId: staffName });
+    updateCallMutation.mutate({ id, status: 'RESOLVED', waiterId: workerProfile?.workerId || staffName });
   };
 
   const handleDeliver = (id: string) => {
@@ -383,14 +394,12 @@ function WaiterFloorContent() {
                 {tables.map((table: RestaurantTable) => {
                   const isExpanded = selectedTableId === table.id;
                   const seats = table.seats || [];
-                  const occupiedCount = seats.filter((s: Seat) => s.status === 'OCCUPIED').length;
                   const capacity = table.capacity || 4;
+                  const isOccupied = table.status === 'OCCUPIED';
                   
                   // Occupancy status dots
                   const getStatusColor = () => {
-                    if (occupiedCount === 0 && !table.currentSessionId) return 'bg-emerald-500'; // Available
-                    if (occupiedCount > 0) return 'bg-brand-deep'; // Occupied
-                    return 'bg-orange-500'; // Needs Attention / Session Open but Empty
+                    return isOccupied ? 'bg-brand-deep' : 'bg-emerald-500';
                   };
 
                   return (
@@ -400,7 +409,7 @@ function WaiterFloorContent() {
                           <div className={`w-3 h-3 rounded-full ${getStatusColor()}`}></div>
                           <div>
                             <div className="font-black text-stone-900 text-base">{table.tableNumber}</div>
-                            <div className="text-xs text-stone-500 font-semibold">{occupiedCount} / {capacity} Seats Occupied</div>
+                            <div className="text-xs text-stone-500 font-semibold">{isOccupied ? 'Currently Occupied' : 'Available'} • {capacity} Seats</div>
                           </div>
                         </div>
                         <button onClick={() => setSelectedTableId(isExpanded ? null : table.id)} className="text-brand-deep text-xs font-bold px-3 py-1.5 bg-brand-light rounded-lg">
@@ -410,43 +419,50 @@ function WaiterFloorContent() {
 
                       {isExpanded && (
                         <div className="p-4 bg-white">
-                          <h4 className="text-xs font-black text-stone-400 uppercase tracking-wider mb-3">Seat Manager</h4>
-                          <div className="grid grid-cols-2 gap-3 mb-4">
-                            {seats.map((seat: Seat) => {
-                              const isOccupied = seat.status === 'OCCUPIED';
-                              return (
-                                <div key={seat.id} className={`p-3 rounded-xl border flex flex-col items-center text-center gap-2 ${isOccupied ? 'border-brand-deep bg-brand-light/30' : 'border-stone-200 bg-stone-50'}`}>
-                                  <div className="text-xs font-bold text-stone-800">{seat.seatNumber}</div>
-                                  <div className={`text-[10px] font-black px-2 py-1 rounded ${isOccupied ? 'bg-brand-deep text-white' : 'bg-stone-200 text-stone-600'}`}>
-                                    {isOccupied ? 'OCCUPIED' : 'VACANT'}
-                                  </div>
-                                  {isOccupied ? (
-                                    <button 
-                                      onClick={() => releaseSeatMutation.mutate(seat.id)}
-                                      disabled={releaseSeatMutation.isPending}
-                                      className="mt-1 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md w-full"
-                                    >
-                                      Release Seat
-                                    </button>
-                                  ) : (
-                                    <button 
-                                      onClick={() => updateSeatMutation.mutate({ seatId: seat.id, newState: 'OCCUPIED' })}
-                                      disabled={updateSeatMutation.isPending}
-                                      className="mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-md w-full"
-                                    >
-                                      Mark Occupied
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                          <h4 className="text-xs font-black text-stone-400 uppercase tracking-wider mb-3">Table Manager</h4>
                           
-                          {(table.currentSessionId || occupiedCount > 0) && (
+                          {seats.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                              {seats.map((seat: Seat) => {
+                                const isSeatOccupied = seat.status === 'OCCUPIED';
+                                return (
+                                  <div key={seat.id} className={`p-3 rounded-xl border flex flex-col items-center text-center gap-2 ${isSeatOccupied ? 'border-brand-deep bg-brand-light/30' : 'border-stone-200 bg-stone-50'}`}>
+                                    <div className="text-xs font-bold text-stone-800">{seat.seatNumber}</div>
+                                    <div className={`text-[10px] font-black px-2 py-1 rounded ${isSeatOccupied ? 'bg-brand-deep text-white' : 'bg-stone-200 text-stone-600'}`}>
+                                      {isSeatOccupied ? 'OCCUPIED' : 'VACANT'}
+                                    </div>
+                                    {isSeatOccupied ? (
+                                      <button 
+                                        onClick={() => closeSessionBySeatMutation.mutate(seat.id)}
+                                        disabled={closeSessionBySeatMutation.isPending}
+                                        className="mt-1 text-[10px] font-bold text-white bg-stone-900 hover:bg-black px-3 py-1 rounded-md w-full"
+                                      >
+                                        Close Session
+                                      </button>
+                                    ) : (
+                                      <button 
+                                        onClick={() => updateSeatMutation.mutate({ seatId: seat.id, newState: 'OCCUPIED' })}
+                                        disabled={updateSeatMutation.isPending}
+                                        className="mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-md w-full"
+                                      >
+                                        Mark Occupied
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-stone-500 mb-4 text-center italic border border-dashed border-stone-200 rounded-xl p-3 bg-stone-50">
+                              Seat-level details are not currently provided by the server. You can flush the entire table.
+                            </p>
+                          )}
+                          
+                          {isOccupied && (
                             <button 
-                              onClick={() => closeSessionMutation.mutate(table.currentSessionId! || table.id)}
+                              onClick={() => closeSessionMutation.mutate(table.currentSessionId || table.tableId || table.id)}
                               disabled={closeSessionMutation.isPending}
-                              className="w-full bg-stone-900 hover:bg-black text-white font-black py-2.5 rounded-xl text-xs transition"
+                              className="w-full bg-stone-900 hover:bg-black text-white font-black py-2.5 rounded-xl text-xs transition shadow-md"
                             >
                               Close Session (Flush Table)
                             </button>

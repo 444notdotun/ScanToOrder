@@ -38,6 +38,7 @@ public class AuthImplementation implements Auth {
         );
         Worker worker = (Worker) authentication.getPrincipal();
         AuthResponse authResponse = new AuthResponse();
+        authResponse.setWorkerId(worker.getWorkerId());
         authResponse.setUsername(worker.getUsername());
         authResponse.setRole(worker.getRole());
         authResponse.setToken(jwtService.generateToken(worker));

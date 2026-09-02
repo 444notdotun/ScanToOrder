@@ -26,6 +26,7 @@ export default function StaffLoginPage() {
         const data = res.data?.data || res.data;
         if (data && data.username) {
           login({
+            workerId: data.workerId,
             username: data.username,
             role: data.role
           });

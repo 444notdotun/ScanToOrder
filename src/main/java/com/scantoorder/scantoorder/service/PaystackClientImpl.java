@@ -32,7 +32,7 @@ public class PaystackClientImpl implements PaystackClient {
     @Value("${paystack.base.url:https://api.paystack.co}")
     private String paystackBaseUrl;
 
-    @Value("${paystack.callback.url:http://localhost:3000/order-success}")
+    @Value("${paystack.callback.url}")
     private String paystackCallbackUrl;
 
     @Setter

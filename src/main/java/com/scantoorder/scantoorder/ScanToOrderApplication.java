@@ -50,7 +50,6 @@ public class ScanToOrderApplication implements CommandLineRunner {
             redisTemplate.delete("menu:active");
         }
         if (categoryRepository.count() == 0 && itemRepo.count() == 0) {
-            // Seed Categories
             Category appetizers = categoryRepository.save(Category.builder().categoryName("Appetizers & Small Chops").isActive(true).build());
             Category swallows = categoryRepository.save(Category.builder().categoryName("Gourmet Swallows & Native Soups").isActive(true).build());
             Category rice = categoryRepository.save(Category.builder().categoryName("Premium Rice & Specialties").isActive(true).build());

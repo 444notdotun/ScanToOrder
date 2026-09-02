@@ -61,4 +61,14 @@ public class SeatController {
         ReleaseSeatResponse response = seatService.releaseSeat(id);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
+
+    @Autowired
+    private com.scantoorder.scantoorder.service.Interface.DiningSessionService diningSessionService;
+
+    @PostMapping("/{id}/close-session")
+    public ResponseEntity<ApiResponse<CloseSessionResponse>> closeSessionBySeat(
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String id) {
+        CloseSessionResponse response = diningSessionService.closeSessionBySeatId(id);
+        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
+    }
 }

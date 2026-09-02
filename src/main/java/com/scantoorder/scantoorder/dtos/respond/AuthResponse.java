@@ -6,6 +6,7 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
 public class AuthResponse {
+    private String workerId;
     private String token;
     private String username;
     private WorkerRole role;

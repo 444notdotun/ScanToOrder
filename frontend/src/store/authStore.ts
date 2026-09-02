@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface WorkerProfile {
+  workerId: string;
   username: string;
   role: string;
 }

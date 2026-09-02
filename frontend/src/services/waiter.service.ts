@@ -56,6 +56,10 @@ export const waiterService = {
     api.post(`/api/v1/seats/${id}/release`)
       .then(res => res as any),
 
+  closeSessionBySeat: (seatId: string): Promise<any> =>
+    api.post(`/api/v1/seats/${seatId}/close-session`)
+      .then(res => res as any),
+
   closeSession: (id: string): Promise<any> => 
     api.post(`/api/v1/sessions/${id}/close`)
       .then(res => res as any),
