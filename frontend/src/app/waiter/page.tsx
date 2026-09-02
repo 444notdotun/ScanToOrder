@@ -53,7 +53,7 @@ function WaiterFloorContent() {
 
   const { data: seatMapData, isLoading: loadingSeatMap } = useQuery({
     queryKey: ['waiterSeatMap', selectedTableNumber],
-    queryFn: () => waiterService.getTableSeatMap(selectedTableNumber!),
+    queryFn: () => waiterService.getTableSeatMap(String(selectedTableNumber)),
     enabled: !!selectedTableNumber,
     refetchInterval: 4000,
   });
@@ -444,7 +444,7 @@ function WaiterFloorContent() {
                                     </div>
                                     {isSeatOccupied ? (
                                       <button 
-                                        onClick={() => closeSessionBySeatMutation.mutate(seat.seatNumber)}
+                                        onClick={() => closeSessionBySeatMutation.mutate(String(seat.seatNumber))}
                                         disabled={closeSessionBySeatMutation.isPending}
                                         className="mt-1 text-[10px] font-bold text-white bg-stone-900 hover:bg-black px-3 py-1 rounded-md w-full"
                                       >
@@ -452,7 +452,7 @@ function WaiterFloorContent() {
                                       </button>
                                     ) : (
                                       <button 
-                                        onClick={() => updateSeatMutation.mutate({ seatId: seat.seatNumber, newState: 'OCCUPIED' })}
+                                        onClick={() => updateSeatMutation.mutate({ seatId: String(seat.seatNumber), newState: 'OCCUPIED' })}
                                         disabled={updateSeatMutation.isPending}
                                         className="mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-md w-full"
                                       >

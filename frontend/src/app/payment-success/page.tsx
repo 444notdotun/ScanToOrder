@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
+import { useCustomerStore } from '@/store/customerStore';
 import { customerService } from '@/services/customer.service';
 import { CheckCircle2, Loader2, ArrowRight, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { session } = useAuthStore();
+  const { sessionId } = useCustomerStore();
   
   const reference = searchParams.get('reference') || searchParams.get('trxref');
   const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading');
@@ -76,7 +76,7 @@ function PaymentSuccessContent() {
   };
 
   const handleFinish = () => {
-    if (session) {
+    if (sessionId) {
       router.push('/session');
     } else {
       router.push('/');
