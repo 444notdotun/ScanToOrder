@@ -109,9 +109,9 @@ public class DiningSessionServiceImpl implements DiningSessionService {
 
     @Transactional
     @Override
-    public CloseSessionResponse closeSessionBySeatId(String seatId) {
-        DinningSession session = dinningSessionRepo.findFirstBySeats_SeatId(seatId)
-                .orElseThrow(() -> new SessionNotFoundException("Active session not found for seat ID: " + seatId));
+    public CloseSessionResponse closeSessionBySeatNumber(String seatNumber) {
+        DinningSession session = dinningSessionRepo.findFirstBySeats_SeatNumber(seatNumber)
+                .orElseThrow(() -> new SessionNotFoundException("Active session not found for seat number: " + seatNumber));
         return closeSession(session.getSessionId());
     }
 

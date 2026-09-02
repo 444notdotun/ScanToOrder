@@ -8,7 +8,7 @@ public interface DiningSessionService {
     CreateSessionResponse createSession(CreateSessionRequest request);
     CloseSessionResponse closeSession(String sessionId);
     CloseSessionResponse closeSessionByTableId(String tableId);
-    CloseSessionResponse closeSessionBySeatId(String seatId);
+    CloseSessionResponse closeSessionBySeatNumber(String seatNumber);
     long getActiveSessionsCount();
     java.util.List<String> getSessionPaymentReferences(String sessionId);
     String createSession(String seatId, String tableNumber, String customerName, String customerPhone, String customerEmail);

@@ -47,6 +47,17 @@ function WaiterFloorContent() {
     refetchInterval: 4000,
   });
 
+  const selectedTableNumber = React.useMemo(() => {
+    return tables.find((t: any) => t.id === selectedTableId)?.tableNumber;
+  }, [tables, selectedTableId]);
+
+  const { data: seatMapData, isLoading: loadingSeatMap } = useQuery({
+    queryKey: ['waiterSeatMap', selectedTableNumber],
+    queryFn: () => waiterService.getTableSeatMap(selectedTableNumber!),
+    enabled: !!selectedTableNumber,
+    refetchInterval: 4000,
+  });
+
   // Mutations
   const updateCallMutation = useMutation({
     mutationFn: (variables: { id: string; status: 'IN_PROGRESS' | 'RESOLVED'; waiterId: string }) => 
@@ -393,7 +404,7 @@ function WaiterFloorContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {tables.map((table: RestaurantTable) => {
                   const isExpanded = selectedTableId === table.id;
-                  const seats = table.seats || [];
+                  const seats = (isExpanded && seatMapData?.seats) ? seatMapData.seats : (table.seats || []);
                   const capacity = table.capacity || 4;
                   const isOccupied = table.status === 'OCCUPIED';
                   
@@ -426,14 +437,14 @@ function WaiterFloorContent() {
                               {seats.map((seat: Seat) => {
                                 const isSeatOccupied = seat.status === 'OCCUPIED';
                                 return (
-                                  <div key={seat.id} className={`p-3 rounded-xl border flex flex-col items-center text-center gap-2 ${isSeatOccupied ? 'border-brand-deep bg-brand-light/30' : 'border-stone-200 bg-stone-50'}`}>
+                                  <div key={seat.seatNumber || seat.id} className={`p-3 rounded-xl border flex flex-col items-center text-center gap-2 ${isSeatOccupied ? 'border-brand-deep bg-brand-light/30' : 'border-stone-200 bg-stone-50'}`}>
                                     <div className="text-xs font-bold text-stone-800">{seat.seatNumber}</div>
                                     <div className={`text-[10px] font-black px-2 py-1 rounded ${isSeatOccupied ? 'bg-brand-deep text-white' : 'bg-stone-200 text-stone-600'}`}>
                                       {isSeatOccupied ? 'OCCUPIED' : 'VACANT'}
                                     </div>
                                     {isSeatOccupied ? (
                                       <button 
-                                        onClick={() => closeSessionBySeatMutation.mutate(seat.id)}
+                                        onClick={() => closeSessionBySeatMutation.mutate(seat.seatNumber)}
                                         disabled={closeSessionBySeatMutation.isPending}
                                         className="mt-1 text-[10px] font-bold text-white bg-stone-900 hover:bg-black px-3 py-1 rounded-md w-full"
                                       >
@@ -441,7 +452,7 @@ function WaiterFloorContent() {
                                       </button>
                                     ) : (
                                       <button 
-                                        onClick={() => updateSeatMutation.mutate({ seatId: seat.id, newState: 'OCCUPIED' })}
+                                        onClick={() => updateSeatMutation.mutate({ seatId: seat.seatNumber, newState: 'OCCUPIED' })}
                                         disabled={updateSeatMutation.isPending}
                                         className="mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-md w-full"
                                       >

@@ -60,6 +60,10 @@ export const waiterService = {
     api.post(`/api/v1/seats/${seatId}/close-session`)
       .then(res => res as any),
 
+  getTableSeatMap: (tableNumber: string): Promise<any> =>
+    api.get(`/api/v1/tables/${tableNumber}/seatMap`)
+      .then(res => res.data?.data || res.data || res),
+
   closeSession: (id: string): Promise<any> => 
     api.post(`/api/v1/sessions/${id}/close`)
       .then(res => res as any),

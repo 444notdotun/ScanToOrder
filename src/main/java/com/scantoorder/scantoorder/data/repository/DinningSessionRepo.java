@@ -11,5 +11,5 @@ public interface DinningSessionRepo extends JpaRepository<DinningSession,String>
     Optional<DinningSession> findDinningSessionBySessionId(String sessionId);
     long countBySessionStatus(com.scantoorder.scantoorder.data.model.DinningSessionStatus status);
     Optional<DinningSession> findFirstByTableId_TableIdAndSessionStatusOrderByCreatedAtDesc(String tableId, com.scantoorder.scantoorder.data.model.DinningSessionStatus status);
-    Optional<DinningSession> findFirstBySeats_SeatId(String seatId);
+    Optional<DinningSession> findFirstBySeats_SeatNumber(String seatNumber);
 }

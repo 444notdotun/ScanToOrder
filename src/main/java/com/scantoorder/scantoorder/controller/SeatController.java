@@ -65,10 +65,10 @@ public class SeatController {
     @Autowired
     private com.scantoorder.scantoorder.service.Interface.DiningSessionService diningSessionService;
 
-    @PostMapping("/{id}/close-session")
+    @PostMapping("/{seatNumber}/close-session")
     public ResponseEntity<ApiResponse<CloseSessionResponse>> closeSessionBySeat(
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String id) {
-        CloseSessionResponse response = diningSessionService.closeSessionBySeatId(id);
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String seatNumber) {
+        CloseSessionResponse response = diningSessionService.closeSessionBySeatNumber(seatNumber);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 }
