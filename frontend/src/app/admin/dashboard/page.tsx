@@ -352,7 +352,7 @@ function ManagerDashboardContent() {
                       </td>
                       <td className="text-right pr-2">
                         <button
-                          onClick={() => deleteWorkerMutation.mutate(w.id || w.workerId)}
+                          onClick={() => deleteWorkerMutation.mutate((w.id || w.workerId) as string)}
                           disabled={deleteWorkerMutation.isPending}
                           className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition cursor-pointer"
                           title="Remove Worker"
