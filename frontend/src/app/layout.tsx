@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-bg-warm text-stone-900">
+      <body className="min-h-full flex flex-col bg-customer-food text-stone-900">
         <Providers>
           <div className="flex-1 flex flex-col">{children}</div>
           <Toaster richColors position="top-right" />

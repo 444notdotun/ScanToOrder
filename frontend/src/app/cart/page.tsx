@@ -34,7 +34,7 @@ export default function Cart() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col pb-32">
+    <div className="min-h-screen flex flex-col pb-32">
       <header className="bg-white px-4 py-4 flex items-center gap-3 border-b border-stone-100 sticky top-0 z-10">
         <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-stone-50">
           <ArrowLeft size={20} />

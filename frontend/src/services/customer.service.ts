@@ -25,7 +25,7 @@ export const customerService = {
     return api.post<any>('/api/v1/seats/claim', {
       seatId: payload.seatId,
       tableId: payload.tableId,
-      customerEmail: payload.customerEmail || 'customer@example.com',
+      customerEmail: 'adedortmahan@gmail.com',
       customerName: payload.customerName,
       customerPhoneNumber: payload.customerPhoneNumber
     }).then(res => res as any);
@@ -101,7 +101,7 @@ export const customerService = {
 
     return api.post<any>('/api/v1/payments/initialize', {
       orderId: id,
-      customerEmail: 'customer@example.com'
+      customerEmail: 'adedortmahan@gmail.com'
     }).then((res: any) => {
       if (res && res.authorizationUrl && typeof window !== 'undefined') {
         window.location.href = res.authorizationUrl;

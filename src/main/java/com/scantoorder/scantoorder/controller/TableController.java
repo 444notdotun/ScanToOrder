@@ -65,7 +65,7 @@ public class TableController {
         byte[] qrImage = tableService.getQrCode(tableNumber);
         return ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.IMAGE_PNG)
-                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"table_" + tableNumber + "_qr.png\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"table_" + tableNumber + "_qr.png\"")
                 .body(qrImage);
     }
 

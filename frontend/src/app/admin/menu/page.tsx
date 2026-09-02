@@ -353,7 +353,7 @@ function MenuCatalogContent() {
                     {(categories || []).filter(Boolean).map((cat, idx) => (
                       <option
                         key={cat.id || cat.name || 'cat-' + idx}
-                        value={cat.id || cat.name || ''}
+                        value={cat.name || ''}
                       >
                         {cat.name || ('Category ' + (idx + 1))}
                       </option>

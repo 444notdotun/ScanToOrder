@@ -12,7 +12,7 @@ export default function Payment() {
   const clearCart = useCustomerStore(state => state.clearCart);
   
   const [method, setMethod] = useState('card');
-  const [email, setEmail] = useState('');
+  const email = 'adedortmahan@gmail.com';
   const [isProcessing, setIsProcessing] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -27,11 +27,7 @@ export default function Payment() {
   };
 
   const handlePayment = async () => {
-    if (!email) {
-      import('sonner').then(m => m.toast.error('Please enter an email address for your receipt.'));
-      return;
-    }
-    
+
     if (cart.length === 0) {
       import('sonner').then(m => m.toast.error('Your cart is empty.'));
       return;
@@ -90,9 +86,9 @@ export default function Payment() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
+    <div className="min-h-screen  flex flex-col">
       <header className="bg-white px-4 py-4 flex items-center gap-3 border-b border-stone-100">
-        <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-stone-50">
+        <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:">
           <ArrowLeft size={20} />
         </button>
         <h1 className="font-bold text-lg text-stone-900">Payment</h1>
@@ -102,21 +98,6 @@ export default function Payment() {
         <div className="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm text-center">
           <p className="text-sm font-semibold text-stone-500 mb-1">Total Amount</p>
           <p className="text-4xl font-black text-orange-600 tracking-tight">{formatNaira(subtotal)}</p>
-        </div>
-
-        <div>
-          <h2 className="font-bold mb-3 px-1 text-stone-800">Customer Details</h2>
-          <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm flex items-center gap-3 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-100 transition-all">
-            <Mail className="text-stone-400" size={20} />
-            <input 
-              type="email" 
-              placeholder="Enter email for receipt"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-stone-900 placeholder-stone-400 font-medium"
-              required
-            />
-          </div>
         </div>
 
         <div>

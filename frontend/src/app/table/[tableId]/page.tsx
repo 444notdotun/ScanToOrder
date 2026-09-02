@@ -52,7 +52,7 @@ export default function TablePage() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-[#FAF9F6]">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 ">
         <Loader2 className="h-8 w-8 text-[#F15927] animate-spin mb-3" />
         <p className="text-stone-500 text-sm font-medium">Loading seat map...</p>
       </div>
@@ -61,7 +61,7 @@ export default function TablePage() {
 
   if (error || !seatMap) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-[#FAF9F6] text-center">
+      <div className="flex-1 flex flex-col items-center justify-center p-6  text-center">
         <Flame className="h-10 w-10 text-[#F15927] mb-3 opacity-50" />
         <p className="text-stone-700 font-bold mb-4">Failed to load table details</p>
         <button
@@ -96,7 +96,7 @@ export default function TablePage() {
   };
 
   return (
-    <div className="flex-1 bg-[#FAF9F6] min-h-screen py-8 px-5 flex flex-col justify-between font-sans relative overflow-hidden">
+    <div className="flex-1  min-h-screen py-8 px-5 flex flex-col justify-between font-sans relative overflow-hidden">
       <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto w-full flex-1 flex flex-col relative z-10">
 
         {/* 1. Header Branding */}
@@ -161,7 +161,7 @@ export default function TablePage() {
                  </button>
 
                  {/* Small label underneath */}
-                 <div className={`absolute top-12 text-[10px] font-bold tracking-wide uppercase whitespace-nowrap bg-[#FAF9F6]/90 px-1.5 py-0.5 rounded shadow-sm
+                 <div className={`absolute top-12 text-[10px] font-bold tracking-wide uppercase whitespace-nowrap /90 px-1.5 py-0.5 rounded shadow-sm
                     ${isSelected ? 'text-[#F15927]' : isOccupied ? 'text-[#8E8E93]' : 'text-[#10B981]'}
                  `}>
                     {statusLabel}
@@ -229,16 +229,7 @@ export default function TablePage() {
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#F15927]/20 focus:border-[#F15927] transition-all bg-stone-50"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-stone-700 mb-1.5">Email Address <span className="text-stone-400 font-normal">(Optional)</span></label>
-                <input 
-                  type="email" 
-                  placeholder="e.g. john@example.com (optional)" 
-                  value={formData.customerEmail}
-                  onChange={(e) => setFormData({...formData, customerEmail: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#F15927]/20 focus:border-[#F15927] transition-all bg-stone-50"
-                />
-              </div>
+
 
               <button
                 type="submit"

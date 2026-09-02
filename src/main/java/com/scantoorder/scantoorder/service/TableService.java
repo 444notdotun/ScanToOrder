@@ -44,6 +44,9 @@ public class TableService implements RestaurantTableService {
   @Autowired
   private SeatService seatService;
 
+  @org.springframework.beans.factory.annotation.Value("${app.frontend.url:http://localhost:3000}")
+  private String frontendUrl;
+
     @Autowired
     private MenuService menuService;
 
@@ -119,7 +122,7 @@ public class TableService implements RestaurantTableService {
             Map<EncodeHintType, Object> hints = new HashMap<>();
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
 
-            String url = "https://scantoorder.com/table/" + tableNumber;
+            String url = frontendUrl + "/table/" + tableNumber;
             BitMatrix bitMatrix = qrCodeWriter.encode(url, BarcodeFormat.QR_CODE, 350, 350, hints);
 
             ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();

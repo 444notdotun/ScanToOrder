@@ -9,7 +9,9 @@ import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -68,8 +70,26 @@ public class SessionController {
 
     @PostMapping("/{id}/close")
     public ResponseEntity<ApiResponse<CloseSessionResponse>> closeSession(
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String id) {
-        CloseSessionResponse response = diningSessionService.closeSession(id);
-        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String id,
+            @AuthenticationPrincipal Object principal) {
+
+        if (principal instanceof CustomerPrincipal customer) {
+            CloseSessionResponse response = diningSessionService.closeSession(customer.getSessionId());
+            
+            ResponseCookie jwtCookie = ResponseCookie.from("access_token", "")
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("None")
+                    .path("/")
+                    .maxAge(0)
+                    .build();
+                    
+            return ResponseEntity.status(HttpStatus.OK)
+                    .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                    .body(new ApiResponse<>(response));
+        } else {
+            CloseSessionResponse response = diningSessionService.closeSessionByTableId(id);
+            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
+        }
     }
 }

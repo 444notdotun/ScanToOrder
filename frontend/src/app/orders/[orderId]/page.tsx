@@ -95,9 +95,7 @@ export default function OrderTracking({ params }: { params: { orderId: string } 
               <button 
                 onClick={async () => {
                   try {
-                    const tableId = localStorage.getItem('tableNumber') || 'UNKNOWN';
-                    const seatId = localStorage.getItem('seatId') || 'UNKNOWN';
-                    await api.post('/api/v1/assistance', { tableId, seatId, reason: 'waiter' });
+                    await api.post('/api/v1/service-calls', { requestType: 'ASSISTANCE', note: 'Customer requested waiter assistance' });
                     import('sonner').then(m => m.toast.success('Waiter notified – someone is on the way to your table.'));
                     setShowAssist(false);
                   } catch (err) {
@@ -111,9 +109,7 @@ export default function OrderTracking({ params }: { params: { orderId: string } 
               <button 
                 onClick={async () => {
                   try {
-                    const tableId = localStorage.getItem('tableNumber') || 'UNKNOWN';
-                    const seatId = localStorage.getItem('seatId') || 'UNKNOWN';
-                    await api.post('/api/v1/assistance', { tableId, seatId, reason: 'items' });
+                    await api.post('/api/v1/service-calls', { requestType: 'HELP', note: 'Customer requested items' });
                     import('sonner').then(m => m.toast.success('Waiter notified – someone is on the way to your table.'));
                     setShowAssist(false);
                   } catch (err) {

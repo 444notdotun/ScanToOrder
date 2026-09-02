@@ -22,6 +22,7 @@ export const waiterService = {
         return raw.map((c: any) => {
           let reqType = 'ASSISTANCE';
           if (c.serviceDescription && c.serviceDescription.includes('ASSISTANCE')) reqType = 'WAITER';
+          else if (c.serviceDescription && c.serviceDescription.includes('HELP')) reqType = 'HELP';
           
           let st = 'PENDING';
           if (c.serviceStatus === 'IN_PROGRESS') st = 'IN_PROGRESS';

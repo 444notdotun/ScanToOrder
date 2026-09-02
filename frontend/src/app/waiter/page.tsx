@@ -137,7 +137,7 @@ function WaiterFloorContent() {
   const tablesNeedingAttention = tables.filter((t: RestaurantTable) => t.status === 'OCCUPIED' || t.currentSessionId);
 
   return (
-    <div className="flex-1 bg-stone-50 min-h-screen flex flex-col">
+    <div className="flex-1 bg-waiter-floor min-h-screen flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-stone-200/50 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-3">

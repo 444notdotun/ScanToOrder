@@ -239,7 +239,7 @@ function DiningHallContent() {
 
 
   if (!mounted || authLoading || refsLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#F8F6F2]"><Loader2 className="w-8 h-8 animate-spin text-brand-deep" /></div>;
+    return <div className="min-h-screen flex items-center justify-center "><Loader2 className="w-8 h-8 animate-spin text-brand-deep" /></div>;
   }
 
   // Combine references: always include the one from URL (if any) just in case the backend hasn't caught up, plus any from backend
@@ -249,7 +249,7 @@ function DiningHallContent() {
 
   if (finalReferences.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F6F2] p-4 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center  p-4 text-center">
         <h2 className="text-xl font-black mb-2">No Active Order</h2>
         <p className="text-stone-500 mb-6">We couldn't find any recent orders for your session.</p>
         <button onClick={() => router.push('/menu')} className="bg-brand-deep text-white px-6 py-3 rounded-xl font-bold">Browse Menu</button>
@@ -258,7 +258,7 @@ function DiningHallContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F6F2] pb-32 font-sans selection:bg-brand-light">
+    <div className="min-h-screen  pb-32 font-sans selection:bg-brand-light">
       <header className="bg-white px-5 py-6 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border-b border-stone-100 sticky top-0 z-20">
         <div className="flex justify-between items-start mb-1">
           <div>
@@ -329,7 +329,7 @@ function DiningHallContent() {
 
 export default function DiningHall() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F8F6F2]">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center ">Loading...</div>}>
       <DiningHallContent />
     </Suspense>
   );

@@ -72,7 +72,7 @@ function MenuContent() {
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading menu...</div>;
 
   return (
-    <div className="min-h-screen bg-stone-50 pb-24 relative">
+    <div className="min-h-screen pb-24 relative">
       <header className="sticky top-0 bg-white shadow-sm z-20 px-4 py-3 flex justify-between items-center border-b border-stone-100">
         <div>
           <h1 className="font-bold text-lg">Menu</h1>

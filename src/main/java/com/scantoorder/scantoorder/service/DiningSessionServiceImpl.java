@@ -81,8 +81,33 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         response.setStatus(DinningSessionStatus.CLOSED.name());
         return response;
     }
-
     
+    @Transactional
+    @Override
+    public CloseSessionResponse closeSessionByTableId(String tableId) {
+        DinningSession session = dinningSessionRepo.findFirstByTableId_TableIdAndSessionStatusOrderByCreatedAtDesc(
+                tableId, DinningSessionStatus.ACTIVE)
+                .orElseThrow(() -> new SessionNotFoundException("Active session not found for table ID: " + tableId));
+
+        session.setSessionStatus(DinningSessionStatus.CLOSED);
+        session.setCompletedAt(LocalDateTime.now().toString());
+        dinningSessionRepo.save(session);
+
+        if (session.getSeats() != null) {
+            for (Seat seat : session.getSeats()) {
+                seat.setStatus(SeatStatus.VACANT);
+                seatRepo.save(seat);
+            }
+        }
+
+        CloseSessionResponse response = new CloseSessionResponse();
+        response.setMessage("Session closed successfully");
+        response.setSessionId(session.getSessionId());
+        response.setStatus(DinningSessionStatus.CLOSED.name());
+        return response;
+    }
+
+
 
 
     @Override

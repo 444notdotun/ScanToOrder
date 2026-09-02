@@ -7,6 +7,7 @@ import com.scantoorder.scantoorder.dtos.respond.CreateSessionResponse;
 public interface DiningSessionService {
     CreateSessionResponse createSession(CreateSessionRequest request);
     CloseSessionResponse closeSession(String sessionId);
+    CloseSessionResponse closeSessionByTableId(String tableId);
     long getActiveSessionsCount();
     java.util.List<String> getSessionPaymentReferences(String sessionId);
     String createSession(String seatId, String tableNumber, String customerName, String customerPhone, String customerEmail);
