@@ -65,6 +65,7 @@ public class SessionController {
     @PostMapping
     public ResponseEntity<ApiResponse<CreateSessionResponse>> createSession( @RequestBody @Valid CreateSessionRequest request) {
         CreateSessionResponse response = diningSessionService.createSession(request);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(response));
     }
 

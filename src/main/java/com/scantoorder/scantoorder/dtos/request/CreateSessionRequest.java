@@ -21,8 +21,7 @@ public class CreateSessionRequest {
     private String customerName;
 
     @NotBlank(message = "customer phone cannot be blank")
-    @Min(value = 11,message = "phone number can not be less than 11")
-    @Max(value = 11,message = "phone number can not be greater than 11")
+    @jakarta.validation.constraints.Size(min = 11, max = 11, message = "phone number must be exactly 11 characters")
     private String customerPhone;
 
     @Email(message = "invalid email")

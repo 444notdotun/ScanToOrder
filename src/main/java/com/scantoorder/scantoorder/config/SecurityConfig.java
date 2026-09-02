@@ -59,6 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/tables").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/tables/*/status").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/tables/*/seatMap").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/tables/*/qrcode").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/seats/claim").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/workers/login").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/auth/login").permitAll()

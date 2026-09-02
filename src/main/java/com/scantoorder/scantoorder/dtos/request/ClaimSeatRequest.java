@@ -23,5 +23,6 @@ public class ClaimSeatRequest {
     private String customerEmail;
 
     @NotBlank(message = "customer phoneNumber cannot be blank")
+    @jakarta.validation.constraints.Size(min = 11, max = 11, message = "phone number must be exactly 11 characters")
     private String customerPhoneNumber;
 }
