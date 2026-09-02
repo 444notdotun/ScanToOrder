@@ -100,6 +100,7 @@ export interface ServiceCall {
 
 export interface Worker {
   id: string;
+  workerId?: string;
   name: string;
   role: WorkerRole;
   username: string;
