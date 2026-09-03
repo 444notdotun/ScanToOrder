@@ -246,6 +246,9 @@ No broken code reaches production.
 
 ## Status
 
-Active build. Deployed at [scantoorder.onrender.com](https://scantoorder.onrender.com).
+Active build.
+
+Backend: https://scantoorder.onrender.com  
+Frontend: https://scantoorderr.netlify.app
 
 *This README is updated as the build progresses.*
