@@ -30,8 +30,8 @@ export const waiterService = {
 
           return {
             id: c.serviceCallId,
-            seatId: c.sessionId?.seats?.[0]?.seatId || '', // First seat if available
-            seatNumber: c.sessionId?.seats?.[0]?.seatNumber,
+            seatId: c.sessionId?.claimedSeatIds?.[0] || '', // First claimed seat UUID
+            seatNumber: undefined, // Looked up dynamically in UI using seatId
             tableId: c.sessionId?.tableId?.tableId || '',
             tableNumber: c.sessionId?.tableId?.tableNumber || '?',
             requestType: reqType,

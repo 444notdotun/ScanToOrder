@@ -44,7 +44,7 @@ public class DiningSessionServiceImpl implements DiningSessionService {
                 .orElseThrow(() -> new TableNotFoundException("Table not found"));
 
         DinningSession dinningSession = new DinningSession();
-        dinningSession.getSeats().add(seat);
+        dinningSession.getClaimedSeatIds().add(seat.getSeatId());
         dinningSession.setCustomerName(request.getCustomerName());
         dinningSession.setCustomerPhone(request.getCustomerPhone());
         dinningSession.setCustomerEmail(request.getCustomerEmail());
