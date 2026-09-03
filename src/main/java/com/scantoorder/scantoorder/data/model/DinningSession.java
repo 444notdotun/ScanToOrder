@@ -25,10 +25,8 @@ public class DinningSession {
     private String customerPhone;
     @Enumerated(EnumType.STRING)
     private DinningSessionStatus sessionStatus;
-    @ManyToMany
-    @JoinTable(name = "dinning_session_seat",
-             joinColumns = @JoinColumn(name = "seatId")
-    )
+    @OneToMany
+    @JoinColumn(name = "dinning_session_seat")
     private List<Seat> seats;
     @CreationTimestamp
     private String createdAt;

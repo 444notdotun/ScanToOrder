@@ -16,7 +16,12 @@ function MenuContent() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const cartCount = useCustomerStore(state => state.cart.reduce((sum, item) => sum + item.quantity, 0));
+  const cartTotal = useCustomerStore(state => state.cart.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0));
   const addToCart = useCustomerStore(state => state.addToCart);
+  
+  const formatNaira = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
+  };
   const [loading, setLoading] = useState(true);
   
   const tableParam = searchParams.get('table');
@@ -78,14 +83,6 @@ function MenuContent() {
           <h1 className="font-bold text-lg">Menu</h1>
           <p className="text-xs text-stone-500">{tableInfo.table} • {tableInfo.seat}</p>
         </div>
-        <Link href="/cart" className="relative p-2 bg-orange-50 text-orange-600 rounded-full">
-          <ShoppingCart size={20} />
-          {mounted && cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-              {cartCount}
-            </span>
-          )}
-        </Link>
       </header>
 
       <div className="sticky top-[60px] z-10 bg-stone-50/95 backdrop-blur overflow-x-auto whitespace-nowrap px-4 py-3 hide-scrollbar border-b border-stone-200">
@@ -191,6 +188,27 @@ function MenuContent() {
           );
         })()}
       </div>
+
+      {/* Floating Bottom Cart */}
+      {mounted && cartCount > 0 && (
+        <div className="fixed bottom-6 left-0 right-0 px-4 z-40 flex justify-center pointer-events-none">
+          <div className="w-full max-w-md pointer-events-auto">
+            <Link 
+              href="/cart" 
+              className="bg-brand-deep hover:bg-brand-accent text-white rounded-2xl p-4 shadow-xl flex items-center justify-between transition-transform active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 rounded-full w-8 h-8 flex items-center justify-center text-sm font-black">
+                  {cartCount}
+                </div>
+                <span className="font-bold text-sm tracking-wide">View Cart</span>
+              </div>
+              <span className="font-black text-sm">{formatNaira(cartTotal)}</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       <ItemDetailModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 

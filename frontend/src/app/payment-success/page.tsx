@@ -28,14 +28,18 @@ function PaymentSuccessContent() {
     let isMounted = true;
     const verify = async () => {
       try {
-        const response = await customerService.verifyPayment(reference);
+        const rawResponse = await customerService.verifyPayment(reference);
         if (!isMounted) return;
 
-        if (response?.paymentStatus === 'SUCCESSFUL' || response?.orderStatus === 'PAID') {
+        // Safely extract the actual payload from either AxiosResponse or raw JSON wrapper
+        const payload = rawResponse?.data?.data || rawResponse?.data || rawResponse;
+
+        if (payload?.paymentStatus === 'SUCCESSFUL' || payload?.orderStatus === 'PAID' || payload?.status === 'SUCCESSFUL' || rawResponse?.data?.status === 'success') {
           setStatus('success');
           try {
-            const receiptData = await customerService.getReceipt(reference);
-            if (isMounted) setReceipt(receiptData);
+            const rawReceipt = await customerService.getReceipt(reference);
+            const receiptPayload = rawReceipt?.data?.data || rawReceipt?.data || rawReceipt;
+            if (isMounted) setReceipt(receiptPayload);
           } catch (err) {
             console.error('Failed to load receipt details', err);
           }
