@@ -18,20 +18,21 @@ Multiple customers at the same table can place independent orders on separate ta
 Customer Browser
     └── REST API (Spring Boot)
             ├── PostgreSQL — orders, sessions, payments, workers
+            ├── Redis — menu caching (cache-aside, 24hr TTL)
             └── Scheduled Jobs — end of day cleanup, stale session reset
 ```
 
-Monolith. Single deployable. No message queue for MVP. Scheduled jobs handle async cleanup.
+Monolith. Single deployable JAR. No message queue for MVP. Scheduled jobs handle async cleanup.
 
 ---
 
 ## Domain Model
 
 **Floor and Seating**
-- `RestaurantTable` — physical table with capacity and QR code generation
+- `RestaurantTable` — physical table with capacity and QR code generation. Status derived from seat states via syncStatusFromSeats(), never set manually.
 - `Seat` — individual seat at a table (VACANT, HELD, OCCUPIED)
-- `DiningSession` — represents the active group at a table, decoupled from the physical table
-- `DiningSessionSeat` — join table linking seats to a session
+- `DiningSession` — represents the active group at a table, decoupled from the physical table (ACTIVE or CLOSED)
+- `DiningSessionSeat` — join table linking seats to a session with foreign keys on both sides
 
 **Menu Catalog**
 - `Menu` — singleton, only one active menu at a time
@@ -66,15 +67,13 @@ No order reaches the kitchen without confirmed payment.
 
 ## Payment Flow
 
-Payment is required before kitchen dispatch. Multiple payment methods supported: CARD, BANK_TRANSFER, CASH. Each attempt creates a new Payment record. If payment fails, the order stays in PENDING_PAYMENT and the customer retries. End of day scheduler cancels all orders still in PENDING_PAYMENT.
+Payment is required before kitchen dispatch. Multiple payment methods supported: CARD, BANK_TRANSFER, CASH. Each attempt creates a new Payment record. If payment fails, the order stays in PENDING_PAYMENT and the customer retries.
 
 Paystack webhook is verified using HMAC SHA512 on every incoming event. The backend acknowledges with 200 immediately before processing to prevent Paystack retries.
 
 ---
 
 ## Scheduled Jobs
-
-Two jobs run automatically:
 
 **End of day cleanup** — cancels all orders stuck in PENDING_PAYMENT at midnight. Handles abandoned orders where the customer left without paying. Silent, no notification sent.
 
@@ -149,7 +148,7 @@ All staff use a single `workers` table with a role enum.
 | GET | /api/orders | View all orders with status filter |
 | GET | /api/service-calls | View all service calls |
 | GET | /api/workers | List all workers |
-| POST | /api/workers | Create worker account |
+| POST | /api/workers | Create a new worker account |
 | PATCH | /api/workers/{id} | Update worker details |
 
 ---
@@ -179,6 +178,7 @@ The JWT filter reads the `type` claim and builds the appropriate principal. `@Au
 | Language | Java 21 |
 | Framework | Spring Boot 3 |
 | Database | PostgreSQL |
+| Caching | Redis — menu cache with 24hr TTL, cache-aside pattern |
 | ORM | Spring Data JPA with HikariCP |
 | Auth | JWT — one secret, two token types (CUSTOMER and WORKER) |
 | Payment | Paystack with HMAC SHA512 webhook verification |
@@ -190,7 +190,7 @@ The JWT filter reads the `type` claim and builds the appropriate principal. `@Au
 
 ## Running Locally
 
-**Prerequisites:** Java 21, PostgreSQL, Maven
+**Prerequisites:** Java 21, PostgreSQL, Redis, Maven
 
 ```bash
 # Clone the repo
@@ -199,6 +199,9 @@ cd scan-to-order
 
 # Create the database
 psql -U postgres -c "CREATE DATABASE scan_to_order;"
+
+# Start Redis
+redis-server
 
 # Configure environment variables
 cp .env.example .env
@@ -221,6 +224,8 @@ App runs on `http://localhost:8080`.
 | PAYSTACK_SECRET_KEY | Paystack secret key for HMAC SHA512 webhook verification |
 | MANAGER_USERNAME | Manager account username, seeded on startup |
 | MANAGER_PASSWORD | Manager account password, BCrypt hashed on seed |
+| REDIS_HOST | Redis host. Defaults to localhost in development. |
+| REDIS_PORT | Redis port. Defaults to 6379 in development. |
 | ENVIRONMENT | development or production |
 | PORT | Injected by Render. Spring Boot reads from ${PORT:8080} |
 
@@ -230,8 +235,8 @@ App runs on `http://localhost:8080`.
 
 GitHub Actions pipeline runs on every push to main:
 
-1. Spin up PostgreSQL service container
-2. Run tests against the container — pipeline fails if any test fails
+1. Spin up PostgreSQL and Redis service containers
+2. Run tests against the containers — pipeline fails if any test fails
 3. Build JAR
 4. Render auto-deploys on push to main after tests pass
 
@@ -241,6 +246,6 @@ No broken code reaches production.
 
 ## Status
 
-Active build. Deployment pending.
+Active build. Deployed at [scantoorder.onrender.com](https://scantoorder.onrender.com).
 
 *This README is updated as the build progresses.*
