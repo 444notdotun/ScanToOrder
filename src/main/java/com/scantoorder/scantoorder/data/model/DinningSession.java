@@ -28,7 +28,7 @@ public class DinningSession {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "dinning_session_seats", joinColumns = @JoinColumn(name = "session_id"))
     @Column(name = "seat_id")
-    private List<String> claimedSeatIds = new ArrayList<>();
+    private List<String> claimedSeatIds;
     
     @CreationTimestamp
     private String createdAt;
@@ -36,6 +36,7 @@ public class DinningSession {
 
     public DinningSession(){
         this.sessionStatus=DinningSessionStatus.ACTIVE;
+        this.claimedSeatIds = new ArrayList<>();
     }
     
     @PrePersist
