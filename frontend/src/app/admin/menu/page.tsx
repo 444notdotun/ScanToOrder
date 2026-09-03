@@ -407,9 +407,9 @@ function MenuCatalogContent() {
           ) : (
             <div className="space-y-6">
               {catalogTree.map((cat, index) => {
-                const catName = cat.CategoryName || cat.categoryName || cat.name;
-                const catId = cat.categoryId || cat.id || catName;
-                const items = cat.itemResponse || cat.items || [];
+                const catName = (cat as any).CategoryName || (cat as any).categoryName || (cat as any).name;
+                const catId = (cat as any).categoryId || (cat as any).id || catName;
+                const items = (cat as any).itemResponse || (cat as any).items || [];
                 
                 return (
                   <div key={catId || 'cat-' + index} className="border border-stone-200 rounded-2xl overflow-hidden">
@@ -421,14 +421,19 @@ function MenuCatalogContent() {
                             alert('Cannot delete category: All items inside this category must be deleted or reassigned first.');
                             return;
                           }
-                          if (window.confirm('Are you sure you want to delete this empty category?')) {
+                          if (window.confirm(`Are you sure you want to delete the empty category "${catName}"?`)) {
                             try {
-                              await api.delete(`/api/v1/categories/${catId}`);
+                              // Find the real category UUID from the categories query
+                              const realCategory = categories.find((c: any) => c.name === catName);
+                              const realCatId = (realCategory as any)?.id || catId;
+                              
+                              await api.delete(`/api/v1/categories/${realCatId}`);
                               import('sonner').then(m => m.toast.success('Category deleted successfully'));
                               fetchCategories();
                               refreshCatalogData();
-                            } catch (e) {
-                              import('sonner').then(m => m.toast.error('Failed to delete category'));
+                            } catch (e: any) {
+                              const errMessage = e.response?.data?.message || 'Failed to delete category';
+                              import('sonner').then(m => m.toast.error(errMessage));
                             }
                           }
                         }}

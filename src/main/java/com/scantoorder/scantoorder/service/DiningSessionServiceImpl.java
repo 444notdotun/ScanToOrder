@@ -68,10 +68,12 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         session.setCompletedAt(LocalDateTime.now().toString());
         dinningSessionRepo.save(session);
 
-        if (session.getSeats() != null) {
-            for (Seat seat : session.getSeats()) {
-                seat.setStatus(SeatStatus.VACANT);
-                seatRepo.save(seat);
+        if (session.getClaimedSeatIds() != null) {
+            for (String sId : session.getClaimedSeatIds()) {
+                seatRepo.findSeatBySeatId(sId).ifPresent(s -> {
+                    s.setStatus(SeatStatus.VACANT);
+                    seatRepo.save(s);
+                });
             }
         }
 
@@ -93,10 +95,12 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         session.setCompletedAt(LocalDateTime.now().toString());
         dinningSessionRepo.save(session);
 
-        if (session.getSeats() != null) {
-            for (Seat seat : session.getSeats()) {
-                seat.setStatus(SeatStatus.VACANT);
-                seatRepo.save(seat);
+        if (session.getClaimedSeatIds() != null) {
+            for (String sId : session.getClaimedSeatIds()) {
+                seatRepo.findSeatBySeatId(sId).ifPresent(s -> {
+                    s.setStatus(SeatStatus.VACANT);
+                    seatRepo.save(s);
+                });
             }
         }
 
@@ -110,7 +114,10 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     @Transactional
     @Override
     public CloseSessionResponse closeSessionBySeatNumber(String seatNumber) {
-        DinningSession session = dinningSessionRepo.findFirstBySeats_SeatNumber(seatNumber)
+        Seat seat = seatRepo.findSeatBySeatNumber(seatNumber)
+                .orElseThrow(() -> new SeatNotFoundException("Seat not found: " + seatNumber));
+                
+        DinningSession session = dinningSessionRepo.findFirstByClaimedSeatIds(seat.getSeatId())
                 .orElseThrow(() -> new SessionNotFoundException("Active session not found for seat number: " + seatNumber));
         return closeSession(session.getSessionId());
     }
@@ -139,7 +146,7 @@ public class DiningSessionServiceImpl implements DiningSessionService {
                 .orElseThrow(() -> new TableNotFoundException("Table not found"));
 
         DinningSession dinningSession = new DinningSession();
-        dinningSession.getSeats().add(seat);
+        dinningSession.getClaimedSeatIds().add(seat.getSeatId());
         dinningSession.setCustomerName(customerName);
         dinningSession.setCustomerPhone(customerPhone);
         dinningSession.setCustomerEmail(customerEmail);

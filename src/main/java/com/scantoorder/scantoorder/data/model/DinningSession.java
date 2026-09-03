@@ -25,21 +25,21 @@ public class DinningSession {
     private String customerPhone;
     @Enumerated(EnumType.STRING)
     private DinningSessionStatus sessionStatus;
-    @OneToMany
-    @JoinColumn(name = "dinning_session_seat")
-    private List<Seat> seats;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "dinning_session_seats", joinColumns = @JoinColumn(name = "session_id"))
+    @Column(name = "seat_id")
+    private List<String> claimedSeatIds = new ArrayList<>();
+    
     @CreationTimestamp
     private String createdAt;
     private String completedAt;
 
-
     public DinningSession(){
-        persist();
-    }
-    @PrePersist
-    public void persist(){
         this.sessionStatus=DinningSessionStatus.ACTIVE;
-        seats=new ArrayList<>();
     }
-
+    
+    @PrePersist
+    public void prePersist(){
+            this.sessionStatus = DinningSessionStatus.ACTIVE;
+    }
 }

@@ -80,11 +80,7 @@ function PaymentSuccessContent() {
   };
 
   const handleFinish = () => {
-    if (sessionId) {
-      router.push('/session');
-    } else {
-      router.push('/');
-    }
+    router.push('/session');
   };
 
   const formatNaira = (amount: number) => {
@@ -156,14 +152,6 @@ function PaymentSuccessContent() {
                 ref={receiptRef}
                 className="bg-[#FDFBF7] px-6 py-8 relative overflow-hidden text-stone-900"
               >
-                {/* Watermark inside the receipt itself */}
-                <div 
-                  className="absolute inset-0 pointer-events-none opacity-[0.04] z-0" 
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='150' height='150' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='50%25' y='50%25' font-size='18' font-weight='900' font-family='sans-serif' fill='%23000' text-anchor='middle' dominant-baseline='middle' transform='rotate(-30 75 75)'%3ESCAN TO ORDER%3C/text%3E%3C/svg%3E")`,
-                    backgroundSize: '150px 150px',
-                  }}
-                />
 
                 <div className="relative z-10 space-y-6">
                   

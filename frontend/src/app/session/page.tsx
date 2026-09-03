@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Clock, Bell, Receipt, CheckCircle2, Flame, ChefHat, ArrowRight, Download, Loader2 } from 'lucide-react';
@@ -46,6 +47,33 @@ function OrderTicket({ reference }: { reference: string }) {
     enabled: !!orderId,
     refetchInterval: 3000
   });
+
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [isDownloadingImage, setIsDownloadingImage] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!receiptRef.current) return;
+    setIsDownloadingImage(true);
+    
+    try {
+      const element = receiptRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#FDFBF7',
+        useCORS: true,
+      });
+      
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `ScanToOrder_Receipt_${receipt?.receiptNumber || '000'}.png`;
+      link.click();
+    } catch (err) {
+      console.error('Failed to generate receipt image', err);
+    } finally {
+      setIsDownloadingImage(false);
+    }
+  };
 
   if (receiptLoading) {
     return <div className="h-64 bg-stone-200/50 rounded-3xl animate-pulse mb-6" />;
@@ -105,69 +133,98 @@ function OrderTicket({ reference }: { reference: string }) {
         {renderStepper(orderStatus || 'PAID')}
       </div>
 
-      <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden relative">
-        <div className="p-5 border-b border-dashed border-stone-200 bg-stone-50 flex justify-between items-center">
-          <div className="space-y-0.5">
-            <span className="text-[10px] text-stone-400 font-extrabold uppercase tracking-widest">Order Ticket</span>
-            <p className="font-black text-stone-900">#{receipt.receiptNumber || orderId?.substring(0,6)}</p>
-          </div>
-          <div className="text-right space-y-0.5">
-            <span className="text-[10px] text-stone-400 font-extrabold uppercase tracking-widest">Table / Seat</span>
-            <p className="font-black text-brand-deep">{receipt.tableNumber} &bull; {receipt.seatLabel}</p>
-          </div>
-        </div>
-
-        <div className="p-5 space-y-4">
-          <span className="text-[10px] text-stone-400 font-black uppercase tracking-wider block">Items Summary</span>
-          <div className="divide-y divide-stone-100 text-sm">
-            {receipt.items && receipt.items.map((item: any, idx: number) => (
-              <div key={idx} className="py-3 flex justify-between items-start">
-                <div>
-                  <span className="font-bold text-stone-900">{item.itemName}</span>
-                  <span className="text-stone-400 ml-1.5 font-semibold">&times; {item.quantity}</span>
-                  {item.specialInstructions && (
-                    <p className="text-[10px] text-brand-accent italic mt-1">
-                      &ldquo;{item.specialInstructions}&rdquo;
-                    </p>
-                  )}
-                </div>
-                <span className="font-extrabold text-stone-700">
-                  {formatNaira(item.totalPrice)}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="pt-4 border-t border-stone-200 space-y-2 text-sm">
-            <div className="flex justify-between text-stone-500 font-bold">
-              <span>Subtotal</span>
-              <span>{formatNaira(receipt.subtotal)}</span>
-            </div>
-            <div className="flex justify-between items-center text-stone-900 font-black text-lg pt-2">
-              <span>Total Paid</span>
-              <span className="text-brand-deep">{formatNaira(receipt.totalPaid)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-5 py-4 bg-stone-50 border-t border-stone-200 flex flex-col gap-1.5 text-[10px] text-stone-400 font-semibold">
-          <div className="flex justify-between">
-            <span>Payment Ref:</span>
-            <span className="font-mono text-stone-600">{receipt.paymentReference}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Date:</span>
-            <span className="text-stone-600">
-              {receipt.paymentDate ? new Date(receipt.paymentDate).toLocaleString() : new Date().toLocaleString()}
-            </span>
-          </div>
-          <button 
-            onClick={() => customerService.downloadReceiptCsv(reference)}
-            className="mt-3 w-full bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors font-bold text-xs shadow-sm"
+      <div className="flex justify-center">
+        <div className="w-full max-w-sm drop-shadow-md">
+          {/* Top Jagged Edge */}
+          <div className="h-3 w-full bg-[#FDFBF7]" style={{ backgroundImage: 'radial-gradient(circle at 5px 0, transparent 5px, #FDFBF7 6px)', backgroundSize: '10px 10px', backgroundRepeat: 'repeat-x' }}></div>
+          
+          {/* Actual Receipt Capture Area */}
+          <div 
+            ref={receiptRef}
+            className="bg-[#FDFBF7] px-6 py-8 relative overflow-hidden text-stone-900"
           >
-            <Download className="w-4 h-4 text-stone-500" />
-            Download Receipt
-          </button>
+            <div className="relative z-10 space-y-6">
+              {/* Receipt Header */}
+              <div className="text-center space-y-1">
+                <h1 className="text-2xl font-black tracking-tight text-brand-deep">SCAN TO ORDER</h1>
+                <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Digital Dining Receipt</p>
+              </div>
+
+              {/* Divider */}
+              <div className="border-b-2 border-dashed border-stone-300 w-full"></div>
+
+              {/* Meta Details */}
+              <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+                <div>
+                  <span className="text-[9px] text-stone-400 font-bold uppercase tracking-wider block font-sans">Receipt No</span>
+                  <p className="font-bold">{receipt.receiptNumber || orderId?.substring(0,6)}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[9px] text-stone-400 font-bold uppercase tracking-wider block font-sans">Table / Seat</span>
+                  <p className="font-bold text-brand-deep">{receipt.tableNumber} - {receipt.seatLabel}</p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-b-2 border-dashed border-stone-300 w-full"></div>
+
+              {/* Items List */}
+              <div className="space-y-3 font-mono text-xs">
+                {receipt.items && receipt.items.map((item: any, idx: number) => (
+                  <div key={idx} className="flex flex-col">
+                    <div className="flex justify-between items-start">
+                      <span className="font-bold pr-2">{item.quantity}x {item.itemName}</span>
+                      <span className="font-bold">{formatNaira(item.totalPrice)}</span>
+                    </div>
+                    {item.specialInstructions && (
+                      <span className="text-[10px] italic text-stone-500 font-sans mt-0.5">
+                        * {item.specialInstructions}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Divider */}
+              <div className="border-b-2 border-dashed border-stone-300 w-full"></div>
+
+              {/* Totals */}
+              <div className="space-y-2 font-mono text-sm">
+                <div className="flex justify-between text-stone-500">
+                  <span>Subtotal</span>
+                  <span>{formatNaira(receipt.subtotal)}</span>
+                </div>
+                <div className="flex justify-between font-black text-base pt-1">
+                  <span>TOTAL PAID</span>
+                  <span className="text-brand-deep">{formatNaira(receipt.totalPaid)}</span>
+                </div>
+              </div>
+
+              {/* Footer details */}
+              <div className="pt-6 text-center space-y-1">
+                <p className="text-[10px] font-mono text-stone-400">Ref: {receipt.paymentReference}</p>
+                <p className="text-[10px] font-mono text-stone-400">
+                  {receipt.paymentDate ? new Date(receipt.paymentDate).toLocaleString() : new Date().toLocaleString()}
+                </p>
+                <p className="text-xs font-bold text-stone-900 mt-4 font-sans">Thank you for dining with us!</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Jagged Edge */}
+          <div className="h-3 w-full bg-[#FDFBF7] rotate-180" style={{ backgroundImage: 'radial-gradient(circle at 5px 0, transparent 5px, #FDFBF7 6px)', backgroundSize: '10px 10px', backgroundRepeat: 'repeat-x' }}></div>
         </div>
+      </div>
+
+      <div className="mt-4 flex justify-center">
+        <button 
+          onClick={handleDownloadPdf}
+          disabled={isDownloadingImage}
+          className="w-full max-w-sm bg-white border-2 border-stone-200 hover:border-brand-deep hover:text-brand-deep text-stone-600 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 text-sm transition cursor-pointer shadow-sm"
+        >
+          {isDownloadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          {isDownloadingImage ? 'Generating Receipt...' : 'Download Digital Receipt'}
+        </button>
       </div>
     </div>
   );
@@ -228,8 +285,8 @@ function DiningHallContent() {
       useCustomerStore.getState().clearSeat();
       useCustomerStore.getState().clearCart();
       
-      // Hard redirect to force React to unmount completely and clear query caches
-      window.location.href = '/';
+      // Hard redirect to review page instead of the simulator
+      window.location.href = '/review';
     },
     onError: (err) => {
       console.error(err);
