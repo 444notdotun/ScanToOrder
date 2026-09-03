@@ -55,23 +55,28 @@ function PaymentSuccessContent() {
   }, [reference]);
 
   const handleDownloadPdf = async () => {
-    if (!receiptRef.current) return;
+    if (!receiptRef.current || !reference) return;
     setIsDownloadingImage(true);
     
     try {
-      // Temporarily ensure the receipt is fully visible and not rounded for the canvas capture
       const element = receiptRef.current;
       const canvas = await html2canvas(element, {
-        scale: 2, // High resolution
-        backgroundColor: '#FDFBF7', // Match the receipt paper color
+        scale: 2,
+        backgroundColor: '#FDFBF7',
         useCORS: true,
       });
       
-      const image = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = image;
-      link.download = `ScanToOrder_Receipt_${receipt?.receiptNumber || '000'}.png`;
-      link.click();
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `ScanToOrder_Receipt_${receipt?.receiptNumber || '000'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 'image/png');
     } catch (err) {
       console.error('Failed to generate receipt image', err);
     } finally {
