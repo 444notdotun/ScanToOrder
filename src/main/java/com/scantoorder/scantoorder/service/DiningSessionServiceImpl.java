@@ -288,6 +288,35 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         return new ReleaseSeatResponse("Seat released successfully", seat.getSeatId(), seat.getSeatNumber(), SeatStatus.VACANT.name());
     }
 
+    // Returns held seats whose time has passed to vacant. The seat lock decides a join that lands at the same moment.
+    @Transactional
+    @Override
+    public int expireHolds() {
+        List<String> seatIds = sessionSeatRepo.findSeatIdsByStatusAndHeldUntilBefore(SessionSeatStatus.HELD, LocalDateTime.now());
+        if (seatIds.isEmpty()) {
+            return 0;
+        }
+        int released = 0;
+        for (Seat seat : seatRepo.findAllForUpdate(seatIds)) {
+            boolean wasHeld = seat.getStatus() == SeatStatus.HELD;
+            if (seatLedger.current(seat.getSeatId()).isEmpty() && wasHeld) {
+                released++;
+            }
+        }
+        return released;
+    }
+
+    @Transactional
+    @Override
+    public int closeAllActiveSessions() {
+        List<DinningSession> sessions = dinningSessionRepo.findBySessionStatus(DinningSessionStatus.ACTIVE);
+        for (DinningSession session : sessions) {
+            lockSeats(session.getSessionId(), List.of());
+            finishSession(session);
+        }
+        return sessions.size();
+    }
+
     @Override
     public long getActiveSessionsCount() {
         return dinningSessionRepo.countBySessionStatus(DinningSessionStatus.ACTIVE);

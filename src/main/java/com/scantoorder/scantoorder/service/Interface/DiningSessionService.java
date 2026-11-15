@@ -23,6 +23,8 @@ public interface DiningSessionService {
     CloseTableResponse closeTable(String tableId);
     TableSessionsResponse getTableSessions(String tableId);
     ReleaseSeatResponse freeSeat(String seatId);
+    int expireHolds();
+    int closeAllActiveSessions();
     long getActiveSessionsCount();
     List<String> getSessionPaymentReferences(CustomerPrincipal caller);
 }

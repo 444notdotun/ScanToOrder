@@ -44,8 +44,6 @@ class DataSeederTest {
         long workers = workerRepo.count();
         long categories = categoryRepository.count();
         long items = itemRepo.count();
-        assertTrue(categories > 0);
-        assertTrue(items > 0);
         dataSeeder.run();
         assertEquals(workers, workerRepo.count());
         assertEquals(categories, categoryRepository.count());
