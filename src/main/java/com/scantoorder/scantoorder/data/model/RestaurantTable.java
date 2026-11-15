@@ -2,7 +2,10 @@ package com.scantoorder.scantoorder.data.model;
 
 import com.scantoorder.scantoorder.utils.CodeGenerator;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Data
@@ -15,17 +18,14 @@ public class RestaurantTable {
     private String tableId;
     @Column(unique = true)
     private String tableNumber;
+    @Column(unique = true)
+    private Integer displayNumber;
     private  int Capacity;
-    @Enumerated(EnumType.STRING)
-    private TableStatus status;
     private boolean isActive;
-
-
 
     @PrePersist
     public void prePersist(){
          isActive=true;
-         status=TableStatus.AVAILABLE;
          tableNumber= CodeGenerator.generate(CodePrefix.TABLE);
      }
 }

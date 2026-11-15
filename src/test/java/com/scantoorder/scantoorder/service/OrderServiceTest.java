@@ -53,7 +53,6 @@ class OrderServiceTest {
         item1.setItemPrice(BigDecimal.valueOf(51000));
         itemRepo.save(item1);
         session = new DinningSession();
-        session.setCustomerPhone("08149048149");
         dinningSessionRepo.save(session);
         CreateOrderItemRequest createOrderItemRequest = new CreateOrderItemRequest();
         createOrderItemRequest.setItemName("itemName");

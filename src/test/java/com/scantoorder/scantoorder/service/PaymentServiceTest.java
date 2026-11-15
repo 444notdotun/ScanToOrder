@@ -76,7 +76,6 @@ class PaymentServiceTest {
         seatRepo.save(seat);
 
         DinningSession dinningSession = new DinningSession();
-        dinningSession.setCustomerPhone("08012345678");
         dinningSessionRepo.save(dinningSession);
 
         Order order = new Order();

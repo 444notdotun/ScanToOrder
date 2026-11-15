@@ -1,15 +1,14 @@
 package com.scantoorder.scantoorder.service.Interface;
 
-import com.scantoorder.scantoorder.dtos.request.CreateSessionRequest;
+import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.dtos.respond.CloseSessionResponse;
-import com.scantoorder.scantoorder.dtos.respond.CreateSessionResponse;
+import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
+
+import java.util.List;
 
 public interface DiningSessionService {
-    CreateSessionResponse createSession(CreateSessionRequest request);
     CloseSessionResponse closeSession(String sessionId);
-    CloseSessionResponse closeSessionByTableId(String tableId);
-    CloseSessionResponse closeSessionBySeatNumber(String seatNumber);
+    ReleaseSeatResponse freeSeat(String seatId);
     long getActiveSessionsCount();
-    java.util.List<String> getSessionPaymentReferences(String sessionId);
-    String createSession(String seatId, String tableNumber, String customerName, String customerPhone, String customerEmail);
+    List<String> getSessionPaymentReferences(CustomerPrincipal caller);
 }

@@ -62,6 +62,18 @@ public class ControllerSecurityValidationTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private void signInAs(String role) {
+        org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("someone", null,
+                java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority(role))));
+        org.springframework.security.core.context.SecurityContextHolder.setContext(context);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    public void signOut() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
+
     @BeforeEach
     public void setup() {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(wac)
@@ -95,17 +107,23 @@ public class ControllerSecurityValidationTest {
         claimResponse.setToken("mock-jwt-token");
         claimResponse.setMessage("Seat claimed successfully");
 
-        Mockito.when(seatService.claimSeat(any(ClaimSeatRequest.class))).thenReturn(claimResponse);
+        Mockito.when(seatService.claimSeat(any(ClaimSeatRequest.class), any())).thenReturn(claimResponse);
 
         mockMvc.perform(post("/api/v1/seats/claim")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(claimRequest)))
                 .andExpect(status().isCreated());
 
+        // Seat overrides are staff only
+        signInAs("ROLE_CUSTOMER");
+        mockMvc.perform(post("/api/v1/seats/seat-123/release"))
+                .andExpect(status().isForbidden());
+        signInAs("ROLE_WAITER");
+
         // Test Update Seat
         UpdateSeatRequest updateRequest = new UpdateSeatRequest();
         updateRequest.setSeatId("seat-123");
-        updateRequest.setNewState("OCCUPIED");
+        updateRequest.setNewState("VACANT");
 
         UpdateSeatResponse updateResponse = new UpdateSeatResponse("Updated", "seat-123", "S1", "OCCUPIED");
         Mockito.when(seatService.updateSeat(any(UpdateSeatRequest.class))).thenReturn(updateResponse);
@@ -134,26 +152,11 @@ public class ControllerSecurityValidationTest {
 
     @Test
     public void testSessionControllerEndpoints() throws Exception {
-        // Test Create Session
-        CreateSessionRequest request = new CreateSessionRequest();
-        request.setSeatId("seat-123");
-        request.setTableNumber("T1");
-        request.setCustomerEmail("customer@example.com");
-        request.setCustomerName("Jane Doe");
-        request.setCustomerPhone("08149048149");
-
-        CreateSessionResponse createResponse = new CreateSessionResponse();
-        createResponse.setSessionId("sess-123");
-        createResponse.setTableId("table-123");
-        createResponse.setSeatId("seat-123");
-
-        Mockito.when(diningSessionService.createSession(any(CreateSessionRequest.class))).thenReturn(createResponse);
-
-        mockMvc.perform(post("/api/v1/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
-                .andExpect(status().isCreated());
+        // Closing a session is staff only
+        signInAs("ROLE_CUSTOMER");
+        mockMvc.perform(post("/api/v1/sessions/sess-123/close"))
+                .andExpect(status().isForbidden());
+        signInAs("ROLE_WAITER");
 
         // Test Close Session (Valid and Invalid)
         CloseSessionResponse closeResponse = new CloseSessionResponse("Closed", "sess-123", "CLOSED");
@@ -242,7 +245,7 @@ public class ControllerSecurityValidationTest {
 
         Mockito.when(orderService.createOrder(any(CreateOrderRequest.class), any(String.class), any(String.class), any(String.class))).thenReturn(orderResponse);
 
-        com.scantoorder.scantoorder.data.model.CustomerPrincipal mockPrincipal = new com.scantoorder.scantoorder.data.model.CustomerPrincipal(sessionId, seatId, tableId);
+        com.scantoorder.scantoorder.data.model.CustomerPrincipal mockPrincipal = new com.scantoorder.scantoorder.data.model.CustomerPrincipal(sessionId, seatId, tableId, "member-1");
         org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
         java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CUSTOMER"));
         context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(mockPrincipal, null, authorities));

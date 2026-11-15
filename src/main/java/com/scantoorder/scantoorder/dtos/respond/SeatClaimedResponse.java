@@ -8,4 +8,11 @@ import lombok.Data;
 public class SeatClaimedResponse {
     private String message;
     private String token;
+    private String sessionId;
+    private String joinCode;
+    private String seatId;
+    private String seatNumber;
+    private Integer position;
+    private String tableNumber;
+    private Integer displayNumber;
 }

@@ -38,12 +38,13 @@ public class jwtServiceImplementation implements JwtService {
         return email.equals(player.getUsername()) && !isTokenExpired(token) ;
     }
 
-    public String generateCustomerToken(String sessionId, String seatId, String tableId) {
+    public String generateCustomerToken(String sessionId, String seatId, String tableId, String sessionSeatId) {
         return Jwts.builder()
                 .claim("type", "CUSTOMER")
                 .claim("sessionId", sessionId)
                 .claim("seatId", seatId)
                 .claim("tableId", tableId)
+                .claim("sessionSeatId", sessionSeatId)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(encodeKey(secretKey))

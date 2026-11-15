@@ -1,5 +1,9 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.dtos.request.CreateTableRequest;
+import com.scantoorder.scantoorder.dtos.respond.TableResponse;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.scantoorder.scantoorder.data.model.RestaurantTable;
 import com.scantoorder.scantoorder.data.model.TableStatus;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
@@ -25,16 +29,16 @@ public class TableController {
     @Autowired
     private RestaurantTableService tableService;
 
+    @PreAuthorize("hasRole('MANAGER')")
     @PostMapping
     public ResponseEntity<ApiResponse<CreateRestaurantTableResponse>> createTable(
-            @Min(value = 4, message = "seat capacity can not be less than 4") 
-            @RequestBody int seatCapacity) {
+            @Valid @RequestBody CreateTableRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(tableService.createTable(seatCapacity)));
+                .body(new ApiResponse<>(tableService.createTable(request)));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<RestaurantTable>>> getAllTable() {
+    public ResponseEntity<ApiResponse<List<TableResponse>>> getAllTable() {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(new ApiResponse<>(tableService.viewAllTable()));
     }
@@ -69,6 +73,7 @@ public class TableController {
                 .body(qrImage);
     }
 
+    @PreAuthorize("hasRole('MANAGER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<String>> deleteTable(
             @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format") String id) {

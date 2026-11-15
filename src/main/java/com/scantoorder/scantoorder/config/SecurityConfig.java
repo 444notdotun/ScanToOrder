@@ -61,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/tables/*/seatMap").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/tables/*/qrcode").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/seats/claim").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/seats/*/join").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/workers/login").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/payments/webhook").permitAll()
@@ -69,7 +70,9 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, e) -> {
                     res.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
                     res.setContentType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE);
-                    res.getWriter().write("{\"status\":\"ERROR\",\"message\":\"Unauthorized\"}");
+                    String message = req.getAttribute(JwtFilter.SESSION_ENDED_ATTRIBUTE) != null
+                            ? JwtFilter.SESSION_ENDED_MESSAGE : "Unauthorized";
+                    res.getWriter().write("{\"status\":\"ERROR\",\"message\":\"" + message + "\"}");
                 }))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
