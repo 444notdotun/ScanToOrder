@@ -4,13 +4,16 @@ import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.dtos.request.ConfirmGuestRequest;
 import com.scantoorder.scantoorder.dtos.request.HoldSeatsRequest;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
+import com.scantoorder.scantoorder.dtos.respond.LeaveSessionResponse;
 import com.scantoorder.scantoorder.dtos.respond.SessionViewResponse;
 import com.scantoorder.scantoorder.dtos.respond.CloseSessionResponse;
 import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -66,6 +69,23 @@ public class SessionController {
             @Valid @RequestBody ConfirmGuestRequest request) {
         SessionViewResponse response = diningSessionService.confirmGuest(principal, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(response));
+    }
+
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/me/leave")
+    public ResponseEntity<ApiResponse<LeaveSessionResponse>> leave(
+            @AuthenticationPrincipal CustomerPrincipal principal) {
+        LeaveSessionResponse response = diningSessionService.leave(principal);
+        ResponseCookie expiredCookie = ResponseCookie.from("access_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(0)
+                .build();
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.SET_COOKIE, expiredCookie.toString())
+                .body(new ApiResponse<>(response));
     }
 
     @GetMapping("/active/count")

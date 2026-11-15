@@ -19,7 +19,13 @@ import com.scantoorder.scantoorder.data.repository.SessionSeatRepo;
 import com.scantoorder.scantoorder.dtos.respond.CloseSessionResponse;
 import com.scantoorder.scantoorder.data.model.RestaurantTable;
 import com.scantoorder.scantoorder.dtos.request.ConfirmGuestRequest;
+import com.scantoorder.scantoorder.data.repository.TableRepo;
+import com.scantoorder.scantoorder.dtos.respond.CloseTableResponse;
+import com.scantoorder.scantoorder.dtos.respond.LeaveSessionResponse;
 import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
+import com.scantoorder.scantoorder.dtos.respond.TableSessionView;
+import com.scantoorder.scantoorder.dtos.respond.TableSessionsResponse;
+import com.scantoorder.scantoorder.exception.TableNotFoundException;
 import com.scantoorder.scantoorder.dtos.respond.SessionSeatView;
 import com.scantoorder.scantoorder.dtos.respond.SessionViewResponse;
 import com.scantoorder.scantoorder.exception.InvalidRequestException;
@@ -57,6 +63,8 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     private SessionSeatRepo sessionSeatRepo;
     @Autowired
     private SeatRepo seatRepo;
+    @Autowired
+    private TableRepo tableRepo;
     @Autowired
     private OrderRepo orderRepo;
     @Autowired
@@ -173,6 +181,21 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         return target;
     }
 
+    // Leaving frees only the caller's seat. Paid food is still served; unpaid orders never reached the kitchen.
+    @Transactional
+    @Override
+    public LeaveSessionResponse leave(CustomerPrincipal caller) {
+        if (caller == null || caller.getSessionId() == null) {
+            throw new SessionEndedException(SESSION_ENDED);
+        }
+        lockSeats(caller.getSessionId(), List.of());
+        SessionSeat me = requireSeated(caller);
+        seatLedger.cancelUnpaidOrders(me);
+        seatLedger.release(me);
+        boolean sessionClosed = closeIfEmpty(me.getSession());
+        return new LeaveSessionResponse("You have left the table. Thank you for coming.", sessionClosed);
+    }
+
     @Transactional
     @Override
     public CloseSessionResponse closeSession(String sessionId) {
@@ -185,6 +208,56 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         long paidUndelivered = countPaidUndelivered(sessionId);
         finishSession(session);
         return new CloseSessionResponse("Session closed successfully", sessionId, DinningSessionStatus.CLOSED.name(), paidUndelivered);
+    }
+
+    @Transactional
+    @Override
+    public CloseTableResponse closeTable(String tableId) {
+        RestaurantTable table = tableRepo.findById(tableId)
+                .orElseThrow(() -> new TableNotFoundException("We cannot find that table"));
+        List<String> seatIds = seatRepo.findSeatIdsByTable(tableId);
+        List<Seat> seats = seatIds.isEmpty() ? List.of() : seatRepo.findAllForUpdate(seatIds);
+        List<DinningSession> sessions = dinningSessionRepo
+                .findByTableId_TableIdAndSessionStatusOrderByCreatedAtAsc(table.getTableId(), DinningSessionStatus.ACTIVE);
+        long paidUndelivered = 0;
+        for (DinningSession session : sessions) {
+            paidUndelivered += countPaidUndelivered(session.getSessionId());
+            finishSession(session);
+        }
+        // A closed table is an empty table: clear any seat left marked by mistake.
+        for (Seat seat : seats) {
+            if (seat.getStatus() != SeatStatus.VACANT) {
+                seat.setStatus(SeatStatus.VACANT);
+                seatRepo.save(seat);
+            }
+        }
+        return new CloseTableResponse("Table closed successfully", tableId, sessions.size(), paidUndelivered);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public TableSessionsResponse getTableSessions(String tableId) {
+        RestaurantTable table = tableRepo.findById(tableId)
+                .orElseThrow(() -> new TableNotFoundException("We cannot find that table"));
+        TableSessionsResponse response = new TableSessionsResponse();
+        response.setTableId(table.getTableId());
+        response.setTableNumber(table.getTableNumber());
+        response.setDisplayNumber(table.getDisplayNumber());
+        long total = 0;
+        for (DinningSession session : dinningSessionRepo
+                .findByTableId_TableIdAndSessionStatusOrderByCreatedAtAsc(tableId, DinningSessionStatus.ACTIVE)) {
+            TableSessionView view = new TableSessionView();
+            view.setSessionId(session.getSessionId());
+            view.setStartedAt(session.getCreatedAt());
+            view.setPaidUndeliveredOrders(countPaidUndelivered(session.getSessionId()));
+            for (SessionSeat membership : activeMembers(session.getSessionId())) {
+                view.getSeats().add(seatView(membership));
+            }
+            total += view.getPaidUndeliveredOrders();
+            response.getSessions().add(view);
+        }
+        response.setPaidUndeliveredOrders(total);
+        return response;
     }
 
     @Transactional
