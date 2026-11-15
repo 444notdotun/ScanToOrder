@@ -11,12 +11,14 @@ import com.scantoorder.scantoorder.data.repository.DinningSessionRepo;
 import com.scantoorder.scantoorder.data.repository.SeatRepo;
 import com.scantoorder.scantoorder.data.repository.SessionSeatRepo;
 import com.scantoorder.scantoorder.dtos.request.ClaimSeatRequest;
+import com.scantoorder.scantoorder.dtos.request.JoinSeatRequest;
 import com.scantoorder.scantoorder.dtos.request.UpdateSeatRequest;
 import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
 import com.scantoorder.scantoorder.dtos.respond.SeatClaimedResponse;
 import com.scantoorder.scantoorder.dtos.respond.SeatStatusResponse;
 import com.scantoorder.scantoorder.dtos.respond.UpdateSeatResponse;
 import com.scantoorder.scantoorder.exception.SeatNotFoundException;
+import com.scantoorder.scantoorder.exception.SeatOwnershipException;
 import com.scantoorder.scantoorder.exception.SeatStatusException;
 import com.scantoorder.scantoorder.exception.SeatTakenException;
 import com.scantoorder.scantoorder.exception.TableNotFoundException;
@@ -93,6 +95,28 @@ public class SeatServiceImplementation implements SeatService {
         SessionSeat membership = seatLedger.occupy(session, seat, claimSeatRequest.getCustomerName(),
                 claimSeatRequest.getCustomerPhoneNumber(), claimSeatRequest.getCustomerEmail());
         return seated("Seat claimed successfully", membership, true);
+    }
+
+    // The join code only opens a seat its own session is holding right now.
+    @Transactional
+    @Override
+    public SeatClaimedResponse joinSeat(String seatId, JoinSeatRequest joinSeatRequest, CustomerPrincipal caller) {
+        Seat seat = lockSeatAtOpenTable(seatId);
+        SeatClaimedResponse alreadySeated = returnToOwnSeat(caller, seat.getTableId());
+        if (alreadySeated != null) return alreadySeated;
+
+        SessionSeat held = seatLedger.current(seatId)
+                .orElseThrow(() -> new SeatStatusException("This seat is no longer being held. You can take it as your own."));
+        if (held.getStatus() != SessionSeatStatus.HELD) {
+            throw new SeatTakenException("That seat was just taken. Pick another held seat.");
+        }
+        String code = joinSeatRequest.getJoinCode() == null ? "" : joinSeatRequest.getJoinCode().trim();
+        if (!held.getSession().getJoinCode().equalsIgnoreCase(code)) {
+            throw new SeatOwnershipException("That code does not match this seat. Check it and try again.");
+        }
+        seatLedger.seatGuest(held, joinSeatRequest.getCustomerName(), joinSeatRequest.getCustomerPhoneNumber(),
+                joinSeatRequest.getCustomerEmail(), true);
+        return seated("You have joined the table", held, true);
     }
 
     @Transactional

@@ -1,9 +1,13 @@
 package com.scantoorder.scantoorder.controller;
 
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
+import com.scantoorder.scantoorder.dtos.request.ConfirmGuestRequest;
+import com.scantoorder.scantoorder.dtos.request.HoldSeatsRequest;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
+import com.scantoorder.scantoorder.dtos.respond.SessionViewResponse;
 import com.scantoorder.scantoorder.dtos.respond.CloseSessionResponse;
 import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,6 +33,39 @@ public class SessionController {
             @AuthenticationPrincipal CustomerPrincipal principal) {
         List<String> references = diningSessionService.getSessionPaymentReferences(principal);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(references));
+    }
+
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<SessionViewResponse>> getCurrentSession(
+            @AuthenticationPrincipal CustomerPrincipal principal) {
+        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(diningSessionService.getMySession(principal)));
+    }
+
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/me/holds")
+    public ResponseEntity<ApiResponse<SessionViewResponse>> holdSeats(
+            @AuthenticationPrincipal CustomerPrincipal principal,
+            @Valid @RequestBody HoldSeatsRequest request) {
+        SessionViewResponse response = diningSessionService.holdSeats(principal, request.getSeatIds());
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(response));
+    }
+
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @DeleteMapping("/me/holds/{seatId}")
+    public ResponseEntity<ApiResponse<SessionViewResponse>> releaseHold(
+            @AuthenticationPrincipal CustomerPrincipal principal,
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String seatId) {
+        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(diningSessionService.releaseHold(principal, seatId)));
+    }
+
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/me/guests")
+    public ResponseEntity<ApiResponse<SessionViewResponse>> confirmGuest(
+            @AuthenticationPrincipal CustomerPrincipal principal,
+            @Valid @RequestBody ConfirmGuestRequest request) {
+        SessionViewResponse response = diningSessionService.confirmGuest(principal, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(response));
     }
 
     @GetMapping("/active/count")

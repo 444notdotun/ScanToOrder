@@ -17,19 +17,32 @@ import com.scantoorder.scantoorder.data.repository.PaymentRepo;
 import com.scantoorder.scantoorder.data.repository.SeatRepo;
 import com.scantoorder.scantoorder.data.repository.SessionSeatRepo;
 import com.scantoorder.scantoorder.dtos.respond.CloseSessionResponse;
+import com.scantoorder.scantoorder.data.model.RestaurantTable;
+import com.scantoorder.scantoorder.dtos.request.ConfirmGuestRequest;
 import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
+import com.scantoorder.scantoorder.dtos.respond.SessionSeatView;
+import com.scantoorder.scantoorder.dtos.respond.SessionViewResponse;
+import com.scantoorder.scantoorder.exception.InvalidRequestException;
+import com.scantoorder.scantoorder.exception.SeatOwnershipException;
+import com.scantoorder.scantoorder.exception.SeatStatusException;
+import com.scantoorder.scantoorder.exception.SeatTakenException;
 import com.scantoorder.scantoorder.exception.SeatNotFoundException;
 import com.scantoorder.scantoorder.exception.SessionEndedException;
 import com.scantoorder.scantoorder.exception.SessionNotFoundException;
 import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeSet;
 
 @Service
@@ -50,6 +63,87 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     private PaymentRepo paymentRepo;
     @Autowired
     private SeatLedger seatLedger;
+
+    @Value("${app.holds.enabled:true}")
+    private boolean holdsEnabled;
+
+    @Transactional(readOnly = true)
+    @Override
+    public SessionViewResponse getMySession(CustomerPrincipal caller) {
+        return viewFor(requireSeated(caller));
+    }
+
+    // All or nothing: one seat that is not free rolls the whole request back.
+    @Transactional
+    @Override
+    public SessionViewResponse holdSeats(CustomerPrincipal caller, List<String> seatIds) {
+        if (!holdsEnabled) {
+            throw new SeatStatusException("Holding seats is switched off here");
+        }
+        Set<String> wanted = new LinkedHashSet<>(seatIds);
+        if (wanted.isEmpty()) {
+            throw new InvalidRequestException("Choose at least one seat to hold");
+        }
+        Map<String, Seat> locked = lockWithOwnSeat(caller, wanted);
+        SessionSeat me = requireSeated(caller);
+        String myTableId = me.getSeat().getTableId().getTableId();
+        for (String seatId : wanted) {
+            Seat seat = locked.get(seatId);
+            if (seat == null) {
+                throw new SeatNotFoundException("We cannot find one of those seats");
+            }
+            if (!seat.isActive() || !myTableId.equals(seat.getTableId().getTableId())) {
+                throw new SeatStatusException("You can only hold seats at your own table");
+            }
+            Optional<SessionSeat> current = seatLedger.current(seatId);
+            if (current.isPresent()) {
+                if (current.get().getStatus() == SessionSeatStatus.HELD && sameSession(current.get(), me)) {
+                    throw new SeatStatusException("Seat " + seat.getPosition() + " is already held for your table");
+                }
+                throw new SeatTakenException("Seat " + seat.getPosition() + " was just taken, so no seats were held. Pick again.");
+            }
+        }
+        for (String seatId : wanted) {
+            seatLedger.hold(me.getSession(), locked.get(seatId));
+        }
+        return viewFor(me);
+    }
+
+    @Transactional
+    @Override
+    public SessionViewResponse releaseHold(CustomerPrincipal caller, String seatId) {
+        lockWithOwnSeat(caller, Set.of(seatId));
+        SessionSeat me = requireSeated(caller);
+        SessionSeat held = seatLedger.current(seatId)
+                .filter(membership -> membership.getStatus() == SessionSeatStatus.HELD)
+                .orElseThrow(() -> new SeatStatusException("That seat is not being held"));
+        if (!sameSession(held, me)) {
+            throw new SeatOwnershipException("That seat is held by another group");
+        }
+        seatLedger.release(held);
+        return viewFor(me);
+    }
+
+    // Hold first, then confirm: a guest without a phone is only ever seated on a seat this session holds.
+    @Transactional
+    @Override
+    public SessionViewResponse confirmGuest(CustomerPrincipal caller, ConfirmGuestRequest request) {
+        if (request.getGuestName() == null || request.getGuestName().isBlank()) {
+            throw new InvalidRequestException("Tell us your guest's name");
+        }
+        lockWithOwnSeat(caller, Set.of(request.getSeatId()));
+        SessionSeat me = requireSeated(caller);
+        SessionSeat target = seatLedger.current(request.getSeatId())
+                .orElseThrow(() -> new SeatStatusException("Hold the seat first, then confirm your guest"));
+        if (!sameSession(target, me)) {
+            throw new SeatOwnershipException("That seat belongs to another group");
+        }
+        if (target.getStatus() != SessionSeatStatus.HELD) {
+            throw new SeatTakenException("Someone is already sitting in that seat");
+        }
+        seatLedger.seatGuest(target, request.getGuestName(), null, null, false);
+        return viewFor(me);
+    }
 
     @Transactional
     @Override
@@ -125,6 +219,67 @@ public class DiningSessionServiceImpl implements DiningSessionService {
             throw new SessionEndedException(SESSION_ENDED);
         }
         return me;
+    }
+
+    // The caller's own seat is locked with the seats they act on, so leaving or closing cannot run in between.
+    private Map<String, Seat> lockWithOwnSeat(CustomerPrincipal caller, Collection<String> seatIds) {
+        if (caller == null || caller.getSeatId() == null) {
+            throw new SessionEndedException(SESSION_ENDED);
+        }
+        TreeSet<String> ids = new TreeSet<>(seatIds);
+        ids.add(caller.getSeatId());
+        Map<String, Seat> locked = new HashMap<>();
+        for (Seat seat : seatRepo.findAllForUpdate(ids)) {
+            locked.put(seat.getSeatId(), seat);
+        }
+        return locked;
+    }
+
+    private boolean sameSession(SessionSeat one, SessionSeat other) {
+        return one.getSession().getSessionId().equals(other.getSession().getSessionId());
+    }
+
+    private SessionViewResponse viewFor(SessionSeat me) {
+        DinningSession session = me.getSession();
+        RestaurantTable table = me.getSeat().getTableId();
+        SessionViewResponse response = new SessionViewResponse();
+        response.setSessionId(session.getSessionId());
+        response.setStatus(session.getSessionStatus().name());
+        response.setJoinCode(session.getJoinCode());
+        response.setTableId(table.getTableId());
+        response.setTableNumber(table.getTableNumber());
+        response.setDisplayNumber(table.getDisplayNumber());
+        response.setSeatId(me.getSeat().getSeatId());
+        response.setHoldsEnabled(holdsEnabled);
+        for (SessionSeat membership : activeMembers(session.getSessionId())) {
+            boolean mine = membership.getId().equals(me.getId());
+            SessionSeatView view = seatView(membership);
+            view.setMine(mine);
+            // A guest sees their own phone number, never anyone else's.
+            view.setGuestPhone(mine ? membership.getGuestPhone() : null);
+            response.getSeats().add(view);
+        }
+        return response;
+    }
+
+    private List<SessionSeat> activeMembers(String sessionId) {
+        return sessionSeatRepo.findBySessionAndStatusIn(sessionId, SeatLedger.ACTIVE).stream()
+                .filter(membership -> !seatLedger.isExpired(membership))
+                .toList();
+    }
+
+    private SessionSeatView seatView(SessionSeat membership) {
+        SessionSeatView view = new SessionSeatView();
+        view.setSeatId(membership.getSeat().getSeatId());
+        view.setSeatNumber(membership.getSeat().getSeatNumber());
+        view.setPosition(membership.getSeat().getPosition());
+        view.setStatus(membership.getStatus().name());
+        view.setHeldUntil(membership.getHeldUntil());
+        if (membership.getStatus() == SessionSeatStatus.OCCUPIED) {
+            view.setGuestName(membership.getGuestName());
+            view.setHasDevice(membership.isHasDevice());
+        }
+        return view;
     }
 
     // Locks every held and occupied seat of the session plus any extra seats, in one id-ordered query.

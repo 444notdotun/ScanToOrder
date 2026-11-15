@@ -2,6 +2,7 @@ package com.scantoorder.scantoorder.controller;
 
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.dtos.request.ClaimSeatRequest;
+import com.scantoorder.scantoorder.dtos.request.JoinSeatRequest;
 import com.scantoorder.scantoorder.dtos.request.UpdateSeatRequest;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
@@ -37,6 +38,15 @@ public class SeatController {
             @AuthenticationPrincipal Object principal,
             @Valid @RequestBody ClaimSeatRequest claimSeatRequest) {
         SeatClaimedResponse response = seatService.claimSeat(claimSeatRequest, asCustomer(principal));
+        return seatedResponse(response);
+    }
+
+    @PostMapping("/{seatId}/join")
+    public ResponseEntity<ApiResponse<SeatClaimedResponse>> joinSeat(
+            @AuthenticationPrincipal Object principal,
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String seatId,
+            @Valid @RequestBody JoinSeatRequest joinSeatRequest) {
+        SeatClaimedResponse response = seatService.joinSeat(seatId, joinSeatRequest, asCustomer(principal));
         return seatedResponse(response);
     }
 
