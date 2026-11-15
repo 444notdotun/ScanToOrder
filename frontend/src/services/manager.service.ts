@@ -85,11 +85,8 @@ export const managerService = {
       }),
 
   createTable: (data: { tableNumber: number; capacity: number }): Promise<any> => 
-    api.post('/api/v1/tables', data.capacity, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }).then(res => res as any),
+    api.post('/api/v1/tables', { seatCapacity: data.capacity })
+      .then(res => res as any),
 
   updateTable: (id: string, data: any): Promise<any> => 
     Promise.resolve(),

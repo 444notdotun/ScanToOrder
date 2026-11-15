@@ -44,8 +44,8 @@ function TablesManagerContent() {
 
   const handleCreateTable = (e: React.FormEvent) => {
     e.preventDefault();
-    if (seatCapacity < 4) {
-      alert("Seat capacity must be at least 4");
+    if (!(seatCapacity >= 1 && seatCapacity <= 20)) {
+      alert("A table needs between 1 and 20 seats");
       return;
     }
     createTableMutation.mutate(seatCapacity);
@@ -91,14 +91,15 @@ function TablesManagerContent() {
               <label className="font-extrabold text-stone-700">Seat Capacity:</label>
               <input
                 type="number"
-                min={4}
+                min={1}
+                max={20}
                 required
                 value={seatCapacity}
                 onChange={(e) => setSeatCapacity(parseInt(e.target.value))}
                 className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-stone-900 focus:border-brand-accent focus:ring-1 focus:ring-brand-accent focus:outline-none"
               />
               <span className="text-[10px] text-stone-400 font-semibold block leading-normal">
-                Min capacity requirement is 4.
+                A table can have 1 to 20 seats.
               </span>
             </div>
 
