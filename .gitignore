@@ -34,3 +34,6 @@ build/
 
 # Environment variables (secrets)
 .env
+
+# Compiled classes
+*.class
