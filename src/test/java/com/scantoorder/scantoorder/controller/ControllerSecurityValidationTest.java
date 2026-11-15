@@ -303,6 +303,52 @@ public class ControllerSecurityValidationTest {
     }
 
     @Test
+    public void testOnlyAManagerCanCreateStaffOrTables() throws Exception {
+        String worker = "{\"name\":\"New Waiter\",\"role\":\"WAITER\",\"username\":\"newwaiter\"}";
+        String table = "{\"seatCapacity\":2}";
+        for (String role : new String[]{"ROLE_CUSTOMER", "ROLE_WAITER", "ROLE_CHEF"}) {
+            signInAs(role);
+            mockMvc.perform(post("/api/v1/workers").contentType(MediaType.APPLICATION_JSON).content(worker))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(get("/api/v1/workers"))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/v1/tables").contentType(MediaType.APPLICATION_JSON).content(table))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/v1/tables/table-1/close"))
+                    .andExpect(status().is(role.equals("ROLE_WAITER") ? 200 : 403));
+        }
+        signInAs("ROLE_MANAGER");
+        mockMvc.perform(post("/api/v1/workers").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Sneaky\",\"role\":\"MANAGER\",\"username\":\"sneaky\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/tables").contentType(MediaType.APPLICATION_JSON).content("{\"seatCapacity\":0}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/tables").contentType(MediaType.APPLICATION_JSON).content("{\"seatCapacity\":21}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/tables").contentType(MediaType.APPLICATION_JSON).content(table))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    public void testCustomerSeatingEndpointsNeedACustomer() throws Exception {
+        signInAs("ROLE_WAITER");
+        mockMvc.perform(get("/api/v1/sessions/me")).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/sessions/me/leave")).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/sessions/me/holds").contentType(MediaType.APPLICATION_JSON).content("{\"seatIds\":[\"seat-1\"]}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/sessions/me/guests").contentType(MediaType.APPLICATION_JSON).content("{\"seatId\":\"seat-1\",\"guestName\":\"Grandma\"}"))
+                .andExpect(status().isForbidden());
+
+        signInAs("ROLE_CUSTOMER");
+        mockMvc.perform(post("/api/v1/sessions/me/holds").contentType(MediaType.APPLICATION_JSON).content("{\"seatIds\":[]}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/sessions/me/guests").contentType(MediaType.APPLICATION_JSON).content("{\"seatId\":\"seat-1\",\"guestName\":\" \"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/seats/seat-1/join").contentType(MediaType.APPLICATION_JSON).content("{\"joinCode\":\"ABC234\",\"customerName\":\"Friend\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     public void testTableControllerQrCode() throws Exception {
         Mockito.when(restaurantTableService.getQrCode("T1")).thenReturn(new byte[]{1, 2, 3});
         mockMvc.perform(get("/api/v1/tables/T1/qrcode"))

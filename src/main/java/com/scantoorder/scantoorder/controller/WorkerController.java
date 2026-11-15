@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.scantoorder.scantoorder.data.model.Worker;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.service.Interface.WorkerService;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/workers")
+@PreAuthorize("hasRole('MANAGER')")
 public class WorkerController {
 
     @Autowired

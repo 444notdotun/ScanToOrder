@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.data.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -18,6 +19,7 @@ public class Worker implements UserDetails {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String workerId;
     private String username;
+    @JsonIgnore
     private String password;
     private String fullName;
     @Enumerated(EnumType.STRING)
