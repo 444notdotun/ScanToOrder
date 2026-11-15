@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
 import com.scantoorder.scantoorder.data.model.*;
 import com.scantoorder.scantoorder.data.repository.*;
 import com.scantoorder.scantoorder.dtos.request.CreateOrderItemRequest;
@@ -27,21 +28,26 @@ public class OrderImplementation implements OrderService {
     @Autowired
     private ModelMapper modelMapper;
     @Autowired
-    private TableRepo tableRepo;
-    @Autowired
     private OrderItemService orderItemService;
     @Autowired
     private OrderRepo orderRepo;
     @Autowired
-    private SeatRepo seatRepo;
-    @Autowired
     private OrderItemRepo orderItemRepo;
     @Autowired
-    private DinningSessionRepo dinningSessionRepo;
+    private DiningSessionService diningSessionService;
     @Transactional
     @Override
-    public CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest,String seatId, String tableId,String sessionId) {
-        Order order = CreateOrder(seatId, tableId, sessionId);
+    public CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest, CustomerPrincipal caller) {
+        if (createOrderRequest.getOrderItems() == null || createOrderRequest.getOrderItems().isEmpty()) {
+            throw new InvalidRequestException("Your order is empty. Add something from the menu first.");
+        }
+        SessionSeat target = diningSessionService.seatToOrderFor(caller, createOrderRequest.getSeatId());
+        Order order = new Order();
+        order.setSeat(target.getSeat());
+        order.setTable(target.getSeat().getTableId());
+        order.setDinningSession(target.getSession());
+        order.setSessionSeat(target);
+        orderRepo.save(order);
         BigDecimal totalAmount = BigDecimal.ZERO;
         CreateOrderResponse response = new CreateOrderResponse();
        for(CreateOrderItemRequest request:createOrderRequest.getOrderItems()){
@@ -181,29 +187,5 @@ public class OrderImplementation implements OrderService {
         response.setSeatNumber(order.getSeat().getSeatNumber());
         response.setOrderStatus(order.getOrderStatus());
         return response;
-    }
-
-    private  Order CreateOrder(String seatId, String tableId, String sessionId) {
-        Order order = new Order();
-        order.setSeat(getSeat(seatId));
-        order.setTable(getTable(tableId));
-        order.setDinningSession(getSession(sessionId));
-        orderRepo.save(order);
-        return order;
-    }
-
-    private  RestaurantTable getTable(String tableId) {
-        return tableRepo.findById(tableId)
-                .orElseThrow(() -> new TableNotFoundException("Table not found"));
-    }
-
-    private  Seat getSeat(String seatId) {
-        return seatRepo.findSeatBySeatId(seatId)
-                .orElseThrow(() -> new SeatNotFoundException("Seat not found"));
-    }
-
-    private  DinningSession getSession(String sessionId) {
-        return dinningSessionRepo.findDinningSessionBySessionId(sessionId)
-                .orElseThrow(() -> new SessionNotFoundException("Session not found"));
     }
 }

@@ -58,7 +58,10 @@ public class PaymentImplementation implements PaymentService {
         Order order = orderRepo.findById(request.getOrderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + request.getOrderId()));
 
-        if (order.getOrderStatus() == OrderStatus.PAID) {
+        if (order.getOrderStatus() == OrderStatus.CANCELED) {
+            throw new PaymentValidationException("This order was cancelled. Place a new order to pay.");
+        }
+        if (order.getOrderStatus() != OrderStatus.PENDING_PAYMENT) {
             throw new PaymentAlreadyProcessedException("Order is already paid");
         }
 
@@ -113,8 +116,14 @@ public class PaymentImplementation implements PaymentService {
                 if (gatewayAmountKobo == expectedAmountKobo) {
                     payment.setStatus(PaymentStatus.SUCCESSFUL);
                     Order order = payment.getOrder();
-                    order.setOrderStatus(OrderStatus.PAID);
-                    orderRepo.save(order);
+                    if (order.getOrderStatus() == OrderStatus.PENDING_PAYMENT) {
+                        order.setOrderStatus(OrderStatus.PAID);
+                        orderRepo.save(order);
+                    } else if (order.getOrderStatus() == OrderStatus.CANCELED) {
+                        // The guest left or was closed out before the money arrived: keep the payment, never send to the kitchen.
+                        log.warn("Payment {} succeeded for cancelled order {}. The order stays cancelled and needs a refund.",
+                                payment.getReference(), order.getOrderId());
+                    }
                 } else {
                     payment.setStatus(PaymentStatus.FAILED);
                     paymentRepo.save(payment);

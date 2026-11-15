@@ -145,6 +145,34 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         return viewFor(me);
     }
 
+    // Orders are only for occupied seats: the caller's own, or a guest without a phone in their session.
+    // Runs inside the order's transaction and keeps the seat locked until the order is saved.
+    @Transactional
+    @Override
+    public SessionSeat seatToOrderFor(CustomerPrincipal caller, String targetSeatId) {
+        if (caller == null || caller.getSeatId() == null) {
+            throw new SessionEndedException(SESSION_ENDED);
+        }
+        String seatId = targetSeatId == null || targetSeatId.isBlank() ? caller.getSeatId() : targetSeatId;
+        lockWithOwnSeat(caller, Set.of(seatId));
+        SessionSeat me = requireSeated(caller);
+        if (seatId.equals(me.getSeat().getSeatId())) {
+            return me;
+        }
+        SessionSeat target = seatLedger.current(seatId)
+                .orElseThrow(() -> new SeatStatusException("Nobody is sitting in that seat. If your guest has left, order on your own seat."));
+        if (!sameSession(target, me)) {
+            throw new SeatOwnershipException("You can only order for seats in your own group");
+        }
+        if (target.getStatus() != SessionSeatStatus.OCCUPIED) {
+            throw new SeatStatusException("That seat is only being held. Order on your own seat until your guest arrives.");
+        }
+        if (target.isHasDevice()) {
+            throw new SeatOwnershipException("That guest has their own phone and orders for themselves");
+        }
+        return target;
+    }
+
     @Transactional
     @Override
     public CloseSessionResponse closeSession(String sessionId) {

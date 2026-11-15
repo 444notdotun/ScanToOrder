@@ -353,4 +353,43 @@ class PaymentServiceTest {
         // Verify that no HTTP client request was executed because payment was already SUCCESSFUL
         verifyNoInteractions(mockHttpClient);
     }
+
+    @Transactional
+    @Test
+    void testInitializePayment_ThrowsIfOrderWasCancelled() {
+        Order order = createTestOrder(BigDecimal.valueOf(1500.00));
+        order.setOrderStatus(OrderStatus.CANCELED);
+        orderRepo.save(order);
+
+        InitializePaymentRequest request = new InitializePaymentRequest(order.getOrderId(), "user@example.com");
+        assertThrows(PaymentValidationException.class, () -> paymentService.initializePayment(request));
+    }
+
+    @Transactional
+    @Test
+    void testVerifyAndSyncPayment_PaymentThatLandsAfterTheGuestLeftIsRecordedAndTheOrderStaysCancelled() throws IOException, InterruptedException {
+        Order order = createTestOrder(BigDecimal.valueOf(2500.00));
+        Payment payment = new Payment();
+        payment.setOrder(order);
+        payment.setAmount(order.getTotalAmount());
+        payment.setStatus(PaymentStatus.PENDING);
+        payment = paymentRepo.save(payment);
+        String reference = payment.getReference();
+        order.setOrderStatus(OrderStatus.CANCELED);
+        orderRepo.save(order);
+
+        String mockResponseBody = "{\"status\": true, \"message\": \"Verification successful\", \"data\": {"
+                + "\"status\": \"success\", \"reference\": \"" + reference + "\", \"amount\": 250000}}";
+        HttpResponse<String> mockResponse = mock(HttpResponse.class);
+        when(mockResponse.statusCode()).thenReturn(200);
+        when(mockResponse.body()).thenReturn(mockResponseBody);
+        when(mockHttpClient.send(any(), any())).thenAnswer(invocation -> mockResponse);
+
+        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(reference);
+
+        assertEquals(PaymentStatus.SUCCESSFUL, response.getPaymentStatus());
+        assertEquals(OrderStatus.CANCELED, response.getOrderStatus());
+        assertEquals(PaymentStatus.SUCCESSFUL, paymentRepo.findByReference(reference).orElseThrow().getStatus());
+        assertEquals(OrderStatus.CANCELED, orderRepo.findOrderByOrderId(order.getOrderId()).getOrderStatus());
+    }
 }

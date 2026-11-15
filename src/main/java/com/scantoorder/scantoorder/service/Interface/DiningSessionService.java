@@ -1,6 +1,7 @@
 package com.scantoorder.scantoorder.service.Interface;
 
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
+import com.scantoorder.scantoorder.data.model.SessionSeat;
 import com.scantoorder.scantoorder.dtos.respond.CloseSessionResponse;
 import com.scantoorder.scantoorder.dtos.request.ConfirmGuestRequest;
 import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
@@ -13,6 +14,7 @@ public interface DiningSessionService {
     SessionViewResponse holdSeats(CustomerPrincipal caller, List<String> seatIds);
     SessionViewResponse releaseHold(CustomerPrincipal caller, String seatId);
     SessionViewResponse confirmGuest(CustomerPrincipal caller, ConfirmGuestRequest request);
+    SessionSeat seatToOrderFor(CustomerPrincipal caller, String targetSeatId);
     CloseSessionResponse closeSession(String sessionId);
     ReleaseSeatResponse freeSeat(String seatId);
     long getActiveSessionsCount();

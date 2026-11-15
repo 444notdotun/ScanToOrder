@@ -243,7 +243,7 @@ public class ControllerSecurityValidationTest {
         orderResponse.setOrderId("order-123");
         orderResponse.setOrderStatus(OrderStatus.PENDING_PAYMENT);
 
-        Mockito.when(orderService.createOrder(any(CreateOrderRequest.class), any(String.class), any(String.class), any(String.class))).thenReturn(orderResponse);
+        Mockito.when(orderService.createOrder(any(CreateOrderRequest.class), any(com.scantoorder.scantoorder.data.model.CustomerPrincipal.class))).thenReturn(orderResponse);
 
         com.scantoorder.scantoorder.data.model.CustomerPrincipal mockPrincipal = new com.scantoorder.scantoorder.data.model.CustomerPrincipal(sessionId, seatId, tableId, "member-1");
         org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
@@ -263,6 +263,9 @@ public class ControllerSecurityValidationTest {
         mockOrder.setOrderStatus(OrderStatus.PAID);
         Mockito.when(orderService.updateOrder("PAID", "order-123")).thenReturn(mockOrder);
 
+        mockMvc.perform(patch("/api/v1/orders/order-123?status=PAID"))
+                .andExpect(status().isForbidden());
+        signInAs("ROLE_WAITER");
         mockMvc.perform(patch("/api/v1/orders/order-123?status=PAID"))
                 .andExpect(status().isOk());
 

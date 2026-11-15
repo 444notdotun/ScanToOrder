@@ -29,9 +29,10 @@ public class OrderController {
     @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping
     public ResponseEntity<ApiResponse<CreateOrderResponse>> createOrder(@AuthenticationPrincipal CustomerPrincipal customerPrincipal, @RequestBody @Valid CreateOrderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(orderService.createOrder(request,customerPrincipal.getSeatId(), customerPrincipal.getTableId(), customerPrincipal.getSessionId())));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(orderService.createOrder(request, customerPrincipal)));
     }
 
+    @PreAuthorize("hasAnyRole('CHEF', 'WAITER', 'MANAGER')")
     @PatchMapping("/{orderId}")
     public ResponseEntity<ApiResponse<Order>> updateOrder(
             @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String orderId,
