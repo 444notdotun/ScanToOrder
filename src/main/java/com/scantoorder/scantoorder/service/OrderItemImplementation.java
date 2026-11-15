@@ -1,5 +1,7 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.exception.ConflictException;
+import com.scantoorder.scantoorder.exception.InvalidRequestException;
 import com.scantoorder.scantoorder.data.model.Item;
 import com.scantoorder.scantoorder.data.model.Order;
 import com.scantoorder.scantoorder.data.model.OrderItem;
@@ -34,6 +36,12 @@ public class OrderItemImplementation implements OrderItemService {
     public OrderItem createOrderItem(String orderId ,CreateOrderItemRequest createOrderItemRequest) {
         Order order = orderRepo.findById(orderId).orElseThrow(() -> new OrderNotFoundException("Order not found"));
         Item item = itemRepo.findItemsByItemName(createOrderItemRequest.getItemName()).orElseThrow(() -> new ItemNotFound("Item not found"));
+        if (!item.isAvailable()) {
+            throw new ConflictException(item.getItemName() + " is out of stock. Take it off your order and try again.");
+        }
+        if (createOrderItemRequest.getQuantity() < 1) {
+            throw new InvalidRequestException("Choose at least one " + item.getItemName());
+        }
         OrderItem orderItem = modelMapper.map(createOrderItemRequest, OrderItem.class);
         orderItem.setOrder(order);
         orderItem.setItem(item);

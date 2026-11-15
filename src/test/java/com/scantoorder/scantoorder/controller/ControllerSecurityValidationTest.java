@@ -62,6 +62,18 @@ public class ControllerSecurityValidationTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private void signInAs(String role) {
+        org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("someone", null,
+                java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority(role))));
+        org.springframework.security.core.context.SecurityContextHolder.setContext(context);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    public void signOut() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
+
     @BeforeEach
     public void setup() {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(wac)
@@ -95,17 +107,23 @@ public class ControllerSecurityValidationTest {
         claimResponse.setToken("mock-jwt-token");
         claimResponse.setMessage("Seat claimed successfully");
 
-        Mockito.when(seatService.claimSeat(any(ClaimSeatRequest.class))).thenReturn(claimResponse);
+        Mockito.when(seatService.claimSeat(any(ClaimSeatRequest.class), any())).thenReturn(claimResponse);
 
         mockMvc.perform(post("/api/v1/seats/claim")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(claimRequest)))
                 .andExpect(status().isCreated());
 
+        // Seat overrides are staff only
+        signInAs("ROLE_CUSTOMER");
+        mockMvc.perform(post("/api/v1/seats/seat-123/release"))
+                .andExpect(status().isForbidden());
+        signInAs("ROLE_WAITER");
+
         // Test Update Seat
         UpdateSeatRequest updateRequest = new UpdateSeatRequest();
         updateRequest.setSeatId("seat-123");
-        updateRequest.setNewState("OCCUPIED");
+        updateRequest.setNewState("VACANT");
 
         UpdateSeatResponse updateResponse = new UpdateSeatResponse("Updated", "seat-123", "S1", "OCCUPIED");
         Mockito.when(seatService.updateSeat(any(UpdateSeatRequest.class))).thenReturn(updateResponse);
@@ -134,26 +152,11 @@ public class ControllerSecurityValidationTest {
 
     @Test
     public void testSessionControllerEndpoints() throws Exception {
-        // Test Create Session
-        CreateSessionRequest request = new CreateSessionRequest();
-        request.setSeatId("seat-123");
-        request.setTableNumber("T1");
-        request.setCustomerEmail("customer@example.com");
-        request.setCustomerName("Jane Doe");
-        request.setCustomerPhone("08149048149");
-
-        CreateSessionResponse createResponse = new CreateSessionResponse();
-        createResponse.setSessionId("sess-123");
-        createResponse.setTableId("table-123");
-        createResponse.setSeatId("seat-123");
-
-        Mockito.when(diningSessionService.createSession(any(CreateSessionRequest.class))).thenReturn(createResponse);
-
-        mockMvc.perform(post("/api/v1/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
-                .andExpect(status().isCreated());
+        // Closing a session is staff only
+        signInAs("ROLE_CUSTOMER");
+        mockMvc.perform(post("/api/v1/sessions/sess-123/close"))
+                .andExpect(status().isForbidden());
+        signInAs("ROLE_WAITER");
 
         // Test Close Session (Valid and Invalid)
         CloseSessionResponse closeResponse = new CloseSessionResponse("Closed", "sess-123", "CLOSED");
@@ -240,9 +243,9 @@ public class ControllerSecurityValidationTest {
         orderResponse.setOrderId("order-123");
         orderResponse.setOrderStatus(OrderStatus.PENDING_PAYMENT);
 
-        Mockito.when(orderService.createOrder(any(CreateOrderRequest.class), any(String.class), any(String.class), any(String.class))).thenReturn(orderResponse);
+        Mockito.when(orderService.createOrder(any(CreateOrderRequest.class), any(com.scantoorder.scantoorder.data.model.CustomerPrincipal.class))).thenReturn(orderResponse);
 
-        com.scantoorder.scantoorder.data.model.CustomerPrincipal mockPrincipal = new com.scantoorder.scantoorder.data.model.CustomerPrincipal(sessionId, seatId, tableId);
+        com.scantoorder.scantoorder.data.model.CustomerPrincipal mockPrincipal = new com.scantoorder.scantoorder.data.model.CustomerPrincipal(sessionId, seatId, tableId, "member-1");
         org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
         java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CUSTOMER"));
         context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(mockPrincipal, null, authorities));
@@ -260,6 +263,9 @@ public class ControllerSecurityValidationTest {
         mockOrder.setOrderStatus(OrderStatus.PAID);
         Mockito.when(orderService.updateOrder("PAID", "order-123")).thenReturn(mockOrder);
 
+        mockMvc.perform(patch("/api/v1/orders/order-123?status=PAID"))
+                .andExpect(status().isForbidden());
+        signInAs("ROLE_WAITER");
         mockMvc.perform(patch("/api/v1/orders/order-123?status=PAID"))
                 .andExpect(status().isOk());
 
@@ -294,6 +300,52 @@ public class ControllerSecurityValidationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemRequest)))
                 .andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    public void testOnlyAManagerCanCreateStaffOrTables() throws Exception {
+        String worker = "{\"name\":\"New Waiter\",\"role\":\"WAITER\",\"username\":\"newwaiter\"}";
+        String table = "{\"seatCapacity\":2}";
+        for (String role : new String[]{"ROLE_CUSTOMER", "ROLE_WAITER", "ROLE_CHEF"}) {
+            signInAs(role);
+            mockMvc.perform(post("/api/v1/workers").contentType(MediaType.APPLICATION_JSON).content(worker))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(get("/api/v1/workers"))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/v1/tables").contentType(MediaType.APPLICATION_JSON).content(table))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/v1/tables/table-1/close"))
+                    .andExpect(status().is(role.equals("ROLE_WAITER") ? 200 : 403));
+        }
+        signInAs("ROLE_MANAGER");
+        mockMvc.perform(post("/api/v1/workers").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Sneaky\",\"role\":\"MANAGER\",\"username\":\"sneaky\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/tables").contentType(MediaType.APPLICATION_JSON).content("{\"seatCapacity\":0}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/tables").contentType(MediaType.APPLICATION_JSON).content("{\"seatCapacity\":21}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/tables").contentType(MediaType.APPLICATION_JSON).content(table))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    public void testCustomerSeatingEndpointsNeedACustomer() throws Exception {
+        signInAs("ROLE_WAITER");
+        mockMvc.perform(get("/api/v1/sessions/me")).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/sessions/me/leave")).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/sessions/me/holds").contentType(MediaType.APPLICATION_JSON).content("{\"seatIds\":[\"seat-1\"]}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/sessions/me/guests").contentType(MediaType.APPLICATION_JSON).content("{\"seatId\":\"seat-1\",\"guestName\":\"Grandma\"}"))
+                .andExpect(status().isForbidden());
+
+        signInAs("ROLE_CUSTOMER");
+        mockMvc.perform(post("/api/v1/sessions/me/holds").contentType(MediaType.APPLICATION_JSON).content("{\"seatIds\":[]}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/sessions/me/guests").contentType(MediaType.APPLICATION_JSON).content("{\"seatId\":\"seat-1\",\"guestName\":\" \"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/seats/seat-1/join").contentType(MediaType.APPLICATION_JSON).content("{\"joinCode\":\"ABC234\",\"customerName\":\"Friend\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

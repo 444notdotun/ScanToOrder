@@ -14,6 +14,7 @@ public class Seat {
     @JoinColumn(name = "tableId")
     private RestaurantTable tableId;
     private String seatNumber;
+    private int position;
     @Enumerated(EnumType.STRING)
     private SeatStatus status;
     private boolean isActive;
@@ -26,5 +27,4 @@ public class Seat {
     public void prePersist(){
         seatNumber= CodeGenerator.generate(CodePrefix.SEAT);
     }
-
 }

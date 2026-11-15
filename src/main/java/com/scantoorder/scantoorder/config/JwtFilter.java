@@ -1,6 +1,10 @@
 package com.scantoorder.scantoorder.config;
 
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
+import com.scantoorder.scantoorder.data.model.DinningSessionStatus;
+import com.scantoorder.scantoorder.data.model.SessionSeat;
+import com.scantoorder.scantoorder.data.model.SessionSeatStatus;
+import com.scantoorder.scantoorder.data.repository.SessionSeatRepo;
 import com.scantoorder.scantoorder.data.model.WorkerPrincipal;
 import com.scantoorder.scantoorder.service.Interface.JwtService;
 import io.jsonwebtoken.Claims;
@@ -30,6 +34,12 @@ public class JwtFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService auth;
 
+    @Autowired
+    private SessionSeatRepo sessionSeatRepo;
+
+    public static final String SESSION_ENDED_ATTRIBUTE = "plately.sessionEnded";
+    public static final String SESSION_ENDED_MESSAGE = "Your session has ended";
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
 
@@ -58,25 +68,11 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         try {
-            log.info("JWT Token: " + jwt);
             Claims claims = jwtService.extractClaims(jwt);
             String type = claims.get("type", String.class);
-            log.info(type);
-            
             if (type != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 if (type.equals("CUSTOMER")) {
-                    log.info("Security Context Authentication: " + SecurityContextHolder.getContext().getAuthentication());
-                    CustomerPrincipal principal = new CustomerPrincipal(
-                            claims.get("sessionId", String.class),
-                            claims.get("seatId", String.class),
-                            claims.get("tableId", String.class)
-                    );
-                    log.info("CustomerPrincipal: " + principal);
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(principal, null,
-                                    List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER")));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-
+                    authenticateCustomer(claims, request);
                 } else if ("WORKER".equals(type)) {
                     String username = claims.getSubject();
                     UserDetails userDetails = auth.loadUserByUsername(username);
@@ -101,5 +97,29 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    // A customer token is only as good as its seat: once the guest has left or the session
+    // has closed, the token no longer signs anyone in.
+    private void authenticateCustomer(Claims claims, HttpServletRequest request) {
+        String sessionSeatId = claims.get("sessionSeatId", String.class);
+        SessionSeat membership = sessionSeatId == null ? null : sessionSeatRepo.findById(sessionSeatId).orElse(null);
+        boolean seated = membership != null
+                && membership.getStatus() == SessionSeatStatus.OCCUPIED
+                && membership.getSession().getSessionStatus() == DinningSessionStatus.ACTIVE;
+        if (!seated) {
+            request.setAttribute(SESSION_ENDED_ATTRIBUTE, Boolean.TRUE);
+            return;
+        }
+        CustomerPrincipal principal = new CustomerPrincipal(
+                membership.getSession().getSessionId(),
+                membership.getSeat().getSeatId(),
+                membership.getSeat().getTableId().getTableId(),
+                membership.getId()
+        );
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(principal, null,
+                        List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER")));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
     }
 }

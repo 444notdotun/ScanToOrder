@@ -42,18 +42,24 @@ public class AsyncPaymentService {
             }
 
             Order order = payment.getOrder();
-            if (order.getOrderStatus() == OrderStatus.PAID) {
-                log.info("Idempotency check: Order {} is already PAID", order.getOrderId());
+            if (payment.getStatus() == PaymentStatus.SUCCESSFUL || order.getOrderStatus() == OrderStatus.PAID) {
+                log.info("Idempotency check: payment for order {} is already recorded", order.getOrderId());
                 return; // Skip processing
             }
 
             if ("charge.success".equals(event)) {
                 payment.setGatewayResponse(payload);
                 payment.setStatus(PaymentStatus.SUCCESSFUL);
-                order.setOrderStatus(OrderStatus.PAID);
-                orderRepo.save(order);
                 paymentRepo.save(payment);
-                log.info("Successfully processed charge.success for order {}", order.getOrderId());
+                if (order.getOrderStatus() == OrderStatus.PENDING_PAYMENT) {
+                    order.setOrderStatus(OrderStatus.PAID);
+                    orderRepo.save(order);
+                    log.info("Successfully processed charge.success for order {}", order.getOrderId());
+                } else {
+                    // The guest left or was closed out before the money arrived: keep the payment, never send to the kitchen.
+                    log.warn("Payment {} succeeded for order {} which is {}. The order stays as it is and needs a refund.",
+                            payment.getReference(), order.getOrderId(), order.getOrderStatus());
+                }
             } else if ("charge.failed".equals(event)) {
                 payment.setGatewayResponse(payload);
                 payment.setStatus(PaymentStatus.FAILED);

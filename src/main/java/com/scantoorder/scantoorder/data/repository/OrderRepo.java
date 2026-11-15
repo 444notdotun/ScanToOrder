@@ -18,4 +18,7 @@ public interface OrderRepo extends JpaRepository<Order, String> {
     List<Order> findByOrderStatus(OrderStatus status);
     List<Order> findByOrderStatusAndUpdatedAtBefore(OrderStatus status, java.time.LocalDateTime time);
     List<Order> findByDinningSessionSessionId(String sessionId);
+    List<Order> findByDinningSessionSessionIdAndOrderStatus(String sessionId, OrderStatus status);
+    List<Order> findBySessionSeat_IdAndOrderStatus(String sessionSeatId, OrderStatus status);
+    long countByDinningSessionSessionIdAndOrderStatusIn(String sessionId, java.util.Collection<OrderStatus> statuses);
 }

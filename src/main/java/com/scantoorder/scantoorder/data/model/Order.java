@@ -29,6 +29,9 @@ public class Order {
     @ManyToOne
     @JoinColumn(name = "session_id")
     private DinningSession dinningSession;
+    @ManyToOne
+    @JoinColumn(name = "session_seat_id")
+    private SessionSeat sessionSeat;
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp

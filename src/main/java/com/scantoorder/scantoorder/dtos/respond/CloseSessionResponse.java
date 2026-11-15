@@ -11,4 +11,9 @@ public class CloseSessionResponse {
     private String message;
     private String sessionId;
     private String status;
+    private long paidUndeliveredOrders;
+
+    public CloseSessionResponse(String message, String sessionId, String status) {
+        this(message, sessionId, status, 0);
+    }
 }

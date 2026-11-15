@@ -3,6 +3,7 @@ package com.scantoorder.scantoorder.dtos.request;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -16,13 +17,13 @@ public class ClaimSeatRequest {
     private String seatId;
 
     @NotBlank(message = "customer name cannot be blank")
+    @Size(max = 80, message = "customer name is too long")
     private String customerName;
 
-    @NotBlank(message = "customer email cannot be blank")
     @Email(message = "Invalid email format")
     private String customerEmail;
 
     @NotBlank(message = "customer phoneNumber cannot be blank")
-    @jakarta.validation.constraints.Size(min = 11, max = 11, message = "phone number must be exactly 11 characters")
+    @Size(min = 11, max = 11, message = "phone number must be exactly 11 characters")
     private String customerPhoneNumber;
 }

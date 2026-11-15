@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
 import com.scantoorder.scantoorder.data.model.Order;
 import com.scantoorder.scantoorder.data.model.OrderStatus;
 import com.scantoorder.scantoorder.data.repository.OrderRepo;
@@ -18,6 +19,23 @@ public class ScheduledJobs {
     @Autowired
     private OrderRepo orderRepo;
 
+
+    @Autowired
+    private DiningSessionService diningSessionService;
+
+    @Scheduled(fixedRate = 60_000)
+    public void expireHolds() {
+        int released = diningSessionService.expireHolds();
+        if (released > 0) {
+            log.info("Released {} expired seat holds", released);
+        }
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void closeSessionsAtEndOfDay() {
+        int closed = diningSessionService.closeAllActiveSessions();
+        log.info("Closed {} sessions still active at end of day", closed);
+    }
 
     @Scheduled(cron = "0 0 0 * * ?")
     public void cleanupAbandonedOrders() {

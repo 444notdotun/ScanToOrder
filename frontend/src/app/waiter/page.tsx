@@ -91,14 +91,6 @@ function WaiterFloorContent() {
     }
   });
 
-  const updateSeatMutation = useMutation({
-    mutationFn: (variables: { seatId: string; newState: string }) => waiterService.updateSeat(variables),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['waiterTables'] });
-      toast.success("Seat status updated successfully.");
-    }
-  });
-
   const closeSessionMutation = useMutation({
     mutationFn: (id: string) => waiterService.closeSession(id),
     onSuccess: () => {
@@ -111,7 +103,7 @@ function WaiterFloorContent() {
     mutationFn: (seatId: string) => waiterService.closeSessionBySeat(seatId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['waiterTables'] });
-      toast.success("Session closed successfully. Associated seats are now free.");
+      toast.success("Seat freed.");
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to close session by seat.");
@@ -438,25 +430,17 @@ function WaiterFloorContent() {
                                 const isSeatOccupied = seat.status === 'OCCUPIED';
                                 return (
                                   <div key={seat.seatNumber || seat.id} className={`p-3 rounded-xl border flex flex-col items-center text-center gap-2 ${isSeatOccupied ? 'border-brand-deep bg-brand-light/30' : 'border-stone-200 bg-stone-50'}`}>
-                                    <div className="text-xs font-bold text-stone-800">{seat.seatNumber}</div>
+                                    <div className="text-xs font-bold text-stone-800">Seat {(seat as any).position ?? seat.seatNumber}</div>
                                     <div className={`text-[10px] font-black px-2 py-1 rounded ${isSeatOccupied ? 'bg-brand-deep text-white' : 'bg-stone-200 text-stone-600'}`}>
-                                      {isSeatOccupied ? 'OCCUPIED' : 'VACANT'}
+                                      {seat.status}
                                     </div>
-                                    {isSeatOccupied ? (
+                                    {seat.status !== 'VACANT' && (
                                       <button 
-                                        onClick={() => closeSessionBySeatMutation.mutate(String(seat.seatNumber))}
+                                        onClick={() => closeSessionBySeatMutation.mutate(String((seat as any).seatId))}
                                         disabled={closeSessionBySeatMutation.isPending}
                                         className="mt-1 text-[10px] font-bold text-white bg-stone-900 hover:bg-black px-3 py-1 rounded-md w-full"
                                       >
-                                        Close Session
-                                      </button>
-                                    ) : (
-                                      <button 
-                                        onClick={() => updateSeatMutation.mutate({ seatId: String(seat.seatNumber), newState: 'OCCUPIED' })}
-                                        disabled={updateSeatMutation.isPending}
-                                        className="mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-md w-full"
-                                      >
-                                        Mark Occupied
+                                        Free Seat
                                       </button>
                                     )}
                                   </div>
@@ -469,9 +453,9 @@ function WaiterFloorContent() {
                             </p>
                           )}
                           
-                          {isOccupied && (
+                          {seats.some((seat: Seat) => seat.status !== 'VACANT') && (
                             <button 
-                              onClick={() => closeSessionMutation.mutate(table.currentSessionId || table.tableId || table.id)}
+                              onClick={() => closeSessionMutation.mutate(table.tableId || table.id)}
                               disabled={closeSessionMutation.isPending}
                               className="w-full bg-stone-900 hover:bg-black text-white font-black py-2.5 rounded-xl text-xs transition shadow-md"
                             >
