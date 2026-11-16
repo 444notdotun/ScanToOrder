@@ -57,6 +57,8 @@ class PaymentServiceTest {
 
     @Autowired
     private PaystackClient paystackClient;
+    @Autowired
+    private TenantTestSupport tenants;
 
     private HttpClient mockHttpClient;
 
@@ -69,16 +71,20 @@ class PaymentServiceTest {
 
     private Order createTestOrder(BigDecimal amount) {
         RestaurantTable table = new RestaurantTable();
+        table.setTenant(tenants.main());
         table.setCapacity(4);
         tableRepo.save(table);
 
         Seat seat = new Seat();
+        seat.setTenant(tenants.main());
         seatRepo.save(seat);
 
         DinningSession dinningSession = new DinningSession();
+        dinningSession.setTenant(tenants.main());
         dinningSessionRepo.save(dinningSession);
 
         Order order = new Order();
+        order.setTenant(tenants.main());
         order.setTable(table);
         order.setSeat(seat);
         order.setDinningSession(dinningSession);
@@ -106,7 +112,7 @@ class PaymentServiceTest {
         when(mockHttpClient.send(any(), any())).thenAnswer(invocation -> mockResponse);
 
         InitializePaymentRequest request = new InitializePaymentRequest(order.getOrderId(), "user@example.com");
-        InitializePaymentResponse response = paymentService.initializePayment(request);
+        InitializePaymentResponse response = paymentService.initializePayment(tenants.mainId(), null, request);
 
         assertNotNull(response);
         assertNotNull(response.getReference());
@@ -127,7 +133,7 @@ class PaymentServiceTest {
         orderRepo.save(order);
 
         InitializePaymentRequest request = new InitializePaymentRequest(order.getOrderId(), "user@example.com");
-        assertThrows(PaymentAlreadyProcessedException.class, () -> paymentService.initializePayment(request));
+        assertThrows(PaymentAlreadyProcessedException.class, () -> paymentService.initializePayment(tenants.mainId(), null, request));
     }
 
     @Transactional
@@ -138,7 +144,7 @@ class PaymentServiceTest {
         when(mockHttpClient.send(any(), any())).thenThrow(new HttpConnectTimeoutException("Connection timed out"));
 
         InitializePaymentRequest request = new InitializePaymentRequest(order.getOrderId(), "user@example.com");
-        assertThrows(PaymentGatewayTimeoutException.class, () -> paymentService.initializePayment(request));
+        assertThrows(PaymentGatewayTimeoutException.class, () -> paymentService.initializePayment(tenants.mainId(), null, request));
     }
 
     @Transactional
@@ -152,7 +158,7 @@ class PaymentServiceTest {
         doReturn(mockResponse).when(mockHttpClient).send(any(), any());
 
         InitializePaymentRequest request = new InitializePaymentRequest(order.getOrderId(), "user@example.com");
-        assertThrows(PaymentGatewayUnavailableException.class, () -> paymentService.initializePayment(request));
+        assertThrows(PaymentGatewayUnavailableException.class, () -> paymentService.initializePayment(tenants.mainId(), null, request));
     }
 
     @Transactional
@@ -166,7 +172,7 @@ class PaymentServiceTest {
         doReturn(mockResponse).when(mockHttpClient).send(any(), any());
 
         InitializePaymentRequest request = new InitializePaymentRequest(order.getOrderId(), "invalid-email");
-        PaymentValidationException exception = assertThrows(PaymentValidationException.class, () -> paymentService.initializePayment(request));
+        PaymentValidationException exception = assertThrows(PaymentValidationException.class, () -> paymentService.initializePayment(tenants.mainId(), null, request));
         assertEquals("Invalid email address", exception.getMessage());
     }
 
@@ -177,6 +183,7 @@ class PaymentServiceTest {
 
         Payment payment = new Payment();
         payment.setOrder(order);
+        payment.setTenant(order.getTenant());
         payment.setAmount(order.getTotalAmount());
         payment.setStatus(PaymentStatus.PENDING);
         payment = paymentRepo.save(payment);
@@ -197,7 +204,7 @@ class PaymentServiceTest {
         when(mockResponse.body()).thenReturn(mockResponseBody);
         when(mockHttpClient.send(any(), any())).thenAnswer(invocation -> mockResponse);
 
-        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(reference);
+        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(tenants.mainId(), reference);
 
         assertNotNull(response);
         assertEquals(PaymentStatus.SUCCESSFUL, response.getPaymentStatus());
@@ -216,6 +223,7 @@ class PaymentServiceTest {
 
         Payment payment = new Payment();
         payment.setOrder(order);
+        payment.setTenant(order.getTenant());
         payment.setAmount(order.getTotalAmount());
         payment.setStatus(PaymentStatus.PENDING);
         payment = paymentRepo.save(payment);
@@ -236,7 +244,7 @@ class PaymentServiceTest {
         when(mockResponse.body()).thenReturn(mockResponseBody);
         when(mockHttpClient.send(any(), any())).thenAnswer(invocation -> mockResponse);
 
-        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(reference);
+        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(tenants.mainId(), reference);
 
         assertNotNull(response);
         assertEquals(PaymentStatus.FAILED, response.getPaymentStatus());
@@ -255,6 +263,7 @@ class PaymentServiceTest {
 
         Payment payment = new Payment();
         payment.setOrder(order);
+        payment.setTenant(order.getTenant());
         payment.setAmount(order.getTotalAmount());
         payment.setStatus(PaymentStatus.PENDING);
         payment = paymentRepo.save(payment);
@@ -276,7 +285,7 @@ class PaymentServiceTest {
         when(mockResponse.body()).thenReturn(mockResponseBody);
         when(mockHttpClient.send(any(), any())).thenAnswer(invocation -> mockResponse);
 
-        assertThrows(PaymentValidationException.class, () -> paymentService.verifyAndSyncPayment(reference));
+        assertThrows(PaymentValidationException.class, () -> paymentService.verifyAndSyncPayment(tenants.mainId(), reference));
 
         Payment updatedPayment = paymentRepo.findByReference(reference).orElse(null);
         assertNotNull(updatedPayment);
@@ -290,6 +299,7 @@ class PaymentServiceTest {
 
         Payment payment = new Payment();
         payment.setOrder(order);
+        payment.setTenant(order.getTenant());
         payment.setAmount(order.getTotalAmount());
         payment.setStatus(PaymentStatus.PENDING);
         payment = paymentRepo.save(payment);
@@ -297,7 +307,7 @@ class PaymentServiceTest {
 
         when(mockHttpClient.send(any(), any())).thenThrow(new HttpConnectTimeoutException("Connection timed out"));
 
-        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(reference);
+        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(tenants.mainId(), reference);
 
         assertNotNull(response);
         assertEquals(PaymentStatus.PENDING, response.getPaymentStatus());
@@ -311,6 +321,7 @@ class PaymentServiceTest {
 
         Payment payment = new Payment();
         payment.setOrder(order);
+        payment.setTenant(order.getTenant());
         payment.setAmount(order.getTotalAmount());
         payment.setStatus(PaymentStatus.PENDING);
         payment = paymentRepo.save(payment);
@@ -321,7 +332,7 @@ class PaymentServiceTest {
         when(mockResponse.body()).thenReturn("Service Unavailable");
         doReturn(mockResponse).when(mockHttpClient).send(any(), any());
 
-        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(reference);
+        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(tenants.mainId(), reference);
 
         assertNotNull(response);
         assertEquals(PaymentStatus.PENDING, response.getPaymentStatus());
@@ -337,6 +348,7 @@ class PaymentServiceTest {
 
         Payment payment = new Payment();
         payment.setOrder(order);
+        payment.setTenant(order.getTenant());
         payment.setAmount(order.getTotalAmount());
         payment = paymentRepo.save(payment);
         
@@ -344,7 +356,7 @@ class PaymentServiceTest {
         payment = paymentRepo.save(payment);
         String reference = payment.getReference();
 
-        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(reference);
+        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(tenants.mainId(), reference);
 
         assertNotNull(response);
         assertEquals(PaymentStatus.SUCCESSFUL, response.getPaymentStatus());
@@ -362,7 +374,7 @@ class PaymentServiceTest {
         orderRepo.save(order);
 
         InitializePaymentRequest request = new InitializePaymentRequest(order.getOrderId(), "user@example.com");
-        assertThrows(PaymentValidationException.class, () -> paymentService.initializePayment(request));
+        assertThrows(PaymentValidationException.class, () -> paymentService.initializePayment(tenants.mainId(), null, request));
     }
 
     @Transactional
@@ -371,6 +383,7 @@ class PaymentServiceTest {
         Order order = createTestOrder(BigDecimal.valueOf(2500.00));
         Payment payment = new Payment();
         payment.setOrder(order);
+        payment.setTenant(order.getTenant());
         payment.setAmount(order.getTotalAmount());
         payment.setStatus(PaymentStatus.PENDING);
         payment = paymentRepo.save(payment);
@@ -385,7 +398,7 @@ class PaymentServiceTest {
         when(mockResponse.body()).thenReturn(mockResponseBody);
         when(mockHttpClient.send(any(), any())).thenAnswer(invocation -> mockResponse);
 
-        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(reference);
+        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(tenants.mainId(), reference);
 
         assertEquals(PaymentStatus.SUCCESSFUL, response.getPaymentStatus());
         assertEquals(OrderStatus.CANCELED, response.getOrderStatus());

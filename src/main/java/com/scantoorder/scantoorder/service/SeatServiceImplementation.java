@@ -48,10 +48,12 @@ public class SeatServiceImplementation implements SeatService {
     private DiningSessionService diningSessionService;
     @Autowired
     private SeatLedger seatLedger;
+    @Autowired
+    private TenantAccess tenantAccess;
 
     @Override
-    public List<SeatStatusResponse> viewAllSeatStatus() {
-        List<Seat> allSeats = seatRepo.findAll();
+    public List<SeatStatusResponse> viewAllSeatStatus(String tenantId) {
+        List<Seat> allSeats = seatRepo.findByTenant_TenantId(tenantId);
         List<SeatStatusResponse> responses = new ArrayList<>();
         for (Seat seat : allSeats) {
             responses.add(new SeatStatusResponse(seat.getSeatId(), seat.getSeatNumber(), seat.getStatus().name()));
@@ -61,11 +63,11 @@ public class SeatServiceImplementation implements SeatService {
 
     @Transactional
     @Override
-    public UpdateSeatResponse updateSeat(UpdateSeatRequest updateSeatRequest) {
+    public UpdateSeatResponse updateSeat(String tenantId, UpdateSeatRequest updateSeatRequest) {
         if (!"VACANT".equals(updateSeatRequest.getNewState())) {
             throw new SeatStatusException("Staff can only free a seat. Guests take seats themselves.");
         }
-        ReleaseSeatResponse released = diningSessionService.freeSeat(updateSeatRequest.getSeatId());
+        ReleaseSeatResponse released = diningSessionService.freeSeat(tenantId, updateSeatRequest.getSeatId());
         return new UpdateSeatResponse(released.getMessage(), released.getSeatId(), released.getSeatNumber(), released.getStatus());
     }
 
@@ -78,6 +80,7 @@ public class SeatServiceImplementation implements SeatService {
         }
         SeatClaimedResponse alreadySeated = returnToOwnSeat(caller, seat.getTableId());
         if (alreadySeated != null) return alreadySeated;
+        tenantAccess.requireTakingOrders(seat.getTenant());
 
         Optional<SessionSeat> current = seatLedger.current(seat.getSeatId());
         if (current.isPresent()) {
@@ -91,6 +94,7 @@ public class SeatServiceImplementation implements SeatService {
 
         DinningSession session = new DinningSession();
         session.setTableId(seat.getTableId());
+        session.setTenant(seat.getTenant());
         session = dinningSessionRepo.save(session);
         SessionSeat membership = seatLedger.occupy(session, seat, claimSeatRequest.getCustomerName(),
                 claimSeatRequest.getCustomerPhoneNumber(), claimSeatRequest.getCustomerEmail());
@@ -104,6 +108,7 @@ public class SeatServiceImplementation implements SeatService {
         Seat seat = lockSeatAtOpenTable(seatId);
         SeatClaimedResponse alreadySeated = returnToOwnSeat(caller, seat.getTableId());
         if (alreadySeated != null) return alreadySeated;
+        tenantAccess.requireTakingOrders(seat.getTenant());
 
         SessionSeat held = seatLedger.current(seatId)
                 .orElseThrow(() -> new SeatStatusException("This seat is no longer being held. You can take it as your own."));
@@ -121,8 +126,8 @@ public class SeatServiceImplementation implements SeatService {
 
     @Transactional
     @Override
-    public ReleaseSeatResponse releaseSeat(String seatId) {
-        return diningSessionService.freeSeat(seatId);
+    public ReleaseSeatResponse releaseSeat(String tenantId, String seatId) {
+        return diningSessionService.freeSeat(tenantId, seatId);
     }
 
     private static final String TABLE_NOT_AVAILABLE = "This table is not available";
@@ -174,7 +179,7 @@ public class SeatServiceImplementation implements SeatService {
         response.setTableNumber(table.getTableNumber());
         response.setDisplayNumber(table.getDisplayNumber());
         if (issueToken) {
-            response.setToken(jwtService.generateCustomerToken(session.getSessionId(), seat.getSeatId(), table.getTableId(), membership.getId()));
+            response.setToken(jwtService.generateCustomerToken(session.getSessionId(), seat.getSeatId(), table.getTableId(), membership.getId(), seat.getTenant().getTenantId()));
         }
         return response;
     }

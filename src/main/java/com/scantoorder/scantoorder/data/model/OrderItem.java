@@ -11,6 +11,9 @@ public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String orderItemId;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
     @ManyToOne
     @JoinColumn(name = "orderId")
     private Order order;

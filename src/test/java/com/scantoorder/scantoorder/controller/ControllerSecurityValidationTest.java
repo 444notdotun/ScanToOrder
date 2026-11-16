@@ -64,7 +64,10 @@ public class ControllerSecurityValidationTest {
 
     private void signInAs(String role) {
         org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("someone", null,
+        Object principal = "ROLE_CUSTOMER".equals(role)
+                ? new com.scantoorder.scantoorder.data.model.CustomerPrincipal("sess-1", "seat-1", "table-1", "member-1", "tenant-1")
+                : new com.scantoorder.scantoorder.data.model.WorkerPrincipal("worker-1", role.replace("ROLE_", ""), "tenant-1");
+        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null,
                 java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority(role))));
         org.springframework.security.core.context.SecurityContextHolder.setContext(context);
     }
@@ -126,7 +129,7 @@ public class ControllerSecurityValidationTest {
         updateRequest.setNewState("VACANT");
 
         UpdateSeatResponse updateResponse = new UpdateSeatResponse("Updated", "seat-123", "S1", "OCCUPIED");
-        Mockito.when(seatService.updateSeat(any(UpdateSeatRequest.class))).thenReturn(updateResponse);
+        Mockito.when(seatService.updateSeat(any(), any(UpdateSeatRequest.class))).thenReturn(updateResponse);
 
         mockMvc.perform(patch("/api/v1/seats/update")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -134,14 +137,14 @@ public class ControllerSecurityValidationTest {
                 .andExpect(status().isOk());
 
         // Test View Seat Status
-        Mockito.when(seatService.viewAllSeatStatus()).thenReturn(Collections.emptyList());
+        Mockito.when(seatService.viewAllSeatStatus(any())).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/v1/seats/status"))
                 .andExpect(status().isOk());
 
         // Test Release Seat (Valid and Invalid)
         ReleaseSeatResponse releaseResponse = new ReleaseSeatResponse("Released", "seat-123", "S1", "VACANT");
-        Mockito.when(seatService.releaseSeat("seat-123")).thenReturn(releaseResponse);
+        Mockito.when(seatService.releaseSeat(any(), eq("seat-123"))).thenReturn(releaseResponse);
 
         mockMvc.perform(post("/api/v1/seats/seat-123/release"))
                 .andExpect(status().isOk());
@@ -160,7 +163,7 @@ public class ControllerSecurityValidationTest {
 
         // Test Close Session (Valid and Invalid)
         CloseSessionResponse closeResponse = new CloseSessionResponse("Closed", "sess-123", "CLOSED");
-        Mockito.when(diningSessionService.closeSession("sess-123")).thenReturn(closeResponse);
+        Mockito.when(diningSessionService.closeSession(any(), eq("sess-123"))).thenReturn(closeResponse);
 
         mockMvc.perform(post("/api/v1/sessions/sess-123/close"))
                 .andExpect(status().isOk());
@@ -189,10 +192,11 @@ public class ControllerSecurityValidationTest {
 
     @Test
     public void testMenuControllerEndpoints() throws Exception {
+        signInAs("ROLE_MANAGER");
         // Test Generate Menu
         MenuResponse menuResponse = new MenuResponse();
         menuResponse.setCategoryAndItemResponse(Collections.emptyList());
-        Mockito.when(menuService.generateMenu()).thenReturn(menuResponse);
+        Mockito.when(menuService.generateMenu(any())).thenReturn(menuResponse);
 
         mockMvc.perform(get("/api/v1/menu"))
                 .andExpect(status().isOk());
@@ -245,7 +249,7 @@ public class ControllerSecurityValidationTest {
 
         Mockito.when(orderService.createOrder(any(CreateOrderRequest.class), any(com.scantoorder.scantoorder.data.model.CustomerPrincipal.class))).thenReturn(orderResponse);
 
-        com.scantoorder.scantoorder.data.model.CustomerPrincipal mockPrincipal = new com.scantoorder.scantoorder.data.model.CustomerPrincipal(sessionId, seatId, tableId, "member-1");
+        com.scantoorder.scantoorder.data.model.CustomerPrincipal mockPrincipal = new com.scantoorder.scantoorder.data.model.CustomerPrincipal(sessionId, seatId, tableId, "member-1", "tenant-1");
         org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
         java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CUSTOMER"));
         context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(mockPrincipal, null, authorities));
@@ -261,7 +265,7 @@ public class ControllerSecurityValidationTest {
         Order mockOrder = new Order();
         mockOrder.setOrderId("order-123");
         mockOrder.setOrderStatus(OrderStatus.PAID);
-        Mockito.when(orderService.updateOrder("PAID", "order-123")).thenReturn(mockOrder);
+        Mockito.when(orderService.updateOrder(any(), eq("PAID"), eq("order-123"))).thenReturn(mockOrder);
 
         mockMvc.perform(patch("/api/v1/orders/order-123?status=PAID"))
                 .andExpect(status().isForbidden());
@@ -270,13 +274,13 @@ public class ControllerSecurityValidationTest {
                 .andExpect(status().isOk());
 
         // Test Check Order Status
-        Mockito.when(orderService.checkOrderStatus("order-123")).thenReturn("PAID");
+        Mockito.when(orderService.checkOrderStatus(any(), eq("order-123"))).thenReturn("PAID");
 
         mockMvc.perform(get("/api/v1/orders/order-123/status"))
                 .andExpect(status().isOk());
 
         // Test Get All Paid Orders
-        Mockito.when(orderService.getAllPaidOrders()).thenReturn(Collections.emptyList());
+        Mockito.when(orderService.getAllPaidOrders(any())).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/v1/orders/paid"))
                 .andExpect(status().isOk());
@@ -289,7 +293,8 @@ public class ControllerSecurityValidationTest {
         itemRequest.setQuantity(2);
         itemRequest.setSpecialInstructions("No onions");
 
-        Mockito.when(orderItemService.createOrderItem(eq("order-123"), any(CreateOrderItemRequest.class))).thenReturn(null);
+        signInAs("ROLE_CUSTOMER");
+        Mockito.when(orderItemService.addItemToMyOrder(any(), eq("order-123"), any(CreateOrderItemRequest.class))).thenReturn(null);
 
         mockMvc.perform(post("/api/v1/orders/order-123/items")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -350,7 +355,8 @@ public class ControllerSecurityValidationTest {
 
     @Test
     public void testTableControllerQrCode() throws Exception {
-        Mockito.when(restaurantTableService.getQrCode("T1")).thenReturn(new byte[]{1, 2, 3});
+        signInAs("ROLE_WAITER");
+        Mockito.when(restaurantTableService.getQrCode(any(), eq("T1"))).thenReturn(new byte[]{1, 2, 3});
         mockMvc.perform(get("/api/v1/tables/T1/qrcode"))
                 .andExpect(status().isOk());
 

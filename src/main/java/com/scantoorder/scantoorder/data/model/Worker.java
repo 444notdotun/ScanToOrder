@@ -18,7 +18,12 @@ public class Worker implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String workerId;
+    @Column(unique = true)
     private String username;
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "tenant_id", nullable = true)
+    private Tenant tenant;
+    private boolean mustChangePassword;
     @JsonIgnore
     private String password;
     private String fullName;

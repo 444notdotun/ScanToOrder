@@ -70,6 +70,26 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(AccountVerificationException.class)
+    public ResponseEntity<Object> handleAccountVerificationException(AccountVerificationException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(PlaceClosedException.class)
+    public ResponseEntity<Object> handlePlaceClosedException(PlaceClosedException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(BadSignInException.class)
+    public ResponseEntity<Object> handleBadSignInException(BadSignInException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(SuspendedTenantException.class)
+    public ResponseEntity<Object> handleSuspendedTenantException(SuspendedTenantException ex) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
     @ExceptionHandler(InvalidRequestException.class)
     public ResponseEntity<Object> handleInvalidRequestException(InvalidRequestException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());

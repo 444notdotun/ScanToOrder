@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.data.model.Order;
 import com.scantoorder.scantoorder.dtos.request.CreateOrderRequest;
@@ -37,7 +38,7 @@ public class OrderController {
     public ResponseEntity<ApiResponse<Order>> updateOrder(
             @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String orderId,
             @RequestParam String status) {
-        Order response = orderService.updateOrder(status, orderId);
+        Order response = orderService.updateOrder(CurrentTenant.id(), status, orderId);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 
@@ -45,13 +46,14 @@ public class OrderController {
     @GetMapping("/{orderId}/status")
     public ResponseEntity<ApiResponse<String>> checkOrderStatus(
             @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String orderId) {
-        String response = orderService.checkOrderStatus(orderId);
+        String response = orderService.checkOrderStatus(CurrentTenant.id(), orderId);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 
+    @PreAuthorize("hasAnyRole('CHEF', 'WAITER', 'MANAGER')")
     @GetMapping("/paid")
     public ResponseEntity<ApiResponse<List<KitchenOrderResponse>>> getAllPaidOrders() {
-        List<KitchenOrderResponse> response = orderService.getAllPaidOrders();
+        List<KitchenOrderResponse> response = orderService.getAllPaidOrders(CurrentTenant.id());
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 }

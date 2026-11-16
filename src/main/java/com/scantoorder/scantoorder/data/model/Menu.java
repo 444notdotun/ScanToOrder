@@ -12,20 +12,15 @@ public class Menu {
     private String menuId;
     private String menuName;
     private boolean isActive;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
 
-    private static Menu instance;
-
-    public static Menu getInstance() {
-        if (instance == null) {
-            instance = new Menu();
-        }
-        return instance;
-    }
     @PrePersist
     public void prePersist(){
         isActive=true;
-        menuName = CodeGenerator.generate(CodePrefix.MENU);
+        if (menuName == null) {
+            menuName = CodeGenerator.generate(CodePrefix.MENU);
+        }
     }
-
-
 }

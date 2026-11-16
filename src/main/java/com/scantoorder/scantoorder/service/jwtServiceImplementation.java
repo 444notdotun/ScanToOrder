@@ -25,6 +25,8 @@ public class jwtServiceImplementation implements JwtService {
                 .claim("type", "WORKER")
                 .claim("workerId", worker.getWorkerId())
                 .claim("role", worker.getRole())
+                .claim("tenantId", worker.getTenant() == null ? null : worker.getTenant().getTenantId())
+                .claim("mustChangePassword", worker.isMustChangePassword())
                 .signWith(encodeKey(secretKey))
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis()+expiration))
@@ -38,13 +40,14 @@ public class jwtServiceImplementation implements JwtService {
         return email.equals(player.getUsername()) && !isTokenExpired(token) ;
     }
 
-    public String generateCustomerToken(String sessionId, String seatId, String tableId, String sessionSeatId) {
+    public String generateCustomerToken(String sessionId, String seatId, String tableId, String sessionSeatId, String tenantId) {
         return Jwts.builder()
                 .claim("type", "CUSTOMER")
                 .claim("sessionId", sessionId)
                 .claim("seatId", seatId)
                 .claim("tableId", tableId)
                 .claim("sessionSeatId", sessionSeatId)
+                .claim("tenantId", tenantId)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(encodeKey(secretKey))

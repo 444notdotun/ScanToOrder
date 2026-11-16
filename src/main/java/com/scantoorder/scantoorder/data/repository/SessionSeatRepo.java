@@ -24,6 +24,9 @@ public interface SessionSeatRepo extends JpaRepository<SessionSeat, String> {
     Optional<String> findSessionIdBySeatAndStatusIn(@Param("seatId") String seatId,
                                                     @Param("statuses") Collection<SessionSeatStatus> statuses);
 
+    List<SessionSeat> findAllByTenant_TenantId(String tenantId);
+    Optional<SessionSeat> findByIdAndTenant_TenantId(String id, String tenantId);
+
     @Query("SELECT ss FROM SessionSeat ss WHERE ss.session.sessionId = :sessionId AND ss.status IN :statuses ORDER BY ss.seat.position")
     List<SessionSeat> findBySessionAndStatusIn(@Param("sessionId") String sessionId,
                                                @Param("statuses") Collection<SessionSeatStatus> statuses);

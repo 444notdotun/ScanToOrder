@@ -37,7 +37,6 @@ import com.scantoorder.scantoorder.exception.SessionEndedException;
 import com.scantoorder.scantoorder.exception.SessionNotFoundException;
 import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,9 +71,6 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     @Autowired
     private SeatLedger seatLedger;
 
-    @Value("${app.holds.enabled:true}")
-    private boolean holdsEnabled;
-
     @Transactional(readOnly = true)
     @Override
     public SessionViewResponse getMySession(CustomerPrincipal caller) {
@@ -85,15 +81,15 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     @Transactional
     @Override
     public SessionViewResponse holdSeats(CustomerPrincipal caller, List<String> seatIds) {
-        if (!holdsEnabled) {
-            throw new SeatStatusException("Holding seats is switched off here");
-        }
         Set<String> wanted = new LinkedHashSet<>(seatIds);
         if (wanted.isEmpty()) {
             throw new InvalidRequestException("Choose at least one seat to hold");
         }
         Map<String, Seat> locked = lockWithOwnSeat(caller, wanted);
         SessionSeat me = requireSeated(caller);
+        if (!me.getSession().getTenant().isHoldsEnabled()) {
+            throw new SeatStatusException("Holding seats is switched off here");
+        }
         String myTableId = me.getSeat().getTableId().getTableId();
         for (String seatId : wanted) {
             Seat seat = locked.get(seatId);
@@ -198,8 +194,8 @@ public class DiningSessionServiceImpl implements DiningSessionService {
 
     @Transactional
     @Override
-    public CloseSessionResponse closeSession(String sessionId) {
-        DinningSession session = dinningSessionRepo.findById(sessionId)
+    public CloseSessionResponse closeSession(String tenantId, String sessionId) {
+        DinningSession session = dinningSessionRepo.findBySessionIdAndTenant_TenantId(sessionId, tenantId)
                 .orElseThrow(() -> new SessionNotFoundException("We cannot find that session"));
         if (session.getSessionStatus() == DinningSessionStatus.CLOSED) {
             return new CloseSessionResponse("Session is already closed", sessionId, DinningSessionStatus.CLOSED.name());
@@ -212,8 +208,8 @@ public class DiningSessionServiceImpl implements DiningSessionService {
 
     @Transactional
     @Override
-    public CloseTableResponse closeTable(String tableId) {
-        RestaurantTable table = tableRepo.findById(tableId)
+    public CloseTableResponse closeTable(String tenantId, String tableId) {
+        RestaurantTable table = tableRepo.findByTableIdAndTenant_TenantId(tableId, tenantId)
                 .orElseThrow(() -> new TableNotFoundException("We cannot find that table"));
         List<String> seatIds = seatRepo.findSeatIdsByTable(tableId);
         List<Seat> seats = seatIds.isEmpty() ? List.of() : seatRepo.findAllForUpdate(seatIds);
@@ -236,8 +232,8 @@ public class DiningSessionServiceImpl implements DiningSessionService {
 
     @Transactional(readOnly = true)
     @Override
-    public TableSessionsResponse getTableSessions(String tableId) {
-        RestaurantTable table = tableRepo.findById(tableId)
+    public TableSessionsResponse getTableSessions(String tenantId, String tableId) {
+        RestaurantTable table = tableRepo.findByTableIdAndTenant_TenantId(tableId, tenantId)
                 .orElseThrow(() -> new TableNotFoundException("We cannot find that table"));
         TableSessionsResponse response = new TableSessionsResponse();
         response.setTableId(table.getTableId());
@@ -262,7 +258,9 @@ public class DiningSessionServiceImpl implements DiningSessionService {
 
     @Transactional
     @Override
-    public ReleaseSeatResponse freeSeat(String seatId) {
+    public ReleaseSeatResponse freeSeat(String tenantId, String seatId) {
+        seatRepo.findBySeatIdAndTenant_TenantId(seatId, tenantId)
+                .orElseThrow(() -> new SeatNotFoundException("We cannot find that seat"));
         String sessionId = sessionSeatRepo.findSessionIdBySeatAndStatusIn(seatId, SeatLedger.ACTIVE).orElse(null);
         List<Seat> locked = lockSeats(sessionId, List.of(seatId));
         Seat seat = locked.stream().filter(s -> s.getSeatId().equals(seatId)).findFirst()
@@ -318,8 +316,8 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     }
 
     @Override
-    public long getActiveSessionsCount() {
-        return dinningSessionRepo.countBySessionStatus(DinningSessionStatus.ACTIVE);
+    public long getActiveSessionsCount(String tenantId) {
+        return dinningSessionRepo.countBySessionStatusAndTenant_TenantId(DinningSessionStatus.ACTIVE, tenantId);
     }
 
     // A guest sees receipts for their own seat and for guests without a phone at their table, not for other phones.
@@ -360,7 +358,17 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         ids.add(caller.getSeatId());
         Map<String, Seat> locked = new HashMap<>();
         for (Seat seat : seatRepo.findAllForUpdate(ids)) {
+            // A seat of another business is simply not there.
+            if (!seat.getTenant().getTenantId().equals(caller.getTenantId())) {
+                throw new SeatNotFoundException("We cannot find that seat");
+            }
             locked.put(seat.getSeatId(), seat);
+        }
+        // A seat that does not exist and a seat of another business get the same answer.
+        for (String requested : seatIds) {
+            if (!locked.containsKey(requested)) {
+                throw new SeatNotFoundException("We cannot find that seat");
+            }
         }
         return locked;
     }
@@ -380,7 +388,7 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         response.setTableNumber(table.getTableNumber());
         response.setDisplayNumber(table.getDisplayNumber());
         response.setSeatId(me.getSeat().getSeatId());
-        response.setHoldsEnabled(holdsEnabled);
+        response.setHoldsEnabled(session.getTenant().isHoldsEnabled());
         for (SessionSeat membership : activeMembers(session.getSessionId())) {
             boolean mine = membership.getId().equals(me.getId());
             SessionSeatView view = seatView(membership);

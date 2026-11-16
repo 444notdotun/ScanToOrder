@@ -1,5 +1,8 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.CurrentTenant;
+import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.scantoorder.scantoorder.dtos.request.InitializePaymentRequest;
 import com.scantoorder.scantoorder.dtos.respond.InitializePaymentResponse;
 import com.scantoorder.scantoorder.dtos.respond.PaymentStatusResponse;
@@ -25,7 +28,9 @@ public class PaymentController {
     @PostMapping("/initialize")
     public ResponseEntity<ApiResponse<InitializePaymentResponse>> initializePayment(
             @RequestBody @Valid  InitializePaymentRequest request) {
-        InitializePaymentResponse response = paymentService.initializePayment(request);
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String sessionId = principal instanceof CustomerPrincipal customer ? customer.getSessionId() : null;
+        InitializePaymentResponse response = paymentService.initializePayment(CurrentTenant.id(), sessionId, request);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 
@@ -34,7 +39,7 @@ public class PaymentController {
             @NotNull(message = "Reference cannot be null") 
             @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "Invalid payment reference format")
             @PathVariable String reference) {
-        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(reference);
+        PaymentStatusResponse response = paymentService.verifyAndSyncPayment(CurrentTenant.id(), reference);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 

@@ -18,6 +18,9 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
     @Column(nullable = false, unique = true)
     private String reference;
 

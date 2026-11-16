@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.dtos.request.ConfirmGuestRequest;
 import com.scantoorder.scantoorder.dtos.request.HoldSeatsRequest;
@@ -88,9 +89,10 @@ public class SessionController {
                 .body(new ApiResponse<>(response));
     }
 
+    @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @GetMapping("/active/count")
     public ResponseEntity<ApiResponse<Long>> getActiveSessionsCount() {
-        long count = diningSessionService.getActiveSessionsCount();
+        long count = diningSessionService.getActiveSessionsCount(CurrentTenant.id());
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(count));
     }
 
@@ -98,7 +100,7 @@ public class SessionController {
     @PostMapping("/{id}/close")
     public ResponseEntity<ApiResponse<CloseSessionResponse>> closeSession(
             @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String id) {
-        CloseSessionResponse response = diningSessionService.closeSession(id);
+        CloseSessionResponse response = diningSessionService.closeSession(CurrentTenant.id(), id);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 }

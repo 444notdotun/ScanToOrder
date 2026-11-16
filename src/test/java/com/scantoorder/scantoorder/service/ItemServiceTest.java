@@ -26,13 +26,18 @@ class ItemServiceTest {
     private CategoryRepository categoryRepository;
     @Autowired
     private ItemRepo itemRepo;
+    @Autowired
+    private TenantTestSupport tenants;
     private CreateItemRequest createitemRequest;
 
     private Category category;
 
     @BeforeEach
     void setUp() {
+        tenants.signInAsManager();
         category = new Category();
+        category.setTenant(tenants.main());
+        category.setMenu(tenants.menuOf(tenants.main()));
         category.setCategoryName("test category");
         categoryRepository.save(category);
         createitemRequest = new CreateItemRequest();
@@ -43,6 +48,7 @@ class ItemServiceTest {
     }
     @AfterEach
     void tearDown() {
+        tenants.signOut();
         itemRepo.deleteAll();
         categoryRepository.deleteAll();
     }

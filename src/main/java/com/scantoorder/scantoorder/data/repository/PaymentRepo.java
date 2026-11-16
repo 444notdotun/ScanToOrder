@@ -9,6 +9,7 @@ import java.util.Optional;
 @Repository
 public interface PaymentRepo extends JpaRepository<Payment, String> {
     Optional<Payment> findByReference(String reference);
+    Optional<Payment> findByReferenceAndTenant_TenantId(String reference, String tenantId);
     Optional<Payment> findByOrderOrderId(String orderId);
     java.util.List<Payment> findByOrderDinningSessionSessionIdAndStatus(String sessionId, com.scantoorder.scantoorder.data.model.PaymentStatus status);
 }

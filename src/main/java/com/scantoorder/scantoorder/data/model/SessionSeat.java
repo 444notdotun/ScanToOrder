@@ -11,6 +11,9 @@ public class SessionSeat {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
     @ManyToOne
     @JoinColumn(name = "session_id", nullable = false)
     private DinningSession session;

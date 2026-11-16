@@ -2,6 +2,8 @@ package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.data.model.RestaurantTable;
+import com.scantoorder.scantoorder.data.model.Tenant;
+import com.scantoorder.scantoorder.data.repository.TenantRepo;
 import com.scantoorder.scantoorder.data.model.Seat;
 import com.scantoorder.scantoorder.data.model.SeatStatus;
 import com.scantoorder.scantoorder.data.model.SessionSeat;
@@ -37,6 +39,10 @@ class DinningSessionsTest {
     private SeatService seatService;
     @Autowired
     private SeatingTestSupport support;
+    @Autowired
+    private TenantTestSupport tenants;
+    @Autowired
+    private TenantRepo tenantRepo;
 
     private RestaurantTable table;
     private List<Seat> seats;
@@ -56,8 +62,9 @@ class DinningSessionsTest {
     }
 
     private void setHoldsEnabled(boolean enabled) {
-        Object target = AopTestUtils.getTargetObject(diningSessionService);
-        ReflectionTestUtils.setField(target, "holdsEnabled", enabled);
+        Tenant tenant = tenants.main();
+        tenant.setHoldsEnabled(enabled);
+        tenantRepo.save(tenant);
     }
 
     private String id(int index) {
@@ -120,7 +127,7 @@ class DinningSessionsTest {
 
     @Test
     void testThatAGuestWhoIsNotSeatedCannotHold() {
-        seatService.releaseSeat(id(0));
+        seatService.releaseSeat(support.tenantId(), id(0));
         assertThrows(SessionEndedException.class, () -> diningSessionService.holdSeats(host, List.of(id(1))));
         assertEquals(SeatStatus.VACANT, support.reload(seats.get(1)).getStatus());
     }
@@ -217,7 +224,7 @@ class DinningSessionsTest {
 
     @Test
     void testThatACustomerWhoseSeatWasFreedIsToldTheSessionHasEnded() {
-        seatService.releaseSeat(id(0));
+        seatService.releaseSeat(support.tenantId(), id(0));
         SessionEndedException exception = assertThrows(SessionEndedException.class, () -> diningSessionService.getMySession(host));
         assertEquals("Your session has ended", exception.getMessage());
     }

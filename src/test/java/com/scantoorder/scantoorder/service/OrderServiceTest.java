@@ -56,12 +56,7 @@ class OrderServiceTest {
     }
 
     private void saveItem(String name, int price, boolean available) {
-        Item item = itemRepo.findItemsByItemName(name).orElseGet(Item::new);
-        item.setItemName(name);
-        item.setItemPrice(BigDecimal.valueOf(price));
-        item = itemRepo.save(item);
-        item.setAvailable(available);
-        itemRepo.save(item);
+        support.saveItem(name, price, available);
     }
 
     private CreateOrderItemRequest orderItem(String name, int quantity) {
@@ -122,7 +117,7 @@ class OrderServiceTest {
         guest.setSeatId(id(1));
         guest.setGuestName("Grandma");
         diningSessionService.confirmGuest(customer, guest);
-        seatService.releaseSeat(id(1));
+        seatService.releaseSeat(support.tenantId(), id(1));
         assertThrows(SeatStatusException.class, () -> orderService.createOrder(orderFor(1), customer));
     }
 
@@ -146,7 +141,7 @@ class OrderServiceTest {
 
     @Test
     void testThatAGuestWhoseSeatWasFreedCannotOrder() {
-        seatService.releaseSeat(id(0));
+        seatService.releaseSeat(support.tenantId(), id(0));
         assertThrows(SessionEndedException.class, () -> orderService.createOrder(createOrderRequest, customer));
     }
 
@@ -180,7 +175,7 @@ class OrderServiceTest {
         assertEquals(0, BigDecimal.valueOf(280000).compareTo(createOrderResponse.getTotalPrice()));
         String newState = "CANCELED";
         System.out.println(order.getOrderStatus());
-        Order updatedOrder = orderService.updateOrder(newState, order.getOrderId());
+        Order updatedOrder = orderService.updateOrder(support.tenantId(), newState, order.getOrderId());
         assertEquals(OrderStatus.CANCELED, updatedOrder.getOrderStatus());
     }
 
@@ -193,7 +188,7 @@ class OrderServiceTest {
         orderRepo.save(order);
         assertEquals(0, BigDecimal.valueOf(280000).compareTo(createOrderResponse.getTotalPrice()));
         String newState = "PREPARING";
-        Order updatedOrder = orderService.updateOrder(newState, createOrderResponse.getOrderId());
+        Order updatedOrder = orderService.updateOrder(support.tenantId(), newState, createOrderResponse.getOrderId());
         assertEquals(OrderStatus.PREPARING, updatedOrder.getOrderStatus());
     }
 
@@ -206,7 +201,7 @@ class OrderServiceTest {
         orderRepo.save(order);
         assertEquals(0, BigDecimal.valueOf(280000).compareTo(createOrderResponse.getTotalPrice()));
         String newState = "READY";
-        Order updatedOrder = orderService.updateOrder(newState, createOrderResponse.getOrderId());
+        Order updatedOrder = orderService.updateOrder(support.tenantId(), newState, createOrderResponse.getOrderId());
         assertEquals(OrderStatus.READY, updatedOrder.getOrderStatus());
     }
     @Test
@@ -218,7 +213,7 @@ class OrderServiceTest {
         orderRepo.save(order);
         assertEquals(0, BigDecimal.valueOf(280000).compareTo(createOrderResponse.getTotalPrice()));
         String newState = "DELIVERED";
-        Order updatedOrder = orderService.updateOrder(newState, createOrderResponse.getOrderId());
+        Order updatedOrder = orderService.updateOrder(support.tenantId(), newState, createOrderResponse.getOrderId());
         assertEquals(OrderStatus.DELIVERED, updatedOrder.getOrderStatus());
     }
 
@@ -228,7 +223,7 @@ class OrderServiceTest {
         assertNotNull(createOrderResponse);
         assertEquals(0, BigDecimal.valueOf(280000).compareTo(createOrderResponse.getTotalPrice()));
         String newState = "PREPARING";
-        assertThrows(OrderStatusException.class,()->orderService.updateOrder(newState, createOrderResponse.getOrderId()));
+        assertThrows(OrderStatusException.class,()->orderService.updateOrder(support.tenantId(), newState, createOrderResponse.getOrderId()));
     }
 
     @Test
@@ -240,7 +235,7 @@ class OrderServiceTest {
         Order order = orderRepo.findOrderByOrderId(createOrderResponse.getOrderId());
         order.setOrderStatus(OrderStatus.PAID);
         orderRepo.save(order);
-        assertEquals(OrderStatus.PAID.toString(),orderService.checkOrderStatus(createOrderResponse.getOrderId()));
+        assertEquals(OrderStatus.PAID.toString(),orderService.checkOrderStatus(support.tenantId(), createOrderResponse.getOrderId()));
     }
 
     @Test
@@ -252,9 +247,9 @@ class OrderServiceTest {
         assertEquals(OrderStatus.PENDING_PAYMENT, createOrderResponse.getOrderStatus());
         CreateOrderResponse createOrderResponse1 = orderService.createOrder(createOrderRequest, customer);
         assertNotNull(createOrderResponse1);
-        orderService.updateOrder("PAID",createOrderResponse1.getOrderId());
-        assertEquals(1,orderService.getAllPaidOrders().size());
-        assertEquals(createOrderResponse1.getTableNumber(),orderService.getAllPaidOrders().get(0).getTableNumber());
+        orderService.updateOrder(support.tenantId(), "PAID",createOrderResponse1.getOrderId());
+        assertEquals(1,orderService.getAllPaidOrders(support.tenantId()).size());
+        assertEquals(createOrderResponse1.getTableNumber(),orderService.getAllPaidOrders(support.tenantId()).get(0).getTableNumber());
     }
 
 

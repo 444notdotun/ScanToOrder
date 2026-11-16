@@ -17,5 +17,8 @@ public interface ItemRepo extends JpaRepository<Item, String> {
     @Query("SELECT i FROM Item i JOIN FETCH i.categoryId c WHERE i.isAvailable = true AND c.isActive = true")
     List<Item> findAllActiveItemsWithCategory();
 
-    Optional<Item> findItemsByItemName(String itemName);
+    Optional<Item> findByTenant_TenantIdAndItemName(String tenantId, String itemName);
+    Optional<Item> findByItemIdAndTenant_TenantId(String itemId, String tenantId);
+    boolean existsByCategoryId(Category category);
+    long countByTenant_TenantIdAndIsAvailableTrue(String tenantId);
 }

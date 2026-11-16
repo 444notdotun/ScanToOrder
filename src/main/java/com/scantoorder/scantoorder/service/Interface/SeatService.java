@@ -12,9 +12,9 @@ import com.scantoorder.scantoorder.dtos.respond.UpdateSeatResponse;
 import java.util.List;
 
 public interface SeatService {
-    List<SeatStatusResponse> viewAllSeatStatus();
-    UpdateSeatResponse updateSeat(UpdateSeatRequest updateSeatRequest);
+    List<SeatStatusResponse> viewAllSeatStatus(String tenantId);
+    UpdateSeatResponse updateSeat(String tenantId, UpdateSeatRequest updateSeatRequest);
     SeatClaimedResponse claimSeat(ClaimSeatRequest claimSeatRequest, CustomerPrincipal caller);
     SeatClaimedResponse joinSeat(String seatId, JoinSeatRequest joinSeatRequest, CustomerPrincipal caller);
-    ReleaseSeatResponse releaseSeat(String seatId);
+    ReleaseSeatResponse releaseSeat(String tenantId, String seatId);
 }

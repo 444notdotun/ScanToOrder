@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ServiceCallRepo extends JpaRepository<ServiceCall, String> {
+    java.util.List<ServiceCall> findAllByTenant_TenantId(String tenantId);
+    java.util.Optional<ServiceCall> findByServiceCallIdAndTenant_TenantId(String serviceCallId, String tenantId);
 }
