@@ -4,11 +4,13 @@ import com.scantoorder.scantoorder.dtos.respond.ReceiptItemDto;
 import com.scantoorder.scantoorder.dtos.respond.ReceiptResponse;
 import com.scantoorder.scantoorder.data.model.Order;
 import com.scantoorder.scantoorder.data.model.OrderItem;
-import com.scantoorder.scantoorder.data.model.OrderStatus;
+import com.scantoorder.scantoorder.data.model.Refund;
+import com.scantoorder.scantoorder.data.model.RefundStatus;
 import com.scantoorder.scantoorder.data.model.Payment;
 import com.scantoorder.scantoorder.data.model.PaymentStatus;
 import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
 import com.scantoorder.scantoorder.data.repository.PaymentRepo;
+import com.scantoorder.scantoorder.data.repository.RefundRepo;
 import com.scantoorder.scantoorder.exception.PaymentValidationException;
 import com.scantoorder.scantoorder.exception.ResourceNotFoundException;
 import com.scantoorder.scantoorder.service.Interface.ReceiptService;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,21 +26,22 @@ import java.util.stream.Collectors;
 @Service
 public class ReceiptServiceImpl implements ReceiptService {
 
-    private static final java.util.Set<PaymentStatus> EVER_PAID = java.util.Set.of(
-            PaymentStatus.SUCCESSFUL, PaymentStatus.REFUND_PENDING, PaymentStatus.REFUNDED, PaymentStatus.REFUND_FAILED);
-
     @Autowired
     private PaymentRepo paymentRepo;
 
     @Autowired
     private OrderItemRepo orderItemRepo;
+    @Autowired
+    private RefundRepo refundRepo;
+    @Autowired
+    private RefundService refundService;
 
     @Override
     public ReceiptResponse getReceiptData(String tenantId, String paymentReference) {
         Payment payment = paymentRepo.findByReferenceAndTenant_TenantId(paymentReference, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("We cannot find that receipt"));
 
-        if (!EVER_PAID.contains(payment.getStatus())) {
+        if (payment.getStatus() != PaymentStatus.SUCCESSFUL) {
             throw new PaymentValidationException("Payment status is not successful for reference: " + paymentReference);
         }
 
@@ -63,6 +67,9 @@ public class ReceiptServiceImpl implements ReceiptService {
         String tableNumber = order.getTable() != null ? order.getTable().getTableNumber() : "N/A";
         String seatLabel = order.getSeat() != null ? order.getSeat().getSeatNumber() : "N/A";
 
+        Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElse(null);
+        String refundMessage = refund == null ? null : refundWording(refund, payment.getTenant().getName());
+
         return new ReceiptResponse(
                 receiptNumber,
                 payment.getReference(),
@@ -73,9 +80,19 @@ public class ReceiptServiceImpl implements ReceiptService {
                 items,
                 subtotal,
                 payment.getAmount(),
-                // A refunded order shows REFUNDED even while Paystack is still paying the money back.
-                order.getOrderStatus() == OrderStatus.REFUNDED ? PaymentStatus.REFUNDED : payment.getStatus()
+                payment.getStatus(),
+                refundMessage,
+                refund == null || refund.getStatus() == RefundStatus.CONFIRMED ? null : refundService.linkFor(refund)
         );
+    }
+
+    private String refundWording(Refund refund, String restaurant) {
+        String amount = Money.naira(refund.getAmountKobo());
+        if (refund.getStatus() == RefundStatus.DUE) {
+            return "Refund of " + amount + " due from " + restaurant;
+        }
+        LocalDateTime sentOn = refund.getSettledAt() != null ? refund.getSettledAt() : refund.getGuestConfirmedAt();
+        return "Refund of " + amount + " sent by " + restaurant + " on " + sentOn.toLocalDate();
     }
 
     @Override

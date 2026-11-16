@@ -5,7 +5,6 @@ import com.scantoorder.scantoorder.dtos.request.SwapRequest;
 import com.scantoorder.scantoorder.dtos.request.UnavailableRequest;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.dtos.respond.OrderActionResponse;
-import com.scantoorder.scantoorder.dtos.respond.RefundQueueResponse;
 import com.scantoorder.scantoorder.service.Interface.OrderRecoveryService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -46,18 +45,5 @@ public class OrderRecoveryController {
     public ResponseEntity<ApiResponse<OrderActionResponse>> refundRequest(
             @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
         return ResponseEntity.ok(new ApiResponse<>(recoveryService.requestRefund(CurrentTenant.id(), id)));
-    }
-
-    @PreAuthorize("hasRole('MANAGER')")
-    @GetMapping("/refunds")
-    public ResponseEntity<ApiResponse<RefundQueueResponse>> refunds() {
-        return ResponseEntity.ok(new ApiResponse<>(recoveryService.refundQueue(CurrentTenant.id())));
-    }
-
-    @PreAuthorize("hasRole('MANAGER')")
-    @PostMapping("/orders/{id}/refund")
-    public ResponseEntity<ApiResponse<OrderActionResponse>> refund(
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
-        return ResponseEntity.ok(new ApiResponse<>(recoveryService.approveRefund(CurrentTenant.id(), id)));
     }
 }

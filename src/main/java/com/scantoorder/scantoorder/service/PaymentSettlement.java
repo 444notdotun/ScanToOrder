@@ -4,6 +4,7 @@ import com.scantoorder.scantoorder.data.model.Order;
 import com.scantoorder.scantoorder.data.model.OrderStatus;
 import com.scantoorder.scantoorder.data.model.Payment;
 import com.scantoorder.scantoorder.data.model.PaymentStatus;
+import com.scantoorder.scantoorder.data.model.RefundReason;
 import com.scantoorder.scantoorder.data.repository.OrderRepo;
 import com.scantoorder.scantoorder.data.repository.PaymentRepo;
 import lombok.extern.slf4j.Slf4j;
@@ -41,11 +42,11 @@ public class PaymentSettlement {
             orderRepo.save(order);
         } else if (order.getOrderStatus() == OrderStatus.CANCELED) {
             // The guest left or was closed out before the money arrived. The order never reaches the
-            // kitchen, and the guest gets everything back without waiting for a manager.
-            refundService.startOrMarkFailed(payment);
+            // kitchen, and the restaurant owes the guest all of it back.
+            refundService.createDue(payment, RefundReason.LATE_PAYMENT);
         } else {
-            log.warn("Payment {} succeeded for order {} which is already {}. It needs a manager's attention.",
-                    payment.getReference(), order.getOrderId(), order.getOrderStatus());
+            // The order was already paid for: this is a second payment, and the restaurant owes it back.
+            refundService.createDue(payment, RefundReason.DOUBLE_PAYMENT);
         }
         return true;
     }

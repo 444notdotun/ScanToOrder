@@ -94,6 +94,7 @@ public class PaymentImplementation implements PaymentService {
         payment.setPlatelyChargeKobo(split.platelyChargeKobo());
         payment.setTenantAmountKobo(split.tenantAmountKobo());
         payment.setSubaccountCode(subaccount);
+        payment.setCustomerEmail(request.getCustomerEmail());
         payment = paymentRepo.save(payment);
         payment.setReference(reference);
         payment.setStatus(PaymentStatus.PENDING);

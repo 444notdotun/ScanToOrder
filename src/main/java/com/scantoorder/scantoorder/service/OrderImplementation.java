@@ -112,7 +112,7 @@ public class OrderImplementation implements OrderService {
             OrderStatus asked = OrderStatus.valueOf(status.toUpperCase());
             // The waiter's list: orders the kitchen gave up on are waiting for a waiter too.
             statuses = asked == OrderStatus.READY
-                    ? List.of(OrderStatus.READY, OrderStatus.UNAVAILABLE, OrderStatus.REFUND_REQUESTED)
+                    ? List.of(OrderStatus.READY, OrderStatus.UNAVAILABLE, OrderStatus.REFUND_DUE)
                     : List.of(asked);
         } else {
             statuses = List.of(OrderStatus.PAID, OrderStatus.PREPARING, OrderStatus.UNAVAILABLE);
@@ -148,7 +148,7 @@ public class OrderImplementation implements OrderService {
         // A swapped order is a new ticket: it takes its place in the queue from the swap.
         orderResponse.setCreatedAt(order.getSwappedAt() != null ? order.getSwappedAt() : order.getCreatedAt());
         if (order.getUnavailableReason() != null && order.getOrderStatus() != null
-                && (order.getOrderStatus() == OrderStatus.UNAVAILABLE || order.getOrderStatus() == OrderStatus.REFUND_REQUESTED)) {
+                && (order.getOrderStatus() == OrderStatus.UNAVAILABLE || order.getOrderStatus() == OrderStatus.REFUND_DUE)) {
             orderResponse.setUnavailableReason(order.getUnavailableReason().name());
         }
         orderResponse.setNote(order.getNote());

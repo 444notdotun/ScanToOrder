@@ -40,8 +40,8 @@ public class Payment {
     private Long platelyChargeKobo;
     private Long tenantAmountKobo;
     private String subaccountCode;
-    private String refundReference;
-    private int refundAttempts;
+    // The address the payment was made with: where a refund link goes if one is ever due.
+    private String customerEmail;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

@@ -6,15 +6,16 @@ import com.scantoorder.scantoorder.data.model.OrderItem;
 import com.scantoorder.scantoorder.data.model.OrderStatus;
 import com.scantoorder.scantoorder.data.model.Payment;
 import com.scantoorder.scantoorder.data.model.PaymentStatus;
+import com.scantoorder.scantoorder.data.model.RefundReason;
 import com.scantoorder.scantoorder.data.model.UnavailableReason;
 import com.scantoorder.scantoorder.data.repository.ItemRepo;
 import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
 import com.scantoorder.scantoorder.data.repository.OrderRepo;
 import com.scantoorder.scantoorder.data.repository.PaymentRepo;
+import com.scantoorder.scantoorder.data.repository.RefundRepo;
 import com.scantoorder.scantoorder.dtos.request.CreateOrderItemRequest;
 import com.scantoorder.scantoorder.dtos.request.SwapRequest;
 import com.scantoorder.scantoorder.dtos.respond.OrderActionResponse;
-import com.scantoorder.scantoorder.dtos.respond.RefundQueueResponse;
 import com.scantoorder.scantoorder.exception.ConflictException;
 import com.scantoorder.scantoorder.exception.InvalidRequestException;
 import com.scantoorder.scantoorder.exception.OrderNotFoundException;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -47,6 +49,8 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
     private MenuService menuService;
     @Autowired
     private RefundService refundService;
+    @Autowired
+    private RefundRepo refundRepo;
 
     @Transactional
     @Override
@@ -121,61 +125,17 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
         if (order.getOrderStatus() != OrderStatus.UNAVAILABLE) {
             throw new OrderStatusException("A refund can only be asked for on an order the kitchen could not make.");
         }
-        order.setOrderStatus(OrderStatus.REFUND_REQUESTED);
+        // The payment is locked so a webhook arriving now cannot start a second refund for it.
+        Payment payment = paymentRepo.findByOrder_OrderIdAndStatusIn(orderId, List.of(PaymentStatus.SUCCESSFUL)).stream()
+                .sorted(Comparator.comparing(Payment::getCreatedAt))
+                .map(found -> paymentRepo.findForUpdateByReference(found.getReference()).orElse(found))
+                .filter(found -> refundRepo.findByPayment_Id(found.getId()).isEmpty())
+                .findFirst()
+                .orElseThrow(() -> new OrderStatusException("There is no payment on this order to refund."));
+        refundService.createDue(payment, RefundReason.KITCHEN_UNAVAILABLE);
+        order.setOrderStatus(OrderStatus.REFUND_DUE);
         orderRepo.save(order);
-        return action(order, "The manager will approve the refund.");
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public RefundQueueResponse refundQueue(String tenantId) {
-        RefundQueueResponse response = new RefundQueueResponse();
-        for (Order order : orderRepo.findByTenant_TenantIdAndOrderStatusOrderByUpdatedAtAsc(tenantId, OrderStatus.REFUND_REQUESTED)) {
-            response.getRequests().add(new RefundQueueResponse.Request(
-                    order.getOrderId(), order.getOrderNumber(),
-                    order.getTable() == null ? null : order.getTable().getTableNumber(),
-                    order.getSeat() == null ? null : order.getSeat().getSeatNumber(),
-                    order.getSessionSeat() == null ? null : order.getSessionSeat().getGuestName(),
-                    order.getTotalAmount(),
-                    order.getUnavailableReason() == null ? null : order.getUnavailableReason().name(),
-                    order.getUpdatedAt()));
-        }
-        for (Payment payment : paymentRepo.findByTenant_TenantIdAndStatusOrderByUpdatedAtAsc(tenantId, PaymentStatus.REFUND_FAILED)) {
-            response.getFailedRefunds().add(new RefundQueueResponse.Failed(
-                    payment.getOrder().getOrderId(), payment.getOrder().getOrderNumber(),
-                    payment.getReference(), payment.getAmount(), payment.getUpdatedAt()));
-        }
-        return response;
-    }
-
-    // Two cases share this door: a manager approving a requested refund, and a manager retrying one Paystack could not complete.
-    @Transactional
-    @Override
-    public OrderActionResponse approveRefund(String tenantId, String orderId) {
-        Order order = lock(tenantId, orderId);
-        List<Payment> payments = paymentRepo.findByOrder_OrderIdAndStatusIn(orderId,
-                List.of(PaymentStatus.SUCCESSFUL, PaymentStatus.REFUND_FAILED, PaymentStatus.REFUND_PENDING, PaymentStatus.REFUNDED));
-        if (payments.isEmpty()) {
-            throw new OrderStatusException("There is no payment on this order to refund.");
-        }
-        Payment payment = paymentRepo.findForUpdateByReference(payments.get(0).getReference())
-                .orElseThrow(() -> new OrderNotFoundException("Order not found"));
-
-        if (payment.getStatus() == PaymentStatus.REFUND_FAILED) {
-            refundService.start(payment);
-            return action(order, "The refund has been sent to Paystack again.");
-        }
-        if (payment.getStatus() == PaymentStatus.REFUND_PENDING || payment.getStatus() == PaymentStatus.REFUNDED) {
-            throw new OrderStatusException("This order's refund is already on its way.");
-        }
-        if (order.getOrderStatus() != OrderStatus.REFUND_REQUESTED) {
-            throw new OrderStatusException("A refund can only be approved once a waiter has asked for it.");
-        }
-        // Paystack is asked first: if it cannot start the refund, nothing here changes.
-        refundService.start(payment);
-        order.setOrderStatus(OrderStatus.REFUNDED);
-        orderRepo.save(order);
-        return action(order, "The refund is on its way to the guest.");
+        return action(order, "The restaurant owes the guest a refund. The manager will settle it.");
     }
 
     private Order lock(String tenantId, String orderId) {
