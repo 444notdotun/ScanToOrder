@@ -8,6 +8,12 @@ import com.scantoorder.scantoorder.data.repository.RefundRepo;
 import com.scantoorder.scantoorder.exception.EmailSendException;
 import com.scantoorder.scantoorder.service.email.InMemoryEmailSender;
 import com.scantoorder.scantoorder.service.Interface.PaystackClient;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import com.scantoorder.scantoorder.dtos.request.GuestEmailRequest;
+import com.scantoorder.scantoorder.dtos.request.SettleRefundRequest;
+import com.scantoorder.scantoorder.service.Interface.RefundTrackingService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -40,6 +46,8 @@ class RefundEmailTest {
     private TenantTestSupport tenants;
     @Autowired
     private PaymentTestSupport support;
+    @Autowired
+    private RefundTrackingService refunds;
     @MockitoSpyBean
     private InMemoryEmailSender emailSender;
     @MockitoBean
@@ -93,5 +101,77 @@ class RefundEmailTest {
 
         assertTrue(refundRepo.findByPayment_Id(payment.getId()).isPresent());
         verifyNoInteractions(emailSender);
+    }
+
+    private SettleRefundRequest settle(RefundMethod method) {
+        SettleRefundRequest request = new SettleRefundRequest();
+        request.setMethod(method);
+        request.setTransferReference("TRF-1");
+        return request;
+    }
+
+    @Test
+    void testThatSettlingEmailsTheGuestWhoGaveAnEmailWithTheMethodDateAndLink() {
+        latePaymentFrom("guest@example.com");
+        Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
+        clearInvocations(emailSender);
+
+        refunds.settle(tenants.main().getTenantId(), "w", refund.getId(), settle(RefundMethod.TRANSFER));
+
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(emailSender, times(1)).send(eq("guest@example.com"), anyString(), body.capture());
+        assertTrue(body.getValue().contains("Test Place has sent your refund of ₦2,000.00 by transfer on " + java.time.LocalDate.now()));
+        assertTrue(body.getValue().contains("If it hasn't reached you, tell us here: "));
+        assertTrue(body.getValue().contains("/refund/" + refund.getId() + "?t=" + refund.getGuestToken()));
+    }
+
+    @Test
+    void testThatSettlingAGuestWithoutAnEmailSendsNothingAndStillSettles() {
+        latePaymentFrom(null);
+        Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
+
+        refunds.settle(tenants.main().getTenantId(), "w", refund.getId(), settle(RefundMethod.CASH));
+
+        assertEquals(RefundStatus.SETTLED, refundRepo.findById(refund.getId()).orElseThrow().getStatus());
+        verifyNoInteractions(emailSender);
+    }
+
+    @Test
+    void testThatAnEmailGivenOnTheRefundPageGetsTheLinkOnceAndAChangeDoesNot() {
+        latePaymentFrom(null);
+        Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
+        GuestEmailRequest first = new GuestEmailRequest();
+        first.setEmail("new@example.com");
+
+        refunds.guestEmail(refund.getId(), refund.getGuestToken(), first);
+        first.setEmail("newer@example.com");
+        refunds.guestEmail(refund.getId(), refund.getGuestToken(), first);
+
+        verify(emailSender, times(1)).send(eq("new@example.com"), anyString(), contains("/refund/" + refund.getId()));
+        verify(emailSender, never()).send(eq("newer@example.com"), anyString(), anyString());
+    }
+
+    @Test
+    void testThatNoEmailAddressEverReachesTheLogs() {
+        Logger root = (Logger) org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        root.addAppender(appender);
+        try {
+            doThrow(new EmailSendException("down for guest@example.com")).when(emailSender).send(anyString(), anyString(), anyString());
+            latePaymentFrom("guest@example.com");
+            Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
+            refunds.settle(tenants.main().getTenantId(), "w", refund.getId(), settle(RefundMethod.CASH));
+            GuestEmailRequest request = new GuestEmailRequest();
+            request.setEmail("changed@example.com");
+            refunds.guestEmail(refund.getId(), refund.getGuestToken(), request);
+        } finally {
+            root.detachAppender(appender);
+        }
+        String logged = String.join("\n", appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList());
+        assertFalse(logged.contains("guest@example.com"));
+        assertFalse(logged.contains("changed@example.com"));
+        assertFalse(logged.contains("@example.com"));
+        assertTrue(logged.contains("could not be sent"));
     }
 }

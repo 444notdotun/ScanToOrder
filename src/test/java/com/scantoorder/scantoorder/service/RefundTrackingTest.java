@@ -87,7 +87,10 @@ class RefundTrackingTest {
 
     private Refund due(OrderStatus orderStatus, RefundReason reason) {
         Payment payment = support.paidOrder(tenant, orderStatus, plate);
-        return refundService.createDue(payment, reason);
+        Refund refund = refundService.createDue(payment, reason);
+        // Most refunds here already have the guest's email; the email tests make their own without.
+        refund.setGuestEmail("guest@example.com");
+        return refundRepo.save(refund);
     }
 
     private Refund reload(Refund refund) {
@@ -364,6 +367,8 @@ class RefundTrackingTest {
     void testThatTheManagersListShowsTheGuestTheOrderAndTheBankDetailsInFull() {
         Payment payment = support.paidOrder(tenant, OrderStatus.REFUND_DUE, plate);
         Refund refund = refundService.createDue(payment, RefundReason.KITCHEN_UNAVAILABLE);
+        refund.setGuestEmail("guest@example.com");
+        refundRepo.save(refund);
         service.guestBankDetails(refund.getId(), refund.getGuestToken(), bank());
 
         ManagerRefundResponse row = service.list(tenantId, "open").stream().filter(r -> r.getRefundId().equals(refund.getId())).findFirst().orElseThrow();
