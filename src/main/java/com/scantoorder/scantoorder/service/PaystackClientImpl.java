@@ -10,7 +10,11 @@ import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.scantoorder.scantoorder.dtos.respond.BankData;
+import com.scantoorder.scantoorder.exception.AccountVerificationException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -150,6 +154,73 @@ public class PaystackClientImpl implements PaystackClient {
                 throw new PaymentGatewayTimeoutException("Timeout connecting to Paystack");
             }
             throw new PaymentGatewayException("Error communicating with Paystack: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new PaymentGatewayException("Communication with Paystack interrupted");
+        }
+    }
+
+    @Override
+    public List<BankData> listBanks() {
+        JsonNode root = get(paystackBaseUrl + "/bank?country=nigeria&perPage=200&use_cursor=false");
+        List<BankData> banks = new ArrayList<>();
+        for (JsonNode bank : root.path("data")) {
+            String name = bank.path("name").asText();
+            String code = bank.path("code").asText();
+            if (!name.isBlank() && !code.isBlank()) {
+                banks.add(new BankData(name, code));
+            }
+        }
+        return banks;
+    }
+
+    @Override
+    public String resolveAccountName(String bankCode, String accountNumber) {
+        String url = paystackBaseUrl + "/bank/resolve?account_number=" + URLEncoder.encode(accountNumber, StandardCharsets.UTF_8)
+                + "&bank_code=" + URLEncoder.encode(bankCode, StandardCharsets.UTF_8);
+        try {
+            JsonNode root = get(url);
+            String name = root.path("data").path("account_name").asText();
+            if (name.isBlank()) {
+                throw new AccountVerificationException(ACCOUNT_NOT_FOUND);
+            }
+            return name;
+        } catch (PaymentValidationException e) {
+            throw new AccountVerificationException(ACCOUNT_NOT_FOUND);
+        }
+    }
+
+    public static final String ACCOUNT_NOT_FOUND =
+            "The bank couldn't find that account. Check the number and the bank, then try again.";
+
+    // A 4xx from Paystack means our request was not accepted; the account number is never put in a message.
+    private JsonNode get(String url) {
+        try {
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + paystackSecretKey)
+                    .timeout(Duration.ofSeconds(10))
+                    .GET()
+                    .build();
+            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            int statusCode = response.statusCode();
+            if (statusCode >= 500 && statusCode < 600) {
+                throw new PaymentGatewayUnavailableException("Paystack service is currently down");
+            }
+            if (statusCode >= 400 && statusCode < 500) {
+                throw new PaymentValidationException("Paystack did not accept the request");
+            }
+            JsonNode root = objectMapper.readTree(response.body());
+            if (!root.path("status").asBoolean()) {
+                throw new PaymentValidationException("Paystack did not accept the request");
+            }
+            return root;
+        } catch (PaymentValidationException | PaymentGatewayException e) {
+            throw e;
+        } catch (HttpTimeoutException e) {
+            throw new PaymentGatewayTimeoutException("Timeout connecting to Paystack");
+        } catch (java.io.IOException e) {
+            throw new PaymentGatewayException("Error communicating with Paystack");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new PaymentGatewayException("Communication with Paystack interrupted");
