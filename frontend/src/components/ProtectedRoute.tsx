@@ -1,51 +1,31 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
-import { Loader2 } from 'lucide-react';
+import Ground from '@/components/plately/Ground';
+import { Loader } from '@/components/plately/Logo';
+import { homeFor, useAuthHydrated, useAuthStore, type StaffRole } from '@/store/authStore';
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  allowedRoles?: string[];
-}
-
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+// Keeps a screen to the roles that may see it. Anyone else is sent to their own start, or to sign in.
+export default function ProtectedRoute({ children, allowedRoles }: { children: ReactNode; allowedRoles?: StaffRole[] }) {
   const router = useRouter();
-  const { isAuthenticated, workerProfile } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
+  const hydrated = useAuthHydrated();
+  const profile = useAuthStore((state) => state.workerProfile);
+  const allowed = profile !== null && !profile.mustChangePassword && (!allowedRoles || allowedRoles.includes(profile.role));
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!hydrated) return;
+    if (!profile) router.replace('/staff/login');
+    else if (profile.mustChangePassword) router.replace('/staff/new-password');
+    else if (!allowed) router.replace(homeFor(profile.role));
+  }, [hydrated, profile, allowed, router]);
 
-  useEffect(() => {
-    if (mounted) {
-      if (!isAuthenticated) {
-        router.replace('/staff/login');
-      } else if (allowedRoles && workerProfile && !allowedRoles.includes(workerProfile.role)) {
-        // Redirection based on actual role to avoid unauthorized layout flashes
-        if (workerProfile.role === 'MANAGER') {
-          router.replace('/admin/dashboard');
-        } else if (workerProfile.role === 'CHEF') {
-          router.replace('/kitchen/kds');
-        } else if (workerProfile.role === 'WAITER') {
-          router.replace('/waiter');
-        } else {
-          router.replace('/');
-        }
-      }
-    }
-  }, [mounted, isAuthenticated, workerProfile, allowedRoles, router]);
-
-  if (!mounted || !isAuthenticated) {
+  if (!hydrated || !allowed) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F6F2]">
-        <Loader2 className="h-8 w-8 text-brand-deep animate-spin mb-3" />
-        <p className="text-stone-500 text-xs font-semibold text-center">Verifying credentials...</p>
-      </div>
+      <Ground>
+        <Loader message="Checking it's you…" />
+      </Ground>
     );
   }
-
   return <>{children}</>;
 }

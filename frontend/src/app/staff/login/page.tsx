@@ -1,118 +1,107 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
-import { api } from '@/lib/api';
-import { ChefHat, ShieldAlert, Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { Suspense, useState, type FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Ground from '@/components/plately/Ground';
+import { Brand, Loader } from '@/components/plately/Logo';
+import { Button, Card, FailureCard, Field } from '@/components/plately/ui';
+import { dataOf, failureOf, http, type ApiFailure } from '@/lib/http';
+import { homeFor, useAuthStore, type WorkerProfile } from '@/store/authStore';
 
-export default function StaffLoginPage() {
+function SignIn() {
   const router = useRouter();
+  const ended = useSearchParams().get('ended');
   const login = useAuthStore((state) => state.login);
-
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<ApiFailure | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setIsLoading(true);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setFailure(null);
+    if (!username.trim() || !password) {
+      setFailure({ status: null, title: 'Almost there', message: 'Type your username and your password, and we will let you in.', offline: false });
+      return;
+    }
+    setBusy(true);
     try {
-      const res = await api.post('/api/v1/auth/login', { username, password });
-      if (res.status === 200 || res.data?.status === 'SUCCESS') {
-        const data = res.data?.data || res.data;
-        if (data && data.username) {
-          login({
-            workerId: data.workerId,
-            username: data.username,
-            role: data.role
-          });
-        }
-        router.push('/admin/dashboard');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Invalid username or password');
-    } finally {
-      setIsLoading(false);
+      const me = dataOf<WorkerProfile>(await http.post('/api/v1/auth/login', { username: username.trim(), password }));
+      login({ ...me, mustChangePassword: Boolean(me.mustChangePassword) });
+      router.replace(me.mustChangePassword ? '/staff/new-password' : homeFor(me.role));
+    } catch (error) {
+      setFailure(failureOf(error, "We couldn't sign you in"));
+      setBusy(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between py-12 px-6 sm:px-12 bg-[#F8F6F2]">
-      {/* Top Navigation */}
-      <header className="max-w-md mx-auto w-full flex items-center justify-start mb-6">
-        <Link 
-          href="/" 
-          className="flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-stone-700 transition"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Diner scan
-        </Link>
+    <Ground>
+      <header className="mx-auto flex w-full max-w-md items-center justify-between px-5 pt-5 md:max-w-xl">
+        <Brand />
       </header>
-
-      {/* Main Login Box */}
-      <main className="max-w-md mx-auto w-full bg-white rounded-3xl p-8 border border-stone-200/50 shadow-sm space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3 bg-brand-light text-brand-deep rounded-2xl">
-            <ChefHat className="h-6 w-6" />
-          </div>
-          <h1 className="text-xl font-black text-stone-900 uppercase tracking-tight">Staff Service Desk</h1>
-          <p className="text-xs text-stone-500">Sign in to access protected operations dashboards</p>
+      <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-5 px-5 pb-8 pt-8 md:max-w-xl">
+        <div>
+          <h1 className="font-heading text-[38px] font-normal leading-[1.1]">Welcome back.</h1>
+          <p className="mt-2 text-[17px] leading-snug text-soft">Sign in with the username and password your manager gave you.</p>
         </div>
 
-        {errorMsg && (
-          <div className="bg-red-50 border border-red-100 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-red-600 font-semibold leading-normal">
-            <ShieldAlert className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
+        {ended ? (
+          <p role="status" className="animate-fade text-[15px] leading-snug text-mustard">
+            You were signed out. Sign in again to carry on.
+          </p>
+        ) : null}
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <div className="space-y-1.5">
-            <label className="font-extrabold text-stone-700">Username:</label>
-            <input
-              type="text"
-              required
+        <Card>
+          <form noValidate onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
+            <Field
+              label="Username"
+              name="username"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              hint="It looks like yourplace.yourname."
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. admin"
-              className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-3 text-stone-950 focus:border-brand-accent focus:ring-1 focus:ring-brand-accent focus:outline-none transition text-sm"
+              onChange={(event) => setUsername(event.target.value)}
             />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="font-extrabold text-stone-700">Password:</label>
-            <input
+            <Field
+              label="Password"
+              name="password"
               type="password"
-              required
+              autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-3 text-stone-950 focus:border-brand-accent focus:ring-1 focus:ring-brand-accent focus:outline-none transition text-sm"
+              onChange={(event) => setPassword(event.target.value)}
             />
-          </div>
+            {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
+            <Button type="submit" tone="primary" big disabled={busy}>
+              {busy ? 'Signing you in…' : 'Sign in'}
+            </Button>
+          </form>
+        </Card>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-brand-deep hover:bg-brand-accent text-white font-bold py-3.5 rounded-2xl transition duration-150 shadow-sm flex items-center justify-center gap-2 text-sm mt-6 cursor-pointer"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              'Sign In'
-            )}
-          </button>
-        </form>
+        <p className="text-center text-sm text-soft">
+          Here to eat?{' '}
+          <Link href="/" className="underline underline-offset-4">
+            Find your table
+          </Link>
+        </p>
       </main>
+    </Ground>
+  );
+}
 
-      {/* Footer */}
-      <footer className="text-center text-xs text-stone-400 pt-8 mt-6">
-        &copy; 2026 Scan to Order Restaurant Systems.
-      </footer>
-    </div>
+export default function StaffSignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <Ground>
+          <Loader message="One moment…" />
+        </Ground>
+      }
+    >
+      <SignIn />
+    </Suspense>
   );
 }
