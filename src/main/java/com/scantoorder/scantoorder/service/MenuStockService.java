@@ -2,12 +2,15 @@ package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.data.model.Item;
 import com.scantoorder.scantoorder.data.repository.ItemRepo;
+import com.scantoorder.scantoorder.dtos.respond.StockItemResponse;
 import com.scantoorder.scantoorder.dtos.respond.ToggleItemResponse;
 import com.scantoorder.scantoorder.exception.ResourceNotFoundException;
 import com.scantoorder.scantoorder.service.Interface.MenuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * The kitchen's stock switch: a sold-out item is not offered to guests and cannot be ordered.
@@ -19,6 +22,15 @@ public class MenuStockService {
     private ItemRepo itemRepo;
     @Autowired
     private MenuService menuService;
+
+    // Every plate of this business with its id, so the kitchen can switch it and a waiter can pick a swap.
+    @Transactional(readOnly = true)
+    public List<StockItemResponse> list(String tenantId) {
+        return itemRepo.findByTenant_TenantIdOrderByItemNameAsc(tenantId).stream()
+                .map(item -> new StockItemResponse(item.getItemId(), item.getItemName(),
+                        item.getCategoryId() == null ? null : item.getCategoryId().getCategoryName(), item.isAvailable()))
+                .toList();
+    }
 
     @Transactional
     public ToggleItemResponse soldOut(String tenantId, String itemId) {

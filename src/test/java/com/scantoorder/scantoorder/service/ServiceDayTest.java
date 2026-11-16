@@ -292,6 +292,19 @@ class ServiceDayTest {
     }
 
     @Test
+    void testThatTheStockListShowsEveryPlateOfThisBusinessWithItsIdAndWhetherItIsInStock() {
+        Item second = pay.item(tenant, "Another plate", 900, true);
+        stock.soldOut(tenantId, second.getItemId());
+        Item theirs = pay.item(tenants.other(), "Not ours at all", 100, true);
+
+        List<StockItemResponse> list = stock.list(tenantId);
+
+        assertTrue(list.stream().anyMatch(s -> s.getItemId().equals(plate.getItemId()) && s.isAvailable()));
+        assertTrue(list.stream().anyMatch(s -> s.getItemId().equals(second.getItemId()) && !s.isAvailable()));
+        assertTrue(list.stream().noneMatch(s -> s.getItemId().equals(theirs.getItemId())));
+    }
+
+    @Test
     void testThatSoldOutClearsTheMenuCacheAndTellsOpenScreens() {
         List<LiveUpdates.Notice> staff = new ArrayList<>();
         List<LiveUpdates.Notice> guest = new ArrayList<>();

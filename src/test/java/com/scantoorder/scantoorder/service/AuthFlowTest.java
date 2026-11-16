@@ -1,6 +1,7 @@
 package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.config.JwtFilter;
+import com.scantoorder.scantoorder.controller.AuthController;
 import com.scantoorder.scantoorder.data.model.Tenant;
 import com.scantoorder.scantoorder.data.model.Worker;
 import com.scantoorder.scantoorder.data.model.WorkerPrincipal;
@@ -42,6 +43,8 @@ class AuthFlowTest {
 
     @Autowired
     private Auth auth;
+    @Autowired
+    private AuthController authController;
     @Autowired
     private PlatformService platformService;
     @Autowired
@@ -102,6 +105,27 @@ class AuthFlowTest {
         Claims claims = jwtService.extractClaims(response.getToken());
         assertEquals(tenant.getTenantId(), claims.get("tenantId", String.class));
         assertEquals(true, claims.get("mustChangePassword", Boolean.class));
+    }
+
+    @Test
+    void testThatSigningInNamesTheBusinessAndThePerson() {
+        AuthResponse response = signIn(managerUsername, temporaryPassword);
+        assertEquals(tenant.getName(), response.getBusinessName());
+        assertNotNull(response.getFullName());
+    }
+
+    @Test
+    void testThatSigningOutEndsTheCookieAndEvenATemporaryPasswordTokenMayDoIt() throws Exception {
+        String token = signIn(managerUsername, temporaryPassword).getToken();
+
+        MockHttpServletResponse allowed = new MockHttpServletResponse();
+        assertNotNull(runFilter(token, "/api/v1/auth/logout", allowed));
+        assertEquals(200, allowed.getStatus());
+
+        String cookie = authController.logout().getHeaders().getFirst("Set-Cookie");
+        assertNotNull(cookie);
+        assertTrue(cookie.contains("access_token=;"));
+        assertTrue(cookie.contains("Max-Age=0"));
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.scantoorder.scantoorder.controller;
 
 import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
+import com.scantoorder.scantoorder.dtos.respond.StockItemResponse;
 import com.scantoorder.scantoorder.dtos.respond.ToggleItemResponse;
 import com.scantoorder.scantoorder.service.MenuStockService;
 import jakarta.validation.constraints.Pattern;
@@ -10,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/menu/items")
@@ -20,6 +23,12 @@ public class MenuStockController {
 
     @Autowired
     private MenuStockService stock;
+
+    @PreAuthorize("hasAnyRole('CHEF', 'WAITER', 'MANAGER')")
+    @GetMapping("/stock")
+    public ResponseEntity<ApiResponse<List<StockItemResponse>>> list() {
+        return ResponseEntity.ok(new ApiResponse<>(stock.list(CurrentTenant.id())));
+    }
 
     @PreAuthorize("hasAnyRole('CHEF', 'MANAGER')")
     @PostMapping("/{id}/sold-out")

@@ -40,6 +40,21 @@ public class AuthController {
         return withCookie(auth.changePassword(caller, request.getNewPassword()));
     }
 
+    // Signing out ends the cookie here, because the page cannot reach an HttpOnly cookie to clear it.
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout() {
+        ResponseCookie expired = ResponseCookie.from("access_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(0)
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, expired.toString())
+                .body(new ApiResponse<>("You are signed out"));
+    }
+
     private ResponseEntity<ApiResponse<AuthResponse>> withCookie(AuthResponse response) {
         ResponseCookie jwtCookie = ResponseCookie.from("access_token", response.getToken())
                 .httpOnly(true)

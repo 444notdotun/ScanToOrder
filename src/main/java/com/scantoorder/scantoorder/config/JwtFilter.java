@@ -42,6 +42,8 @@ public class JwtFilter extends OncePerRequestFilter {
     public static final String SESSION_ENDED_MESSAGE = "Your session has ended";
     public static final String VISIT_ENDED_MESSAGE = "Your visit has ended.";
     public static final String CHANGE_PASSWORD_PATH = "/api/v1/auth/change-password";
+    // Someone on the choose-a-password screen can also sign out.
+    public static final String LOGOUT_PATH = "/api/v1/auth/logout";
     public static final String CHANGE_PASSWORD_MESSAGE = "Choose a new password before you carry on.";
 
     private void writeForbidden(HttpServletResponse response, String message) throws IOException {
@@ -88,7 +90,7 @@ public class JwtFilter extends OncePerRequestFilter {
                     UserDetails userDetails = auth.loadUserByUsername(username);
                     if (jwtService.validateToken(jwt, userDetails) && userDetails.isEnabled()) {
                         Worker worker = (Worker) userDetails;
-                        if (worker.isMustChangePassword() && !CHANGE_PASSWORD_PATH.equals(request.getRequestURI())) {
+                        if (worker.isMustChangePassword() && !CHANGE_PASSWORD_PATH.equals(request.getRequestURI()) && !LOGOUT_PATH.equals(request.getRequestURI())) {
                             writeForbidden(response, CHANGE_PASSWORD_MESSAGE);
                             return;
                         }
