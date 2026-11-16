@@ -10,6 +10,7 @@ public class EventResponse {
     private String id;
     private String name;
     private String venue;
+    private String eventCode;
     private LocalDateTime startsAt;
     private LocalDateTime endsAt;
     private String seatingMode;
@@ -24,6 +25,7 @@ public class EventResponse {
         response.setId(event.getId());
         response.setName(event.getName());
         response.setVenue(event.getVenue());
+        response.setEventCode(event.getEventCode());
         response.setStartsAt(event.getStartsAt());
         response.setEndsAt(event.getEndsAt());
         response.setSeatingMode(event.getSeatingMode().name());

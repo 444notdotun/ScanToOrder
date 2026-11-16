@@ -54,6 +54,8 @@ public class EventSeatingService {
     @Autowired
     private TableRepo tableRepo;
     @Autowired
+    private com.scantoorder.scantoorder.data.repository.EventRepo eventRepo;
+    @Autowired
     private SeatRepo seatRepo;
     @Autowired
     private SessionSeatRepo sessionSeatRepo;
@@ -69,16 +71,16 @@ public class EventSeatingService {
     private DiningSessionService diningSessionService;
 
     @Transactional
-    public SeatClaimedResponse redeem(String slug, int displayNumber, String rawCode, CustomerPrincipal caller) {
+    public SeatClaimedResponse redeem(String slug, String eventCode, int displayNumber, String rawCode, CustomerPrincipal caller) {
         // An unknown business, a restaurant and an unknown table are all answered alike.
         Tenant tenant = tenantRepo.findBySlug(slug == null ? "" : slug.toLowerCase())
                 .filter(found -> found.getType() == TenantType.EVENT_PLANNER)
                 .orElseThrow(() -> new TableNotFoundException(TABLE_NOT_AVAILABLE));
-        RestaurantTable table = tableRepo.findByTenant_TenantIdAndDisplayNumber(tenant.getTenantId(), displayNumber)
-                .filter(RestaurantTable::isActive)
-                .filter(found -> found.getEvent() != null)
+        Event event = eventRepo.findByTenant_TenantIdAndEventCode(tenant.getTenantId(), eventCode == null ? "" : eventCode.toUpperCase(Locale.ROOT))
                 .orElseThrow(() -> new TableNotFoundException(TABLE_NOT_AVAILABLE));
-        Event event = table.getEvent();
+        RestaurantTable table = tableRepo.findByEvent_IdAndDisplayNumber(event.getId(), displayNumber)
+                .filter(RestaurantTable::isActive)
+                .orElseThrow(() -> new TableNotFoundException(TABLE_NOT_AVAILABLE));
 
         LocalDateTime now = LocalDateTime.now();
         if (event.getStatus() == EventStatus.ENDED || !now.isBefore(event.getEndsAt())) {

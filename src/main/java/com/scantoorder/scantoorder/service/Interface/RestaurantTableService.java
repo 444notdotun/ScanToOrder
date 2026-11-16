@@ -12,6 +12,12 @@ public interface RestaurantTableService {
 
     CreateRestaurantTableResponse createTable(String tenantId, CreateTableRequest request);
 
+    // For a table made for one event (null for a restaurant): numbered from 1 inside the event.
+    CreateRestaurantTableResponse createTable(String tenantId, CreateTableRequest request, com.scantoorder.scantoorder.data.model.Event event);
+
+    // What the table's QR code points at.
+    String scanLink(String tenantId, String tableNumber);
+
     List<TableResponse> viewAllTable(String tenantId);
 
     ViewTableAndSeatAvailabilityResponse viewTableAndSeatAvailability(String tenantId, String tableNumber);

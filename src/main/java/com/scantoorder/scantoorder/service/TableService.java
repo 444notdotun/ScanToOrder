@@ -63,6 +63,13 @@ public class TableService implements RestaurantTableService {
     @Override
     @Transactional
     public CreateRestaurantTableResponse createTable(String tenantId, CreateTableRequest request) {
+        return createTable(tenantId, request, null);
+    }
+
+    // An event's table is numbered from 1 inside its event; a restaurant's inside the business.
+    @Override
+    @Transactional
+    public CreateRestaurantTableResponse createTable(String tenantId, CreateTableRequest request, Event event) {
         int seatCapacity = request.getSeatCapacity();
         if (seatCapacity < CreateTableRequest.MIN_CAPACITY || seatCapacity > CreateTableRequest.MAX_CAPACITY) {
             throw new InvalidRequestException("A table needs between " + CreateTableRequest.MIN_CAPACITY
@@ -72,7 +79,8 @@ public class TableService implements RestaurantTableService {
         RestaurantTable restaurantTable = new RestaurantTable();
         restaurantTable.setTenant(tenant);
         restaurantTable.setCapacity(seatCapacity);
-        restaurantTable.setDisplayNumber(chooseDisplayNumber(tenantId, request.getDisplayNumber()));
+        restaurantTable.setEvent(event);
+        restaurantTable.setDisplayNumber(chooseDisplayNumber(tenantId, event, request.getDisplayNumber()));
         tableRepo.save(restaurantTable);
         for(int position=1;position<=seatCapacity;position++){
             Seat seat = new Seat();
@@ -117,7 +125,7 @@ public class TableService implements RestaurantTableService {
     @Transactional(readOnly = true)
     public ViewTableAndSeatAvailabilityResponse publicSeatMap(String slug, int displayNumber) {
         Tenant tenant = tenantAccess.openTenantBySlug(slug);
-        RestaurantTable table = tableRepo.findByTenant_TenantIdAndDisplayNumber(tenant.getTenantId(), displayNumber)
+        RestaurantTable table = tableRepo.findByTenant_TenantIdAndDisplayNumberAndEventIsNull(tenant.getTenantId(), displayNumber)
                 .filter(RestaurantTable::isActive)
                 .orElseThrow(() -> new TableNotFoundException(TABLE_NOT_AVAILABLE));
         return seatMapOf(table);
@@ -166,22 +174,41 @@ public class TableService implements RestaurantTableService {
                 .collect(Collectors.toSet());
     }
 
-    private Integer chooseDisplayNumber(String tenantId, Integer requested) {
+    private Integer chooseDisplayNumber(String tenantId, Event event, Integer requested) {
         if (requested != null) {
             if (requested < 1) {
                 throw new InvalidRequestException("Table number must be 1 or more");
             }
-            if (tableRepo.existsByTenant_TenantIdAndDisplayNumber(tenantId, requested)) {
+            boolean taken = event == null
+                    ? tableRepo.existsByTenant_TenantIdAndDisplayNumberAndEventIsNull(tenantId, requested)
+                    : tableRepo.existsByEvent_IdAndDisplayNumber(event.getId(), requested);
+            if (taken) {
                 throw new ConflictException("Table " + requested + " already exists. Choose another number.");
             }
             return requested;
         }
-        Set<Integer> used = new HashSet<>(tableRepo.findUsedDisplayNumbers(tenantId));
+        Set<Integer> used = new HashSet<>(event == null ? tableRepo.findUsedDisplayNumbers(tenantId) : tableRepo.findUsedDisplayNumbersInEvent(event.getId()));
         int next = 1;
         while (used.contains(next)) {
             next++;
         }
         return next;
+    }
+
+    // Restaurant tables: /t/{slug}/table/{n}. Event tables: /t/{slug}/e/{eventCode}/table/{n}.
+    @Override
+    @Transactional(readOnly = true)
+    public String scanLink(String tenantId, String tableNumber) {
+        return scanLink(tableRepo.findByTableNumberAndTenant_TenantId(tableNumber, tenantId)
+                .filter(RestaurantTable::isActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Table not found")));
+    }
+
+    private String scanLink(RestaurantTable table) {
+        String base = frontendUrl + "/t/" + table.getTenant().getSlug();
+        return table.getEvent() == null
+                ? base + "/table/" + table.getDisplayNumber()
+                : base + "/e/" + table.getEvent().getEventCode() + "/table/" + table.getDisplayNumber();
     }
 
     @Override
@@ -193,7 +220,7 @@ public class TableService implements RestaurantTableService {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
             Map<EncodeHintType, Object> hints = new HashMap<>();
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
-            String url = frontendUrl + "/t/" + table.getTenant().getSlug() + "/table/" + table.getDisplayNumber();
+            String url = scanLink(table);
             BitMatrix bitMatrix = qrCodeWriter.encode(url, BarcodeFormat.QR_CODE, 350, 350, hints);
             ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
             MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);

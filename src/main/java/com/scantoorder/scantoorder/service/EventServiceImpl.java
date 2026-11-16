@@ -73,6 +73,7 @@ public class EventServiceImpl implements EventService {
         Event event = new Event();
         event.setTenant(tenant);
         event.setStatus(EventStatus.DRAFT);
+        event.setEventCode(freshEventCode(tenantId));
         apply(event, request);
         return respond(eventRepo.save(event));
     }
@@ -177,6 +178,17 @@ public class EventServiceImpl implements EventService {
         for (RestaurantTable table : tableRepo.findByEvent_IdAndIsActiveTrueOrderByDisplayNumberAsc(event.getId())) {
             diningSessionService.closeTable(event.getTenant().getTenantId(), table.getTableId());
         }
+    }
+
+    // Short and random, from the same alphabet as guest codes; unique within the planner.
+    private String freshEventCode(String tenantId) {
+        for (int attempt = 0; attempt < 50; attempt++) {
+            String code = CodeGenerator.generateJoinCode();
+            if (!eventRepo.existsByTenant_TenantIdAndEventCode(tenantId, code)) {
+                return code;
+            }
+        }
+        throw new ConflictException("We could not make a new event code. Try again.");
     }
 
     private void checkTimes(EventRequest request) {

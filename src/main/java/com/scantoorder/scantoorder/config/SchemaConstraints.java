@@ -25,5 +25,14 @@ public class SchemaConstraints implements ApplicationRunner {
                 "CREATE UNIQUE INDEX IF NOT EXISTS ux_session_seat_one_active_per_seat "
                         + "ON session_seat (seat_id) WHERE status IN ('HELD', 'OCCUPIED')"
         ).executeUpdate();
+        // Restaurant tables are numbered per business, event tables per event.
+        entityManager.createNativeQuery(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_table_number_per_business "
+                        + "ON restaurant_table (tenant_id, display_number) WHERE event_id IS NULL"
+        ).executeUpdate();
+        entityManager.createNativeQuery(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_table_number_per_event "
+                        + "ON restaurant_table (event_id, display_number) WHERE event_id IS NOT NULL"
+        ).executeUpdate();
     }
 }

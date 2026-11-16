@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@jakarta.persistence.Table(uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "display_number"}))
+@jakarta.persistence.Table
 @Data
 @Builder
 @NoArgsConstructor
