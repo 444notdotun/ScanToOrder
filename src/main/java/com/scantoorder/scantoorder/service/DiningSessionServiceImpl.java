@@ -68,6 +68,8 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     @Autowired
     private OrderRepo orderRepo;
     @Autowired
+    private com.scantoorder.scantoorder.data.repository.OrderItemRepo orderItemRepo;
+    @Autowired
     private PaymentRepo paymentRepo;
     @Autowired
     private SeatLedger seatLedger;
@@ -355,6 +357,52 @@ public class DiningSessionServiceImpl implements DiningSessionService {
                 .toList();
     }
 
+    // Like the receipts: this guest's own orders and those for guests without a phone, never another phone's.
+    @Transactional(readOnly = true)
+    @Override
+    public com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse getSessionOrders(CustomerPrincipal caller) {
+        SessionSeat me = requireSeated(caller);
+        String sessionId = me.getSession().getSessionId();
+        var response = new com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse();
+        java.util.Map<String, String> references = new java.util.HashMap<>();
+        for (Payment payment : paymentRepo.findByOrderDinningSessionSessionIdAndStatusIn(sessionId, List.of(PaymentStatus.SUCCESSFUL))) {
+            references.putIfAbsent(payment.getOrder().getOrderId(), payment.getReference());
+        }
+        for (Order order : orderRepo.findByDinningSessionSessionId(sessionId)) {
+            SessionSeat owner = order.getSessionSeat();
+            boolean paid = references.containsKey(order.getOrderId());
+            if (paid && order.getTotalAmount() != null) {
+                response.setPaidByTable(response.getPaidByTable().add(order.getTotalAmount()));
+            }
+            boolean visible = owner == null || owner.getId().equals(me.getId()) || !owner.isHasDevice();
+            if (!visible || order.getOrderStatus() == OrderStatus.CANCELED) continue;
+            if (paid && order.getTotalAmount() != null) {
+                response.setPaidByYou(response.getPaidByYou().add(order.getTotalAmount()));
+            }
+            var view = new com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse.Order();
+            view.setOrderId(order.getOrderId());
+            view.setOrderNumber(order.getOrderNumber());
+            view.setPaymentReference(references.get(order.getOrderId()));
+            view.setCreatedAt(order.getCreatedAt());
+            view.setStatus(order.getOrderStatus().name());
+            view.setAmount(order.getTotalAmount());
+            view.setForMe(owner != null && owner.getId().equals(me.getId()));
+            if (owner != null) {
+                view.setForSeatPosition(owner.getSeat().getPosition());
+                view.setForName(owner.getGuestName());
+            }
+            for (var line : orderItemRepo.findByOrder_OrderId(order.getOrderId())) {
+                if (line.isSwappedOut() || line.getItem() == null) continue;
+                view.getItems().add(line.getQuantity() + " x " + line.getItem().getItemName());
+            }
+            response.getOrders().add(view);
+        }
+        response.getOrders().sort(java.util.Comparator.comparing(
+                com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse.Order::getCreatedAt,
+                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+        return response;
+    }
+
     private SessionSeat requireSeated(CustomerPrincipal caller) {
         if (caller == null || caller.getSessionSeatId() == null) {
             throw new SessionEndedException(SESSION_ENDED);
@@ -400,6 +448,7 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         DinningSession session = me.getSession();
         RestaurantTable table = me.getSeat().getTableId();
         SessionViewResponse response = new SessionViewResponse();
+        response.setBusinessName(session.getTenant().getName());
         response.setSessionId(session.getSessionId());
         response.setStatus(session.getSessionStatus().name());
         response.setJoinCode(session.getJoinCode());

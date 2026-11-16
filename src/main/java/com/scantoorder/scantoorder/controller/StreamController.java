@@ -3,6 +3,7 @@ package com.scantoorder.scantoorder.controller;
 import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.service.LiveUpdates;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,7 +31,8 @@ public class StreamController {
 
     @PreAuthorize("hasAnyRole('MANAGER', 'WAITER', 'CHEF')")
     @GetMapping(value = "/staff", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter staff() {
+    public SseEmitter staff(HttpServletResponse response) {
+        unbuffered(response);
         String tenantId = CurrentTenant.id();
         SseEmitter emitter = new SseEmitter(TIMEOUT_MS);
         return attach(emitter, sink -> liveUpdates.subscribeStaff(tenantId, sink));
@@ -38,9 +40,17 @@ public class StreamController {
 
     @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping(value = "/guest", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter guest(@AuthenticationPrincipal CustomerPrincipal caller) {
+    public SseEmitter guest(@AuthenticationPrincipal CustomerPrincipal caller, HttpServletResponse response) {
+        unbuffered(response);
         SseEmitter emitter = new SseEmitter(TIMEOUT_MS);
         return attach(emitter, sink -> liveUpdates.subscribeGuest(caller.getTenantId(), caller.getSessionId(), sink));
+    }
+
+    // A proxy in front (the web app's own server, or a host's) must pass each notice on as it comes, not hold it back
+    // to compress or buffer it. "no-transform" and the buffering header ask for exactly that.
+    private void unbuffered(HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-cache, no-transform");
+        response.setHeader("X-Accel-Buffering", "no");
     }
 
     private SseEmitter attach(SseEmitter emitter, java.util.function.Function<java.util.function.Consumer<LiveUpdates.Notice>, LiveUpdates.Subscription> subscribe) {

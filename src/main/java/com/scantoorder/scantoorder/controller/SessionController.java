@@ -40,6 +40,13 @@ public class SessionController {
     }
 
     @PreAuthorize("hasRole('CUSTOMER')")
+    @GetMapping("/me/orders")
+    public ResponseEntity<ApiResponse<com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse>> getMyOrders(
+            @AuthenticationPrincipal CustomerPrincipal principal) {
+        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(diningSessionService.getSessionOrders(principal)));
+    }
+
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<SessionViewResponse>> getCurrentSession(
             @AuthenticationPrincipal CustomerPrincipal principal) {

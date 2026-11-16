@@ -115,6 +115,10 @@ public class SeatingTestSupport {
         return principalFor(response.getSeatId());
     }
 
+    public void joinSeat(String seatId, com.scantoorder.scantoorder.dtos.request.JoinSeatRequest request) {
+        seatService.joinSeat(seatId, request, null);
+    }
+
     public CustomerPrincipal principalFor(String seatId) {
         SessionSeat membership = membershipOf(seatId);
         return new CustomerPrincipal(membership.getSession().getSessionId(), seatId,

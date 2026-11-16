@@ -150,6 +150,7 @@ public class TableService implements RestaurantTableService {
             seats.add(seatResponse);
         }
         ViewTableAndSeatAvailabilityResponse response = new ViewTableAndSeatAvailabilityResponse();
+        response.setBusinessName(table.getTenant().getName());
         response.setTableId(table.getTableId());
         response.setTableNumber(table.getTableNumber());
         response.setDisplayNumber(table.getDisplayNumber());

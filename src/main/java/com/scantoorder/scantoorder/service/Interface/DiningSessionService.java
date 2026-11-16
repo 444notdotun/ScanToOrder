@@ -31,4 +31,7 @@ public interface DiningSessionService {
     int closeAllActiveSessions();
     long getActiveSessionsCount(String tenantId);
     List<String> getSessionPaymentReferences(CustomerPrincipal caller);
+
+    // The table's orders this guest may see, with what was paid.
+    com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse getSessionOrders(CustomerPrincipal caller);
 }

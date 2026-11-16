@@ -9,6 +9,8 @@ import java.util.List;
 @Data
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ViewTableAndSeatAvailabilityResponse {
+    // For the header: the business whose table this is.
+    private String businessName;
     private String tableId;
     private String tableNumber;
     private Integer displayNumber;
