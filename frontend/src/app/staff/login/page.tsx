@@ -29,7 +29,7 @@ function SignIn() {
     try {
       const me = dataOf<WorkerProfile>(await http.post('/api/v1/auth/login', { username: username.trim(), password }));
       login({ ...me, mustChangePassword: Boolean(me.mustChangePassword) });
-      router.replace(me.mustChangePassword ? '/staff/new-password' : homeFor(me.role));
+      router.replace(me.mustChangePassword ? '/staff/new-password' : homeFor(me));
     } catch (error) {
       setFailure(failureOf(error, "We couldn't sign you in"));
       setBusy(false);

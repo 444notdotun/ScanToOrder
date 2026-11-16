@@ -14,4 +14,6 @@ public class AuthResponse {
     // For the staff header: who is signed in and at which business.
     private String fullName;
     private String businessName;
+    // RESTAURANT or EVENT_PLANNER: which workspace the manager opens.
+    private String tenantType;
 }

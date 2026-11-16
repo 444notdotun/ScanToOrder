@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Ground from '@/components/plately/Ground';
 import { Brand, Loader, Mark, Watermark } from '@/components/plately/Logo';
@@ -22,17 +22,32 @@ interface Checked {
 // Where the bank sends the guest back to. Plately asks the bank what happened; it never takes the browser's word.
 function Returned() {
   const params = useSearchParams();
+  const router = useRouter();
   const reference = params.get('reference') || params.get('trxref');
+  // A planner's event fee comes back here too, but belongs on the planner's own page.
+  const forEvent = Boolean(reference?.startsWith('EVENT-'));
   const table = rememberedTable();
-  const stream = useLiveStream('guest', Boolean(reference));
+  const stream = useLiveStream('guest', Boolean(reference) && !forEvent);
+
+  useEffect(() => {
+    if (forEvent && reference) router.replace(`/planner/payment?reference=${encodeURIComponent(reference)}`);
+  }, [forEvent, reference, router]);
   const home = table ? `/t/${table.slug}/table/${table.n}/home` : '/';
 
   const check = useQuery({
     queryKey: ['payment', reference],
-    enabled: Boolean(reference),
+    enabled: Boolean(reference) && !forEvent,
     retry: false,
     queryFn: async () => dataOf<Checked>(await http.get(`/api/v1/payments/verify/${reference}`)),
   });
+
+  if (forEvent) {
+    return (
+      <Ground>
+        <Loader message="Taking you back to your event…" />
+      </Ground>
+    );
+  }
 
   if (!reference) {
     return (

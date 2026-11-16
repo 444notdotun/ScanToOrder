@@ -24,7 +24,7 @@ export default function NewPasswordPage() {
   useEffect(() => {
     if (!hydrated) return;
     if (!profile) router.replace('/staff/login');
-    else if (!profile.mustChangePassword) router.replace(homeFor(profile.role));
+    else if (!profile.mustChangePassword) router.replace(homeFor(profile));
   }, [hydrated, profile, router]);
 
   if (!hydrated || !profile || !profile.mustChangePassword) {
@@ -51,7 +51,7 @@ export default function NewPasswordPage() {
     try {
       const me = dataOf<WorkerProfile>(await http.post('/api/v1/auth/change-password', { newPassword: password }));
       login({ ...me, mustChangePassword: false });
-      router.replace(homeFor(me.role));
+      router.replace(homeFor(me));
     } catch (error) {
       setFailure(failureOf(error, "We couldn't save your password"));
       setBusy(false);
