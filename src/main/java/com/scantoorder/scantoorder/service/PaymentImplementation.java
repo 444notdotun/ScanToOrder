@@ -80,8 +80,11 @@ public class PaymentImplementation implements PaymentService {
         String reference = CodeGenerator.generate(CodePrefix.PAYMENT);
 
         // Call Paystack first; only a payment Paystack accepted is saved.
+        // Paystack needs an email on every payment. Without the guest's own, its receipt goes to the restaurant.
+        String guestEmail = request.getCustomerEmail() == null || request.getCustomerEmail().isBlank()
+                ? null : request.getCustomerEmail().trim();
         PaystackInitResponseData paystackResponse = paystackClient.initialize(
-                request.getCustomerEmail(),
+                guestEmail != null ? guestEmail : tenant.getEmail(),
                 amountKobo,
                 reference,
                 new PaystackSplit(subaccount, split.platelyChargeKobo(), chargeCalculator.feeBearer())
@@ -94,7 +97,8 @@ public class PaymentImplementation implements PaymentService {
         payment.setPlatelyChargeKobo(split.platelyChargeKobo());
         payment.setTenantAmountKobo(split.tenantAmountKobo());
         payment.setSubaccountCode(subaccount);
-        payment.setCustomerEmail(request.getCustomerEmail());
+        // Only what the guest gave: the restaurant's stand-in must never receive a refund email.
+        payment.setCustomerEmail(guestEmail);
         payment = paymentRepo.save(payment);
         payment.setReference(reference);
         payment.setStatus(PaymentStatus.PENDING);

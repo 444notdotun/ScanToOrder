@@ -2,6 +2,7 @@ package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.data.model.Payment;
 import com.scantoorder.scantoorder.data.model.Refund;
+import com.scantoorder.scantoorder.data.model.RefundMethod;
 import com.scantoorder.scantoorder.data.model.RefundReason;
 import com.scantoorder.scantoorder.data.model.RefundStatus;
 import com.scantoorder.scantoorder.data.repository.RefundRepo;
@@ -47,9 +48,10 @@ public class RefundService {
             refund.setReason(reason);
             refund.setStatus(RefundStatus.DUE);
             refund.setGuestToken(newToken());
+            refund.setGuestEmail(payment.getCustomerEmail());
             refund = refundRepo.save(refund);
             log.info("A {} refund is due on payment {}", reason, payment.getReference());
-            tellTheGuest(refund, payment.getCustomerEmail());
+            tellTheGuest(refund);
             return refund;
         });
     }
@@ -58,18 +60,39 @@ public class RefundService {
         return frontendUrl + "/refund/" + refund.getId() + "?t=" + refund.getGuestToken();
     }
 
-    // Sent once the refund is safely saved, so a rolled-back payment never sends a link to nothing.
-    private void tellTheGuest(Refund refund, String email) {
+    // Both emails go out only once the change is safely saved, so a rolled-back change never sends a
+    // link to nothing, and a failed email never undoes the change. Addresses are never logged.
+    private void tellTheGuest(Refund refund) {
+        sendAfterCommit(refund, "Your refund from " + refund.getTenant().getName(),
+                "Hello,\n\n"
+                        + refund.getTenant().getName() + " owes you " + Money.naira(refund.getAmountKobo())
+                        + " for order " + refund.getOrder().getOrderNumber() + ".\n\n"
+                        + "See the refund, add your bank details, or tell us you have been paid:\n"
+                        + linkFor(refund) + "\n\n"
+                        + "The Plately team");
+    }
+
+    public void tellTheGuestItWasSent(Refund refund) {
+        sendAfterCommit(refund, "Your refund from " + refund.getTenant().getName(),
+                "Hello,\n\n"
+                        + refund.getTenant().getName() + " has sent your refund of " + Money.naira(refund.getAmountKobo())
+                        + " by " + (refund.getMethod() == RefundMethod.CASH ? "cash" : "transfer")
+                        + " on " + refund.getSettledAt().toLocalDate() + ".\n\n"
+                        + "If it hasn't reached you, tell us here: " + linkFor(refund) + "\n\n"
+                        + "The Plately team");
+    }
+
+    // Also used when the guest adds their email to a refund that is already due.
+    public void sendLink(Refund refund) {
+        tellTheGuest(refund);
+    }
+
+    private void sendAfterCommit(Refund refund, String subject, String body) {
+        String email = refund.getGuestEmail();
         if (email == null || email.isBlank()) return;
         Runnable send = () -> {
             try {
-                emailSender.send(email, "Your refund from " + refund.getTenant().getName(),
-                        "Hello,\n\n"
-                                + refund.getTenant().getName() + " owes you " + Money.naira(refund.getAmountKobo())
-                                + " for order " + refund.getOrder().getOrderNumber() + ".\n\n"
-                                + "See the refund, add your bank details, or tell us you have been paid:\n"
-                                + linkFor(refund) + "\n\n"
-                                + "The Plately team");
+                emailSender.send(email, subject, body);
             } catch (EmailSendException e) {
                 log.warn("A refund email could not be sent for order {}", refund.getOrder().getOrderNumber());
             }

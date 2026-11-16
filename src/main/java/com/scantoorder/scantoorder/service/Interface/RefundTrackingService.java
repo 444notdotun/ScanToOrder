@@ -1,6 +1,7 @@
 package com.scantoorder.scantoorder.service.Interface;
 
 import com.scantoorder.scantoorder.dtos.request.GuestBankDetailsRequest;
+import com.scantoorder.scantoorder.dtos.request.GuestEmailRequest;
 import com.scantoorder.scantoorder.dtos.request.SettleRefundRequest;
 import com.scantoorder.scantoorder.dtos.respond.GuestRefundResponse;
 import com.scantoorder.scantoorder.dtos.respond.ManagerRefundResponse;
@@ -14,6 +15,9 @@ import java.util.List;
  */
 public interface RefundTrackingService {
     GuestRefundResponse guestView(String refundId, String token);
+
+    // Stores or changes where the guest is told about the refund. If this is the first email, the link is sent to it.
+    GuestRefundResponse guestEmail(String refundId, String token, GuestEmailRequest request);
 
     GuestRefundResponse guestBankDetails(String refundId, String token, GuestBankDetailsRequest request);
 

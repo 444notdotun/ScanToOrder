@@ -22,8 +22,17 @@ public class GuestRefundResponse {
     private String bankName;
     private String accountName;
     private String accountLast4;
+    private boolean needsEmail;
+    private String guestEmail;
     private boolean canAddBankDetails;
     private boolean canConfirmReceived;
     private boolean canReportMissing;
     private boolean reportedMissing;
+
+    public GuestRefundResponse(String refundId, String restaurant, String orderNumber, java.util.List<String> items,
+                               java.math.BigDecimal amount, String status, String whatToDo, String bankName, String accountName,
+                               String accountLast4, boolean canAddBankDetails, boolean canConfirmReceived, boolean canReportMissing, boolean reportedMissing) {
+        this(refundId, restaurant, orderNumber, items, amount, status, whatToDo, bankName, accountName, accountLast4,
+                false, null, canAddBankDetails, canConfirmReceived, canReportMissing, reportedMissing);
+    }
 }

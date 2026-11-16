@@ -13,6 +13,7 @@ import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
 import com.scantoorder.scantoorder.data.repository.OrderRepo;
 import com.scantoorder.scantoorder.data.repository.RefundRepo;
 import com.scantoorder.scantoorder.dtos.request.GuestBankDetailsRequest;
+import com.scantoorder.scantoorder.dtos.request.GuestEmailRequest;
 import com.scantoorder.scantoorder.dtos.request.SettleRefundRequest;
 import com.scantoorder.scantoorder.dtos.respond.GuestRefundResponse;
 import com.scantoorder.scantoorder.dtos.respond.ManagerRefundResponse;
@@ -35,6 +36,7 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
 
     // A refund still unpaid after this long shows to the platform owner.
     public static final Duration OVERDUE_AFTER = Duration.ofHours(48);
+    public static final String ADD_EMAIL_FIRST = "Add your email first.";
     static final String NOT_FOUND = "We cannot find that refund";
 
     @Autowired
@@ -45,6 +47,8 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
     private OrderItemRepo orderItemRepo;
     @Autowired
     private BankResolver bankResolver;
+    @Autowired
+    private RefundService refundService;
 
     // ---- guest ----
 
@@ -56,8 +60,25 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
 
     @Transactional
     @Override
-    public GuestRefundResponse guestBankDetails(String refundId, String token, GuestBankDetailsRequest request) {
+    public GuestRefundResponse guestEmail(String refundId, String token, GuestEmailRequest request) {
         Refund refund = guestLock(refundId, token);
+        if (refund.getStatus() == RefundStatus.CONFIRMED) {
+            throw new ConflictException("This refund is already closed.");
+        }
+        boolean first = refund.getGuestEmail() == null;
+        refund.setGuestEmail(request.getEmail().trim());
+        refundRepo.save(refund);
+        // The first time, the link they are already on is also sent to them, so they can come back to it.
+        if (first) {
+            refundService.sendLink(refund);
+        }
+        return guestResponse(refund);
+    }
+
+    @Transactional
+    @Override
+    public GuestRefundResponse guestBankDetails(String refundId, String token, GuestBankDetailsRequest request) {
+        Refund refund = guestLockWithEmail(refundId, token);
         if (refund.getStatus() == RefundStatus.CONFIRMED) {
             throw new ConflictException("This refund is already closed.");
         }
@@ -74,7 +95,7 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
     @Transactional
     @Override
     public GuestRefundResponse guestReceived(String refundId, String token) {
-        Refund refund = guestLock(refundId, token);
+        Refund refund = guestLockWithEmail(refundId, token);
         if (refund.getStatus() == RefundStatus.CONFIRMED) {
             throw new ConflictException("You have already told us this refund arrived.");
         }
@@ -93,7 +114,7 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
     @Transactional
     @Override
     public GuestRefundResponse guestNotReceived(String refundId, String token) {
-        Refund refund = guestLock(refundId, token);
+        Refund refund = guestLockWithEmail(refundId, token);
         if (refund.getStatus() != RefundStatus.SETTLED) {
             throw new ConflictException("You can say a refund hasn't arrived once the restaurant says it has sent it.");
         }
@@ -138,6 +159,8 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
         refund.setClosedBy(RefundClosedBy.MANAGER);
         finishOrder(refund);
         refundRepo.save(refund);
+        // Only when the guest gave an email; a cash refund at the table settles without one.
+        refundService.tellTheGuestItWasSent(refund);
         return managerResponse(refund);
     }
 
@@ -164,6 +187,15 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
             order.setOrderStatus(OrderStatus.REFUNDED);
             orderRepo.save(order);
         }
+    }
+
+    // Until the guest has said where to reach them, nothing else on the refund page works.
+    private Refund guestLockWithEmail(String refundId, String token) {
+        Refund refund = guestLock(refundId, token);
+        if (refund.getGuestEmail() == null || refund.getGuestEmail().isBlank()) {
+            throw new ConflictException(ADD_EMAIL_FIRST);
+        }
+        return refund;
     }
 
     private Refund guestLock(String refundId, String token) {
@@ -204,16 +236,20 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
         response.setItems(itemLines(refund.getOrder()));
         response.setAmount(naira(refund));
         response.setStatus(refund.getStatus().name());
-        response.setWhatToDo(todo);
+        boolean needsEmail = refund.getGuestEmail() == null || refund.getGuestEmail().isBlank();
+        response.setNeedsEmail(needsEmail);
+        response.setGuestEmail(refund.getGuestEmail());
+        response.setWhatToDo(needsEmail && refund.getStatus() != RefundStatus.CONFIRMED
+                ? "Where should we tell you about your refund?" : todo);
         response.setBankName(refund.getGuestBankName());
         response.setAccountName(refund.getGuestAccountName());
         String number = refund.getGuestAccountNumber();
         if (number != null && number.length() >= 4) {
             response.setAccountLast4(number.substring(number.length() - 4));
         }
-        response.setCanAddBankDetails(refund.getStatus() != RefundStatus.CONFIRMED);
-        response.setCanConfirmReceived(refund.getStatus() != RefundStatus.CONFIRMED);
-        response.setCanReportMissing(refund.getStatus() == RefundStatus.SETTLED && !missing);
+        response.setCanAddBankDetails(!needsEmail && refund.getStatus() != RefundStatus.CONFIRMED);
+        response.setCanConfirmReceived(!needsEmail && refund.getStatus() != RefundStatus.CONFIRMED);
+        response.setCanReportMissing(!needsEmail && refund.getStatus() == RefundStatus.SETTLED && !missing);
         response.setReportedMissing(missing);
         return response;
     }
@@ -235,6 +271,8 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
         response.setReason(refund.getReason().name());
         response.setStatus(refund.getStatus().name());
         response.setClosedBy(refund.getClosedBy() == null ? null : refund.getClosedBy().name());
+        response.setGuestEmail(refund.getGuestEmail());
+        response.setGuestLink(refundService.linkFor(refund));
         response.setGuestBankName(refund.getGuestBankName());
         response.setGuestAccountName(refund.getGuestAccountName());
         response.setGuestAccountNumber(refund.getGuestAccountNumber());

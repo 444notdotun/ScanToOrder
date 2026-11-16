@@ -22,6 +22,9 @@ public class ManagerRefundResponse {
     private String reason;
     private String status;
     private String closedBy;
+    // To send by phone or WhatsApp.
+    private String guestLink;
+    private String guestEmail;
     private String guestBankName;
     private String guestAccountName;
     private String guestAccountNumber;

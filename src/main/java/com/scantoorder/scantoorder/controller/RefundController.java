@@ -3,6 +3,7 @@ package com.scantoorder.scantoorder.controller;
 import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.data.model.WorkerPrincipal;
 import com.scantoorder.scantoorder.dtos.request.GuestBankDetailsRequest;
+import com.scantoorder.scantoorder.dtos.request.GuestEmailRequest;
 import com.scantoorder.scantoorder.dtos.request.SettleRefundRequest;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.dtos.respond.GuestRefundResponse;
@@ -37,6 +38,14 @@ public class RefundController {
             @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
             @RequestParam("t") @Size(max = 100) String token) {
         return ResponseEntity.ok(new ApiResponse<>(refundService.guestView(id, token)));
+    }
+
+    @PostMapping("/{id}/guest/email")
+    public ResponseEntity<ApiResponse<GuestRefundResponse>> guestEmail(
+            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+            @RequestParam("t") @Size(max = 100) String token,
+            @Valid @RequestBody GuestEmailRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(refundService.guestEmail(id, token, request)));
     }
 
     @PostMapping("/{id}/guest/bank-details")

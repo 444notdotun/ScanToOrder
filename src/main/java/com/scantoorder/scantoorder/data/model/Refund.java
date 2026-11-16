@@ -47,6 +47,9 @@ public class Refund {
     private String guestAccountNumber;
     private String guestAccountName;
 
+    // Where the guest wants to be told about this refund. Never logged.
+    private String guestEmail;
+
     @Enumerated(EnumType.STRING)
     private RefundMethod method;
     private String transferReference;

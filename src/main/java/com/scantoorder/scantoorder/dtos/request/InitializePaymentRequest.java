@@ -14,7 +14,7 @@ public class InitializePaymentRequest {
     @NotBlank(message = "Order ID is required")
     @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format")
     private String orderId;
-    @NotBlank(message = "Customer email is required")
+    // Optional: checked as an email only when the guest gave one.
     @Email(message = "Invalid email format")
     private String customerEmail;
 }
