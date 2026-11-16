@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import StaffShell from '@/components/staff/StaffShell';
+import StockSection from '@/components/staff/StockSection';
 import Ticket, { agedMinutes } from '@/components/staff/Ticket';
 import { useConnection } from '@/components/plately/Connection';
 import { Button, FailureCard, Sheet } from '@/components/plately/ui';
 import { FAILURE_ID, useAction } from '@/hooks/useAction';
 import { useNow } from '@/hooks/useNow';
 import { failureOf } from '@/lib/http';
-import { staffApi, UNAVAILABLE_REASONS, useKitchen, useStock, type ServiceOrder, type UnavailableReason } from '@/lib/staff';
+import { staffApi, UNAVAILABLE_REASONS, useKitchen, type ServiceOrder, type UnavailableReason } from '@/lib/staff';
 
 function Column({ title, count, empty, children }: { title: string; count: number; empty: string; children: React.ReactNode }) {
   return (
@@ -25,9 +26,9 @@ function Column({ title, count, empty, children }: { title: string; count: numbe
 function Pass() {
   const { lost } = useConnection();
   const kitchen = useKitchen();
-  const stock = useStock();
   const now = useNow();
-  const { busy, failure, run } = useAction();
+  const act = useAction();
+  const { busy, failure, run } = act;
   const [cant, setCant] = useState<ServiceOrder | null>(null);
 
   const orders = kitchen.data ?? [];
@@ -90,29 +91,7 @@ function Pass() {
         </div>
       )}
 
-      <section aria-label="What we have left" className="flex flex-col gap-3 pt-2">
-        <div>
-          <h2 className="font-heading text-[26px] font-normal">What we have left</h2>
-          <p className="text-[15px] text-soft">Sold out plates disappear from guests&apos; menus straight away.</p>
-        </div>
-        {stock.isError ? <FailureCard title="We couldn't load the stock" message={failureOf(stock.error).message} /> : null}
-        <div className="flex flex-wrap gap-2.5">
-          {(stock.data ?? []).map((item) => (
-            <button
-              key={item.itemId}
-              type="button"
-              aria-pressed={!item.available}
-              disabled={lost || busy !== null}
-              onClick={() => void run(item.itemId, () => (item.available ? staffApi.soldOut(item.itemId) : staffApi.backInStock(item.itemId)))}
-              className={`min-h-[52px] rounded-full border-[1.5px] px-5 text-base font-bold ${
-                item.available ? 'border-cream/45 bg-transparent text-cream hover:bg-cream/10' : 'border-cream bg-cream text-bottle'
-              } disabled:opacity-60`}
-            >
-              {item.itemName} · {item.available ? 'in stock' : 'sold out'}
-            </button>
-          ))}
-        </div>
-      </section>
+      <StockSection act={act} />
 
       <Sheet open={cant !== null} onClose={() => setCant(null)} label="Why it can't be made">
         <h2 className="font-heading text-[28px] font-normal text-bottle">What&apos;s stopping it?</h2>
