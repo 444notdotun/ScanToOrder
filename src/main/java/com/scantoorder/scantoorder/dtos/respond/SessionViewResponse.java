@@ -7,6 +7,7 @@ import java.util.List;
 
 @Data
 public class SessionViewResponse {
+    private String businessName;
     private String sessionId;
     private String status;
     private String joinCode;
