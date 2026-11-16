@@ -50,6 +50,10 @@ function Opening() {
           <Link href="/staff/login" className="underline underline-offset-4">
             Staff sign in
           </Link>
+          {' · '}
+          <Link href="/signup" className="underline underline-offset-4">
+            Bring Plately to your place
+          </Link>
         </p>
       </main>
 

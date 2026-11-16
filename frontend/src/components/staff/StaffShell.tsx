@@ -7,7 +7,7 @@ import Ground from '@/components/plately/Ground';
 import { Brand, Loader } from '@/components/plately/Logo';
 import { ConnectionBanner, ConnectionContext } from '@/components/plately/Connection';
 import { useLiveStream } from '@/hooks/useLiveStream';
-import { failureOf } from '@/lib/http';
+import { failureOf, http } from '@/lib/http';
 import { staffApi } from '@/lib/staff';
 import { homeFor, useAuthHydrated, useAuthStore, type StaffRole } from '@/store/authStore';
 
@@ -21,10 +21,17 @@ export default function StaffShell({ allow, children, workspace }: { allow: Staf
   // A manager of events belongs in /planner, a restaurant's manager in /manager: each is sent to the other's door.
   const rightWorkspace = !workspace || profile?.role !== 'MANAGER' || (profile.tenantType ?? 'RESTAURANT') === workspace;
   const allowed = profile !== null && !profile.mustChangePassword && allow.includes(profile.role) && rightWorkspace;
-  const stream = useLiveStream('staff', allowed);
+  // The platform owner has no business of their own: no staff stream and no day's count, but the same checks.
+  const platform = profile?.role === 'PLATFORM_ADMIN';
+  const stream = useLiveStream('staff', allowed && !platform);
 
   // Today's count doubles as the check that the sign-in is still good.
-  const today = useQuery({ queryKey: ['today'], queryFn: staffApi.today, enabled: allowed, retry: false });
+  const today = useQuery({
+    queryKey: ['today', platform],
+    queryFn: () => (platform ? http.get('/api/v1/platform/tenants', { params: { status: 'pending_approval' } }).then(() => null) : staffApi.today()),
+    enabled: allowed,
+    retry: false,
+  });
   const expired = today.isError && failureOf(today.error).status === 401;
 
   useEffect(() => {

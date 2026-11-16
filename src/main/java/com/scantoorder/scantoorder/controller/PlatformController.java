@@ -4,9 +4,11 @@ import com.scantoorder.scantoorder.dtos.request.DeclineTenantRequest;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.dtos.respond.TenantActionResponse;
 import com.scantoorder.scantoorder.dtos.respond.TenantSummaryResponse;
+import com.scantoorder.scantoorder.dtos.respond.PlatformEarningsResponse;
 import com.scantoorder.scantoorder.dtos.respond.PlatformRefundResponse;
 import com.scantoorder.scantoorder.exception.InvalidRequestException;
 import com.scantoorder.scantoorder.service.Interface.PlatformService;
+import com.scantoorder.scantoorder.service.PlatformEarningsService;
 import com.scantoorder.scantoorder.service.Interface.RefundTrackingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -30,6 +32,8 @@ public class PlatformController {
     private PlatformService platformService;
     @Autowired
     private RefundTrackingService refundService;
+    @Autowired
+    private PlatformEarningsService earningsService;
 
     @GetMapping("/tenants")
     public ResponseEntity<ApiResponse<List<TenantSummaryResponse>>> list(@RequestParam(required = false) String status) {
@@ -43,6 +47,12 @@ public class PlatformController {
             throw new InvalidRequestException("Only the list of problem refunds is available. Ask with problem=true.");
         }
         return ResponseEntity.ok(new ApiResponse<>(refundService.platformProblems()));
+    }
+
+    // Plately's own earnings: charges on restaurant sales and event fees, by period.
+    @GetMapping("/earnings")
+    public ResponseEntity<ApiResponse<PlatformEarningsResponse>> earnings(@RequestParam(defaultValue = "month") String period) {
+        return ResponseEntity.ok(new ApiResponse<>(earningsService.earnings(period)));
     }
 
     @PostMapping("/tenants/{id}/approve")
