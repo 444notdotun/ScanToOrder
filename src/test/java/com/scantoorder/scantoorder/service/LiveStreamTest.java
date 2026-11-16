@@ -243,6 +243,9 @@ class LiveStreamTest {
             signIn(role, tenant.getTenantId(), "s1");
             MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/stream/staff")).andReturn();
             assertTrue(result.getRequest().isAsyncStarted(), role);
+            // Nothing in front of the stream may hold notices back to compress or buffer them.
+            assertTrue(result.getResponse().getHeader("Cache-Control").contains("no-transform"), role);
+            assertEquals("no", result.getResponse().getHeader("X-Accel-Buffering"), role);
         }
         signIn("CUSTOMER", tenant.getTenantId(), "s1");
         MvcResult guestStream = mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/stream/guest")).andReturn();
