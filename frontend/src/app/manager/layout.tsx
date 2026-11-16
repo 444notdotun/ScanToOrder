@@ -6,8 +6,7 @@ import StaffShell from '@/components/staff/StaffShell';
 
 export default function ManagerLayout({ children }: { children: ReactNode }) {
   return (
-    <StaffShell allow={['MANAGER']} workspace="RESTAURANT">
-      <ManagerNav />
+    <StaffShell allow={['MANAGER']} workspace="RESTAURANT" nav={<ManagerNav />}>
       {children}
     </StaffShell>
   );

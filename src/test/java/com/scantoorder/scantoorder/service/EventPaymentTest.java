@@ -134,6 +134,18 @@ class EventPaymentTest {
     }
 
     @Test
+    void testThatTheReceiptGoesToTheEmailThePlannerGaveAndElseToTheBusinessEmail() {
+        String id = support.draft(planner, EventSeatingMode.ASSIGNED, 2).getId();
+
+        events.startPayment(plannerId, id, 10, "  receipts@real-mail.com ");
+        events.startPayment(plannerId, id, 10, "   ");
+        events.startPayment(plannerId, id, 10, null);
+
+        verify(paystackClient).initialize(eq("receipts@real-mail.com"), anyLong(), anyString(), isNull());
+        verify(paystackClient, times(2)).initialize(eq(planner.getEmail()), anyLong(), anyString(), isNull());
+    }
+
+    @Test
     void testThatADraftRefusesGuestsUntilItIsPaidFor() {
         Event draft = eventRepo.findById(support.draft(planner, EventSeatingMode.ASSIGNED, 2).getId()).orElseThrow();
         EventGuestRequest request = new EventGuestRequest();

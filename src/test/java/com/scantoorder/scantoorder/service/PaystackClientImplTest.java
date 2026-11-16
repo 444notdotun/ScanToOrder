@@ -3,6 +3,7 @@ package com.scantoorder.scantoorder.service;
 import com.scantoorder.scantoorder.dtos.respond.PaystackSplit;
 import com.scantoorder.scantoorder.exception.PayoutAccountRejectedException;
 import com.scantoorder.scantoorder.exception.PaymentGatewayUnavailableException;
+import com.scantoorder.scantoorder.exception.PaymentValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -70,6 +71,36 @@ class PaystackClientImplTest {
         assertTrue(body.contains("\"transaction_charge\":3000"));
         assertTrue(body.contains("\"bearer\":\"account\""));
         assertTrue(body.contains("\"reference\":\"PAYMENT-ABC12345\""));
+    }
+
+    @Test
+    void testThatPaystacksOwnWordsAboutAnEmailAreNeverShownToAPerson() throws Exception {
+        answer(400, "{\"status\":false,\"message\":\"\\\"email\\\" must be a valid email\"}");
+
+        PaymentValidationException refused = assertThrows(PaymentValidationException.class, () -> client.initialize("me@x.example", 50_000, "EVENT-ABC12345", null));
+
+        assertEquals(PaystackClientImpl.RECEIPT_EMAIL_REFUSED, refused.getMessage());
+        assertEquals("Paystack couldn't use that email for the receipt. Check it and try again.", refused.getMessage());
+        assertFalse(refused.getMessage().contains("valid email"));
+    }
+
+    @Test
+    void testThatAnyOtherRefusalFromPaystackIsAlsoSaidInOurVoice() throws Exception {
+        answer(422, "{\"status\":false,\"message\":\"Invalid Amount Sent\"}");
+
+        PaymentValidationException refused = assertThrows(PaymentValidationException.class, () -> client.initialize("me@x.com", 1, "EVENT-ABC12345", null));
+
+        assertEquals(PaystackClientImpl.PAYMENT_REFUSED, refused.getMessage());
+        assertFalse(refused.getMessage().contains("Invalid Amount"));
+    }
+
+    @Test
+    void testThatARefusalDeliveredWithASuccessCodeIsAlsoSaidInOurVoice() throws Exception {
+        answer(200, "{\"status\":false,\"message\":\"Duplicate Transaction Reference\"}");
+
+        PaymentValidationException refused = assertThrows(PaymentValidationException.class, () -> client.initialize("me@x.com", 5000, "EVENT-ABC12345", null));
+
+        assertEquals(PaystackClientImpl.PAYMENT_REFUSED, refused.getMessage());
     }
 
     @Test

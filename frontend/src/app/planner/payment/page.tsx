@@ -27,7 +27,7 @@ function Returned() {
     retry: false,
     queryFn: () => plannerApi.verify(reference as string),
   });
-  const back = eventId ? `/planner/${eventId}/guests` : '/planner';
+  const back = eventId ? `/planner/${eventId}` : '/planner';
 
   if (!reference) {
     return (

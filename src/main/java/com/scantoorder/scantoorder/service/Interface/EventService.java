@@ -24,7 +24,11 @@ public interface EventService {
 
     EventPriceResponse price(String tenantId, String eventId, int guests);
 
-    InitializePaymentResponse startPayment(String tenantId, String eventId, int guests);
+    InitializePaymentResponse startPayment(String tenantId, String eventId, int guests, String receiptEmail);
+
+    default InitializePaymentResponse startPayment(String tenantId, String eventId, int guests) {
+        return startPayment(tenantId, eventId, guests, null);
+    }
 
     // Ends every event past its end time and closes its sessions. Returns how many it ended.
     int endFinishedEvents();

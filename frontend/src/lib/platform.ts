@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { dataOf, http } from '@/lib/http';
 import type { Period } from '@/lib/manager';
+import { happened } from '@/lib/time';
 
 export type TenantStatus = 'PENDING_APPROVAL' | 'DECLINED' | 'ACTIVE' | 'SUSPENDED';
 
@@ -92,10 +93,7 @@ export function signedUp(iso?: string): string {
   return sent(iso).replace(/^Sent /, 'Signed up ');
 }
 
-// "Sent 16 Nov, 9:07 am".
+// "Sent 16 Nov · 9:07 am".
 export function sent(iso?: string): string {
-  if (!iso) return '';
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : `Sent ${date.toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}`;
+  return iso ? `Sent ${happened(iso)}` : '';
 }
-

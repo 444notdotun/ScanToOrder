@@ -21,17 +21,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(PaymentGatewayTimeoutException.class)
     public ResponseEntity<Object> handlePaymentGatewayTimeoutException(PaymentGatewayTimeoutException ex) {
-        return buildResponse(HttpStatus.GATEWAY_TIMEOUT, ex.getMessage());
+        return buildResponse(HttpStatus.GATEWAY_TIMEOUT, "Paystack took too long to answer. Nothing was charged. Try again in a moment.");
     }
 
     @ExceptionHandler(PaymentGatewayUnavailableException.class)
     public ResponseEntity<Object> handlePaymentGatewayUnavailableException(PaymentGatewayUnavailableException ex) {
-        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, "Paystack isn't answering right now. Nothing was charged. Try again in a moment.");
     }
 
     @ExceptionHandler(PaymentGatewayException.class)
     public ResponseEntity<Object> handlePaymentGatewayException(PaymentGatewayException ex) {
-        return buildResponse(HttpStatus.BAD_GATEWAY, ex.getMessage());
+        // The technical detail is for the log; a person is told what to do.
+        String message = ex.getMessage() != null && ex.getMessage().startsWith("Paystack couldn't")
+                ? ex.getMessage()
+                : "We couldn't reach Paystack just now. Nothing was charged. Try again in a moment.";
+        return buildResponse(HttpStatus.BAD_GATEWAY, message);
     }
 
     @ExceptionHandler(PaymentAlreadyProcessedException.class)

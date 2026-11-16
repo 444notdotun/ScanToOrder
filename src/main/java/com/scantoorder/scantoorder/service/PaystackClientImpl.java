@@ -7,6 +7,7 @@ import com.scantoorder.scantoorder.dtos.respond.PaystackVerifyResponseData;
 import com.scantoorder.scantoorder.exception.*;
 import com.scantoorder.scantoorder.service.Interface.PaystackClient;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class PaystackClientImpl implements PaystackClient {
 
@@ -45,6 +47,15 @@ public class PaystackClientImpl implements PaystackClient {
     private HttpClient httpClient = HttpClient.newBuilder()
 //            .connectTimeout(Duration.ofSeconds(5))
             .build();
+
+    public static final String RECEIPT_EMAIL_REFUSED = "Paystack couldn't use that email for the receipt. Check it and try again.";
+    public static final String PAYMENT_REFUSED = "Paystack couldn't take that payment. Check the details and try again.";
+
+    // Paystack's own words are for the log. A person is told what to do in ours.
+    static String inOurVoice(String raw) {
+        log.warn("Paystack refused a request: {}", raw);
+        return raw != null && raw.toLowerCase().contains("email") ? RECEIPT_EMAIL_REFUSED : PAYMENT_REFUSED;
+    }
 
     @Override
     public PaystackInitResponseData initialize(String email, long amountKobo, String reference, PaystackSplit split) {
@@ -73,22 +84,22 @@ public class PaystackClientImpl implements PaystackClient {
                 throw new PaymentGatewayUnavailableException("Paystack service is currently down");
             }
             if (statusCode == 400 || statusCode == 422) {
-                String errorMsg = "Payment validation failed";
+                String raw = "";
                 try {
                     JsonNode responseJson = objectMapper.readTree(response.body());
                     if (responseJson.has("message")) {
-                        errorMsg = responseJson.path("message").asText();
+                        raw = responseJson.path("message").asText();
                     }
                 } catch (Exception e) {
                 }
-                throw new PaymentValidationException(errorMsg);
+                throw new PaymentValidationException(inOurVoice(raw));
             }
             if (statusCode != 200 && statusCode != 201) {
                 throw new PaymentGatewayException("Paystack payment initialization failed with status " + statusCode);
             }
             JsonNode responseJson = objectMapper.readTree(response.body());
             if (!responseJson.path("status").asBoolean()) {
-                throw new PaymentGatewayException("Paystack payment initialization rejected: " + responseJson.path("message").asText());
+                throw new PaymentValidationException(inOurVoice(responseJson.path("message").asText()));
             }
             JsonNode dataNode = responseJson.path("data");
             String authUrl = dataNode.path("authorization_url").asText();
@@ -131,7 +142,7 @@ public class PaystackClientImpl implements PaystackClient {
 
             JsonNode responseJson = objectMapper.readTree(response.body());
             if (!responseJson.path("status").asBoolean()) {
-                throw new PaymentGatewayException("Paystack verification rejected: " + responseJson.path("message").asText());
+                throw new PaymentGatewayException(inOurVoice(responseJson.path("message").asText()));
             }
 
             JsonNode dataNode = responseJson.path("data");

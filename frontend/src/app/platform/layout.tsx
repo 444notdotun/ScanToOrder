@@ -17,7 +17,7 @@ function Nav() {
   const path = usePathname();
   const waiting = useTenants('pending_approval').data?.length ?? 0;
   return (
-    <nav aria-label="Platform sections" className="mx-auto w-full max-w-6xl overflow-x-auto px-5 pt-3">
+    <nav aria-label="Platform sections" className="[scrollbar-width:none] overflow-x-auto">
       <ul className="flex w-max gap-2 pb-1">
         {TABS.map((tab) => {
           const here = tab.href === '/platform' ? path === '/platform' : path.startsWith(tab.href);
@@ -26,7 +26,7 @@ function Nav() {
               <Link
                 href={tab.href}
                 aria-current={here ? 'page' : undefined}
-                className={`flex min-h-[48px] items-center rounded-full border-[1.5px] px-5 text-base font-bold ${here ? 'border-cream bg-cream text-bottle' : 'border-cream/45 text-cream hover:bg-cream/10'}`}
+                className={`flex min-h-[44px] items-center whitespace-nowrap rounded-full border-[1.5px] px-4 text-[15px] font-bold xl:px-3 xl:text-[14px] ${here ? 'border-cream bg-cream text-bottle' : 'border-cream/45 text-cream hover:bg-cream/10'}`}
               >
                 {tab.label}
                 {tab.href === '/platform' && waiting > 0 ? ` (${waiting})` : ''}
@@ -41,8 +41,7 @@ function Nav() {
 
 export default function PlatformLayout({ children }: { children: ReactNode }) {
   return (
-    <StaffShell allow={['PLATFORM_ADMIN']}>
-      <Nav />
+    <StaffShell allow={['PLATFORM_ADMIN']} nav={<Nav />}>
       {children}
     </StaffShell>
   );

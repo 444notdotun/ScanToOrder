@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Ground from '@/components/plately/Ground';
 import { Loader } from '@/components/plately/Logo';
 import { ConnectionBanner, ConnectionContext } from '@/components/plately/Connection';
+import YouCard from '@/components/guest/YouCard';
 import { forgetTable, useSession } from '@/lib/guest';
 import { failureOf } from '@/lib/http';
 import { useLiveStream } from '@/hooks/useLiveStream';
@@ -51,6 +52,7 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
     <ConnectionContext.Provider value={{ lost: stream.lost }}>
       <Ground>
         <ConnectionBanner lost={stream.lost} caughtUp={stream.caughtUp} />
+        <YouCard session={session.data} />
         {children}
       </Ground>
     </ConnectionContext.Provider>

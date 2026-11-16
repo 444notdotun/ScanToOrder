@@ -98,7 +98,7 @@ public class EventController {
     @PostMapping("/{id}/pay")
     public ResponseEntity<ApiResponse<InitializePaymentResponse>> pay(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
                                                                       @Valid @RequestBody EventPayRequest request) {
-        return ResponseEntity.ok(new ApiResponse<>(eventService.startPayment(CurrentTenant.id(), id, request.getGuests())));
+        return ResponseEntity.ok(new ApiResponse<>(eventService.startPayment(CurrentTenant.id(), id, request.getGuests(), request.getReceiptEmail())));
     }
 
     // ---- plates

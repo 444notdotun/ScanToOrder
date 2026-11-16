@@ -21,7 +21,7 @@ export default function ManagerNav() {
   const open = floor.data?.openRefunds ?? 0;
 
   return (
-    <nav aria-label="Manager sections" className="mx-auto w-full max-w-6xl overflow-x-auto px-5 pt-3 print:hidden">
+    <nav aria-label="Manager sections" className="[scrollbar-width:none] overflow-x-auto print:hidden">
       <ul className="flex w-max gap-2 pb-1">
         {TABS.map((tab) => {
           const here = tab.href === '/manager' ? path === '/manager' : path.startsWith(tab.href);
@@ -30,7 +30,7 @@ export default function ManagerNav() {
               <Link
                 href={tab.href}
                 aria-current={here ? 'page' : undefined}
-                className={`flex min-h-[48px] items-center rounded-full border-[1.5px] px-5 text-base font-bold ${
+                className={`flex min-h-[44px] items-center whitespace-nowrap rounded-full border-[1.5px] px-4 text-[15px] font-bold xl:px-3 xl:text-[14px] ${
                   here ? 'border-cream bg-cream text-bottle' : 'border-cream/45 text-cream hover:bg-cream/10'
                 }`}
               >

@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -68,6 +69,23 @@ class DataSeederTest {
 
     private String codeOf(String slug) {
         return tenantRepo.findBySlug(slug).orElseThrow().getPaystackSubaccountCode();
+    }
+
+    @Test
+    void testThatDemoBusinessesKeepTheirMadeUpEmailsUnlessAnOwnerEmailIsSet() {
+        ReflectionTestUtils.setField(dataSeeder, "ownerEmail", "");
+        assertEquals("ada@thecornertable.example", dataSeeder.demoEmail("thecornertable", "ada@thecornertable.example"));
+
+        ReflectionTestUtils.setField(dataSeeder, "ownerEmail", "  me@mail.com ");
+        try {
+            assertEquals("me+thecornertable@mail.com", dataSeeder.demoEmail("thecornertable", "ada@thecornertable.example"));
+            assertEquals("me+owambeco@mail.com", dataSeeder.demoEmail("owambeco", "kemi@owambeco.example"));
+
+            ReflectionTestUtils.setField(dataSeeder, "ownerEmail", "not-an-email");
+            assertEquals("ada@thecornertable.example", dataSeeder.demoEmail("thecornertable", "ada@thecornertable.example"));
+        } finally {
+            ReflectionTestUtils.setField(dataSeeder, "ownerEmail", "");
+        }
     }
 
     @Test

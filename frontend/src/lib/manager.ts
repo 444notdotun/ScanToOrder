@@ -5,6 +5,7 @@ import type { FloorTable, StockItem, WaiterCall } from '@/lib/staff';
 export interface MyTenant {
   name: string;
   slug: string;
+  email?: string;
   type: string;
   status: string;
   openForOrders: boolean;

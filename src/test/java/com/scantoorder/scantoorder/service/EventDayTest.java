@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.scantoorder.scantoorder.utils.TimeText;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -357,7 +358,7 @@ class EventDayTest {
         eventRepo.save(row);
 
         ConflictException early = assertThrows(ConflictException.class, () -> sit(guest, table, null));
-        assertEquals("Doors open at " + row.getStartsAt().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")) + ". Come back then and your code will work.", early.getMessage());
+        assertEquals("Doors open at " + TimeText.clock(row.getStartsAt()) + ". Come back then and your code will work.", early.getMessage());
 
         row.setStartsAt(LocalDateTime.now().minusHours(3));
         row.setEndsAt(LocalDateTime.now().minusMinutes(1));

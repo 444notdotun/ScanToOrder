@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { dataOf, http } from '@/lib/http';
+import { dateTime } from '@/lib/time';
 
 export type EventStatus = 'DRAFT' | 'ACTIVE' | 'ENDED';
 export type SeatingMode = 'FREE' | 'ASSIGNED';
@@ -102,7 +103,8 @@ export const plannerApi = {
   update: async (id: string, form: EventForm) => dataOf<PlannerEvent>(await http.put(`/api/v1/events/${id}`, body(form))),
   end: async (id: string) => dataOf<PlannerEvent>(await http.post(`/api/v1/events/${id}/end`)),
   price: async (id: string, guests: number) => dataOf<EventPrice>(await http.get(`/api/v1/events/${id}/price`, { params: { guests } })),
-  pay: async (id: string, guests: number) => dataOf<{ authorizationUrl: string; reference: string }>(await http.post(`/api/v1/events/${id}/pay`, { guests })),
+  pay: async (id: string, guests: number, receiptEmail: string) =>
+    dataOf<{ authorizationUrl: string; reference: string }>(await http.post(`/api/v1/events/${id}/pay`, { guests, receiptEmail: receiptEmail.trim() || undefined })),
   verify: async (reference: string) => dataOf<{ paymentStatus: string }>(await http.get(`/api/v1/payments/verify/${reference}`)),
 
   plates: async (id: string) => dataOf<EventPlate[]>(await http.get(`/api/v1/events/${id}/plates`)),
@@ -132,10 +134,9 @@ export const useEventTables = (id: string) => useQuery({ queryKey: ['event-table
 export const useEventGuests = (id: string) => useQuery({ queryKey: ['event-guests', id], queryFn: () => plannerApi.guests(id) });
 export const useCoverage = (id: string) => useQuery({ queryKey: ['event-coverage', id], queryFn: () => plannerApi.coverage(id) });
 
+// "Mon 16 Nov · 12:00 am".
 export function when(iso?: string): string {
-  if (!iso) return '';
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  return dateTime(iso);
 }
 
 // "QX7KLM" reads easier aloud as "QX7 KLM".

@@ -16,6 +16,7 @@ import com.scantoorder.scantoorder.data.repository.TableRepo;
 import com.scantoorder.scantoorder.data.repository.TenantRepo;
 import com.scantoorder.scantoorder.dtos.respond.MyTenantResponse;
 import com.scantoorder.scantoorder.exception.ConflictException;
+import com.scantoorder.scantoorder.utils.TimeText;
 import com.scantoorder.scantoorder.exception.InvalidRequestException;
 import com.scantoorder.scantoorder.exception.ResourceNotFoundException;
 import com.scantoorder.scantoorder.exception.SuspendedTenantException;
@@ -25,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -140,7 +140,7 @@ public class TenantWorkspaceServiceImpl implements TenantWorkspaceService {
                             + "The payout account for " + tenant.getName() + " was changed.\n\n"
                             + "New bank: " + tenant.getBankName() + "\n"
                             + "New account ending: " + last4 + "\n"
-                            + "When: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm")) + "\n\n"
+                            + "When: " + TimeText.dayAndClock(LocalDateTime.now()) + "\n\n"
                             + "If this wasn't you, contact Plately straight away.\n\n"
                             + "The Plately team");
         } catch (EmailSendException e) {
