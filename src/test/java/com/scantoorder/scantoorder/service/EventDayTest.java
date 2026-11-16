@@ -41,6 +41,8 @@ class EventDayTest {
     @Autowired
     private EventTestSupport support;
     @Autowired
+    private TenantTestSupport tenants;
+    @Autowired
     private EventGuestService guests;
     @Autowired
     private EventPlateService plates;
@@ -76,6 +78,11 @@ class EventDayTest {
     private WorkerRepo workerRepo;
     @Autowired
     private DataSeeder seeder;
+    @Autowired
+    private com.scantoorder.scantoorder.service.Interface.RestaurantTableService restaurantTables;
+    @Autowired
+    @org.springframework.beans.factory.annotation.Qualifier("springSecurityFilterChain")
+    private jakarta.servlet.Filter securityFilters;
     @Autowired
     private WebApplicationContext wac;
     @MockitoBean
@@ -115,7 +122,7 @@ class EventDayTest {
     }
 
     private SeatClaimedResponse sit(EventGuestResponse guest, EventTableResponse table, CustomerPrincipal phone) {
-        return seating.redeem(slug, table.getDisplayNumber(), guest.getCode(), phone);
+        return seating.redeem(slug, event.getEventCode(), table.getDisplayNumber(), guest.getCode(), phone);
     }
 
     private CustomerPrincipal phoneOf(EventGuestResponse guest) {
@@ -326,14 +333,14 @@ class EventDayTest {
 
         for (int attempt = 0; attempt < 12; attempt++) {
             ResourceNotFoundException unknown = assertThrows(ResourceNotFoundException.class,
-                    () -> seating.redeem(slug, table.getDisplayNumber(), "ZZZZZ" + (char) ('2' + 0), null));
+                    () -> seating.redeem(slug, event.getEventCode(), table.getDisplayNumber(), "ZZZZZ" + (char) ('2' + 0), null));
             assertEquals("We can't find that code. Check the letters, or ask the host.", unknown.getMessage());
         }
         ResourceNotFoundException foreign = assertThrows(ResourceNotFoundException.class,
-                () -> seating.redeem(slug, table.getDisplayNumber(), theirs.getCode(), null));
+                () -> seating.redeem(slug, event.getEventCode(), table.getDisplayNumber(), theirs.getCode(), null));
         assertEquals(EventSeatingService.UNKNOWN_CODE, foreign.getMessage());
         // Lower case and spaces are forgiven, and the real code still works after all those misses.
-        assertNotNull(seating.redeem(slug, table.getDisplayNumber(), " " + mine.getCode().toLowerCase() + " ", null).getToken());
+        assertNotNull(seating.redeem(slug, event.getEventCode(), table.getDisplayNumber(), " " + mine.getCode().toLowerCase() + " ", null).getToken());
     }
 
     @Test
@@ -397,9 +404,14 @@ class EventDayTest {
         assignedEvent(1, 1);
         EventTableResponse table = support.table(planner, event, 2);
         EventGuestResponse guest = support.guest(planner, event, "Lost");
-        assertThrows(TableNotFoundException.class, () -> seating.redeem(slug, 999, guest.getCode(), null));
-        assertThrows(TableNotFoundException.class, () -> seating.redeem("nosuchplace", table.getDisplayNumber(), guest.getCode(), null));
-        assertThrows(TableNotFoundException.class, () -> seating.redeem(TenantTestSupport.MAIN_SLUG, table.getDisplayNumber(), guest.getCode(), null));
+        String eventCode = event.getEventCode();
+        assertThrows(TableNotFoundException.class, () -> seating.redeem(slug, eventCode, 999, guest.getCode(), null));
+        assertThrows(TableNotFoundException.class, () -> seating.redeem("nosuchplace", eventCode, table.getDisplayNumber(), guest.getCode(), null));
+        assertThrows(TableNotFoundException.class, () -> seating.redeem(TenantTestSupport.MAIN_SLUG, eventCode, table.getDisplayNumber(), guest.getCode(), null));
+        // An event code that does not exist at this planner, or belongs to another planner's event, finds no table.
+        assertThrows(TableNotFoundException.class, () -> seating.redeem(slug, "AAAAAA", table.getDisplayNumber(), guest.getCode(), null));
+        Event theirs = support.activeEvent(support.otherPlanner(), EventSeatingMode.FREE, 1, 1);
+        assertThrows(TableNotFoundException.class, () -> seating.redeem(slug, theirs.getEventCode(), table.getDisplayNumber(), guest.getCode(), null));
     }
 
     @Test
@@ -667,6 +679,84 @@ class EventDayTest {
         assertThrows(ConflictException.class, () -> guests.add(tenantId, event.getId(), named("After")));
     }
 
+    // ---- numbering and links
+
+    @Test
+    void testThatEachEventsTablesAreNumberedFromOneAndTheEventCodeNamesTheEvent() {
+        Event first = support.activeEvent(planner, EventSeatingMode.ASSIGNED, 1, 4);
+        Event second = support.activeEvent(planner, EventSeatingMode.ASSIGNED, 1, 4);
+
+        EventTableResponse a1 = support.table(planner, first, 2);
+        EventTableResponse a2 = support.table(planner, first, 2);
+        EventTableResponse b1 = support.table(planner, second, 2);
+
+        assertEquals(1, a1.getDisplayNumber());
+        assertEquals(2, a2.getDisplayNumber());
+        assertEquals(1, b1.getDisplayNumber());
+        CreateTableRequest explicit = new CreateTableRequest(2, 1);
+        assertThrows(ConflictException.class, () -> tables.create(tenantId, first.getId(), explicit));
+        assertEquals(3, tables.create(tenantId, first.getId(), new CreateTableRequest(2, 3)).getDisplayNumber());
+        // Table 1 of the second event is reached through the second event's code, and only through it.
+        EventGuestResponse guest = support.guest(planner, second, "Second event guest");
+        assertNotNull(seating.redeem(slug, second.getEventCode(), 1, guest.getCode(), null).getToken());
+        EventGuestResponse stranger = support.guest(planner, first, "First event guest");
+        assertThrows(ResourceNotFoundException.class, () -> seating.redeem(slug, second.getEventCode(), 1, stranger.getCode(), null));
+        assertEquals(0, tableRepo.countActive(tenantId));
+    }
+
+    @Test
+    void testThatEventCodesAreSixCharactersFromTheClearAlphabetAndUniqueWithinThePlanner() {
+        Set<String> seen = new HashSet<>();
+        for (int i = 0; i < 40; i++) {
+            String code = support.draft(planner, EventSeatingMode.FREE, null).getEventCode();
+            assertEquals(6, code.length());
+            assertTrue(code.chars().allMatch(c -> ALPHABET.indexOf(c) >= 0), code);
+            assertTrue(seen.add(code), "duplicate " + code);
+        }
+        EventResponse edited = events.update(tenantId, support.draft(planner, EventSeatingMode.FREE, null).getId(), support.request(EventSeatingMode.FREE, 2));
+        assertEquals(6, edited.getEventCode().length());
+    }
+
+    @Test
+    void testThatAnEventTablesLinkNamesTheEventAndARestaurantTablesLinkIsUnchanged() {
+        assignedEvent(1, 1);
+        EventTableResponse eventTable = support.table(planner, event, 2);
+        Tenant restaurant = tenants.main();
+        RestaurantTable plain = new RestaurantTable();
+        plain.setTenant(restaurant);
+        plain.setCapacity(2);
+        plain.setDisplayNumber(41);
+        plain = tableRepo.save(plain);
+
+        String eventLink = restaurantTables.scanLink(tenantId, eventTable.getTableNumber());
+        String restaurantLink = restaurantTables.scanLink(restaurant.getTenantId(), plain.getTableNumber());
+
+        assertTrue(eventLink.endsWith("/t/" + slug + "/e/" + event.getEventCode() + "/table/" + eventTable.getDisplayNumber()), eventLink);
+        assertTrue(restaurantLink.endsWith("/t/" + restaurant.getSlug() + "/table/41"), restaurantLink);
+        assertFalse(restaurantLink.contains("/e/"));
+        assertThrows(ResourceNotFoundException.class, () -> restaurantTables.scanLink(restaurant.getTenantId(), eventTable.getTableNumber()));
+    }
+
+    @Test
+    void testThatTheCodeEndpointIsPublicOnTheNewPathAndTheOldPathIsGone() throws Exception {
+        assignedEvent(1, 1);
+        EventTableResponse table = support.table(planner, event, 2);
+        EventGuestResponse guest = support.guest(planner, event, "Http guest");
+        MockMvc open = MockMvcBuilders.webAppContextSetup(wac).addFilters(securityFilters).build();
+        String body = "{\"code\":\"" + guest.getCode() + "\"}";
+
+        int viaNewPath = open.perform(MockMvcRequestBuilders.post("/api/v1/t/{slug}/e/{code}/tables/{n}/code", slug, event.getEventCode(), table.getDisplayNumber())
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getStatus();
+        int wrongEvent = open.perform(MockMvcRequestBuilders.post("/api/v1/t/{slug}/e/{code}/tables/{n}/code", slug, "AAAAAA", table.getDisplayNumber())
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getStatus();
+        int oldPath = open.perform(MockMvcRequestBuilders.post("/api/v1/t/{slug}/tables/{n}/code", slug, table.getDisplayNumber())
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getStatus();
+
+        assertEquals(201, viaNewPath);
+        assertEquals(404, wrongEvent);
+        assertTrue(oldPath == 401 || oldPath == 403 || oldPath == 404 || oldPath == 405, "old path answered " + oldPath);
+    }
+
     // ---- the demo
 
     @Test
@@ -679,6 +769,8 @@ class EventDayTest {
         Event demo = eventRepo.findByTenant_TenantIdOrderByStartsAtDesc(owambo.getTenantId()).get(0);
         assertEquals("Ada and Tobi, the wedding", demo.getName());
         assertEquals("The Garden Hall, Ikeja", demo.getVenue());
+        assertEquals(6, demo.getEventCode().length());
+        assertEquals(List.of(1, 2, 3), tableRepo.findByEvent_IdAndIsActiveTrueOrderByDisplayNumberAsc(demo.getId()).stream().map(RestaurantTable::getDisplayNumber).toList());
         assertEquals(EventStatus.ACTIVE, demo.getStatus());
         assertEquals(EventSeatingMode.ASSIGNED, demo.getSeatingMode());
         assertEquals(2, demo.getPlatesPerGuest());

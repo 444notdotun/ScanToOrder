@@ -45,17 +45,15 @@ public class EventTableService {
                 .toList();
     }
 
-    // Numbers are one sequence per business, because the QR link names a table by its number alone.
+    // Numbered from 1 inside the event: the QR link names the event by its code.
     @Transactional
     public EventTableResponse create(String tenantId, String eventId, CreateTableRequest request) {
         Event event = find(tenantId, eventId);
         if (event.getStatus() == EventStatus.ENDED) {
             throw new ConflictException("This event is over, so tables can't be added.");
         }
-        CreateRestaurantTableResponse created = tableService.createTable(tenantId, request);
+        CreateRestaurantTableResponse created = tableService.createTable(tenantId, request, event);
         RestaurantTable table = tableRepo.findByTableIdAndTenant_TenantId(created.getTableId(), tenantId).orElseThrow();
-        table.setEvent(event);
-        tableRepo.save(table);
         return new EventTableResponse(table.getTableId(), table.getTableNumber(), table.getDisplayNumber(), table.getCapacity());
     }
 

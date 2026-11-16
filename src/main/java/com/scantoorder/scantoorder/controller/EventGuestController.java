@@ -38,13 +38,14 @@ public class EventGuestController {
     private EventOrderService orderService;
 
     // Public: the guest has no seat yet. The code is what proves who they are.
-    @PostMapping("/t/{slug}/tables/{displayNumber}/code")
+    @PostMapping("/t/{slug}/e/{eventCode}/tables/{displayNumber}/code")
     public ResponseEntity<ApiResponse<SeatClaimedResponse>> redeem(
             @AuthenticationPrincipal Object principal,
             @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "Invalid identifier format") String slug,
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9]{6}$", message = "Invalid identifier format") String eventCode,
             @PathVariable @Min(1) int displayNumber,
             @Valid @RequestBody EventCodeRequest request) {
-        SeatClaimedResponse response = seatingService.redeem(slug, displayNumber, request.getCode(),
+        SeatClaimedResponse response = seatingService.redeem(slug, eventCode, displayNumber, request.getCode(),
                 principal instanceof CustomerPrincipal customer ? customer : null);
         if (response.getToken() == null) {
             return ResponseEntity.ok(new ApiResponse<>(response));

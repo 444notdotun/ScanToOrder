@@ -60,7 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/signup/banks").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/signup", "/api/v1/signup/verify-account").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/seats/claim").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/t/*/tables/*/code").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/t/*/e/*/tables/*/code").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/seats/*/join").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/payments/webhook").permitAll()

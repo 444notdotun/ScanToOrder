@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Data
-@Table(name = "events")
+@Table(name = "events", uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "event_code"}))
 public class Event {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -23,6 +23,9 @@ public class Event {
     @Column(nullable = false)
     private String name;
     private String venue;
+    // Short random code in the event's QR links; unique within the planner.
+    @Column(nullable = false, length = 6)
+    private String eventCode;
     @Column(nullable = false)
     private LocalDateTime startsAt;
     @Column(nullable = false)

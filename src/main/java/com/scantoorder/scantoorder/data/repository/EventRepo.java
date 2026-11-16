@@ -15,6 +15,10 @@ import java.util.Optional;
 
 @Repository
 public interface EventRepo extends JpaRepository<Event, String> {
+    Optional<Event> findByTenant_TenantIdAndEventCode(String tenantId, String eventCode);
+
+    boolean existsByTenant_TenantIdAndEventCode(String tenantId, String eventCode);
+
     Optional<Event> findByIdAndTenant_TenantId(String id, String tenantId);
 
     List<Event> findByTenant_TenantIdOrderByStartsAtDesc(String tenantId);

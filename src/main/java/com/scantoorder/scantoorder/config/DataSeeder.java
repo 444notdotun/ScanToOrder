@@ -137,6 +137,7 @@ public class DataSeeder implements CommandLineRunner {
         Event event = new Event();
         event.setTenant(planner);
         event.setName("Ada and Tobi, the wedding");
+        event.setEventCode(com.scantoorder.scantoorder.utils.CodeGenerator.generateJoinCode());
         event.setVenue("The Garden Hall, Ikeja");
         event.setStartsAt(java.time.LocalDate.now().atStartOfDay());
         event.setEndsAt(java.time.LocalDate.now().atTime(23, 59, 59));

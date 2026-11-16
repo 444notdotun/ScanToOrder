@@ -15,9 +15,14 @@ public interface TableRepo extends JpaRepository<RestaurantTable, String> {
 
     Optional<RestaurantTable> findByTableNumberAndTenant_TenantId(String tableNumber, String tenantId);
 
-    Optional<RestaurantTable> findByTenant_TenantIdAndDisplayNumber(String tenantId, Integer displayNumber);
+    // A restaurant's table by its number. Event tables are numbered inside their event and never match here.
+    Optional<RestaurantTable> findByTenant_TenantIdAndDisplayNumberAndEventIsNull(String tenantId, Integer displayNumber);
 
-    boolean existsByTenant_TenantIdAndDisplayNumber(String tenantId, Integer displayNumber);
+    Optional<RestaurantTable> findByEvent_IdAndDisplayNumber(String eventId, Integer displayNumber);
+
+    boolean existsByEvent_IdAndDisplayNumber(String eventId, Integer displayNumber);
+
+    boolean existsByTenant_TenantIdAndDisplayNumberAndEventIsNull(String tenantId, Integer displayNumber);
 
     List<RestaurantTable> findByEvent_IdAndIsActiveTrueOrderByDisplayNumberAsc(String eventId);
 
@@ -27,6 +32,9 @@ public interface TableRepo extends JpaRepository<RestaurantTable, String> {
     @Query("SELECT t FROM RestaurantTable t WHERE t.tenant.tenantId = :tenantId AND t.isActive = true AND t.event IS NULL ORDER BY t.displayNumber")
     List<RestaurantTable> findAllActive(@Param("tenantId") String tenantId);
 
-    @Query("SELECT t.displayNumber FROM RestaurantTable t WHERE t.tenant.tenantId = :tenantId AND t.displayNumber IS NOT NULL ORDER BY t.displayNumber")
+    @Query("SELECT t.displayNumber FROM RestaurantTable t WHERE t.tenant.tenantId = :tenantId AND t.event IS NULL AND t.displayNumber IS NOT NULL ORDER BY t.displayNumber")
     List<Integer> findUsedDisplayNumbers(@Param("tenantId") String tenantId);
+
+    @Query("SELECT t.displayNumber FROM RestaurantTable t WHERE t.event.id = :eventId AND t.displayNumber IS NOT NULL ORDER BY t.displayNumber")
+    List<Integer> findUsedDisplayNumbersInEvent(@Param("eventId") String eventId);
 }
