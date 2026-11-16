@@ -5,16 +5,15 @@ import com.scantoorder.scantoorder.data.repository.ItemRepo;
 import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
 import com.scantoorder.scantoorder.data.repository.OrderRepo;
 import com.scantoorder.scantoorder.data.repository.PaymentRepo;
+import com.scantoorder.scantoorder.data.repository.RefundRepo;
 import com.scantoorder.scantoorder.dtos.request.CreateOrderItemRequest;
 import com.scantoorder.scantoorder.dtos.request.SwapRequest;
 import com.scantoorder.scantoorder.dtos.respond.KitchenOrderResponse;
 import com.scantoorder.scantoorder.dtos.respond.ReceiptResponse;
-import com.scantoorder.scantoorder.dtos.respond.RefundQueueResponse;
 import com.scantoorder.scantoorder.exception.ConflictException;
 import com.scantoorder.scantoorder.exception.InvalidRequestException;
 import com.scantoorder.scantoorder.exception.OrderNotFoundException;
 import com.scantoorder.scantoorder.exception.OrderStatusException;
-import com.scantoorder.scantoorder.exception.RefundRejectedException;
 import com.scantoorder.scantoorder.service.Interface.OrderRecoveryService;
 import com.scantoorder.scantoorder.service.Interface.OrderService;
 import com.scantoorder.scantoorder.service.Interface.PaystackClient;
@@ -48,6 +47,8 @@ class OrderRecoveryTest {
     @Autowired
     private PaymentRepo paymentRepo;
     @Autowired
+    private RefundRepo refundRepo;
+    @Autowired
     private ItemRepo itemRepo;
     @Autowired
     private TenantTestSupport tenants;
@@ -63,6 +64,8 @@ class OrderRecoveryTest {
 
     @BeforeEach
     void setUp() {
+        // The seeder spoke to the mock while the app started; only what the test does counts.
+        clearInvocations(paystackClient);
         tenant = tenants.main();
         tenantId = tenant.getTenantId();
         jollof = support.item(tenant, "Jollof recovery", 2500, true);
@@ -105,7 +108,7 @@ class OrderRecoveryTest {
     @Test
     void testThatAnOrderInAnyOtherStateCannotBeMarkedUnavailable() {
         for (OrderStatus from : List.of(OrderStatus.PENDING_PAYMENT, OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.CANCELED,
-                OrderStatus.UNAVAILABLE, OrderStatus.REFUND_REQUESTED, OrderStatus.REFUNDED)) {
+                OrderStatus.UNAVAILABLE, OrderStatus.REFUND_DUE, OrderStatus.REFUNDED)) {
             Payment payment = paid(from);
             assertThrows(OrderStatusException.class, () -> recovery.markUnavailable(tenantId, id(payment), UnavailableReason.RAN_OUT), from.name());
             assertEquals(from, order(payment).getOrderStatus());
@@ -182,7 +185,7 @@ class OrderRecoveryTest {
     @Test
     void testThatOnlyAnUnavailableOrderCanBeSwapped() {
         for (OrderStatus from : List.of(OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.PREPARING, OrderStatus.READY,
-                OrderStatus.DELIVERED, OrderStatus.CANCELED, OrderStatus.REFUND_REQUESTED, OrderStatus.REFUNDED)) {
+                OrderStatus.DELIVERED, OrderStatus.CANCELED, OrderStatus.REFUND_DUE, OrderStatus.REFUNDED)) {
             Payment payment = paid(from);
             assertThrows(OrderStatusException.class, () -> recovery.swap(tenantId, id(payment), swapTo("Rice recovery", 1)), from.name());
         }
@@ -200,91 +203,45 @@ class OrderRecoveryTest {
     // ---- refund request
 
     @Test
-    void testThatAWaiterCanAskForARefundOnlyForAnUnavailableOrder() {
+    void testThatAWaiterCanAskForARefundOnAnUnavailableOrderAndTheRestaurantOwesTheGuestAllOfIt() {
         Payment payment = paid(OrderStatus.UNAVAILABLE);
-        assertEquals("REFUND_REQUESTED", recovery.requestRefund(tenantId, id(payment)).getStatus());
-        assertEquals(OrderStatus.REFUND_REQUESTED, order(payment).getOrderStatus());
 
-        for (OrderStatus from : List.of(OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.PREPARING, OrderStatus.READY,
-                OrderStatus.DELIVERED, OrderStatus.CANCELED, OrderStatus.REFUND_REQUESTED, OrderStatus.REFUNDED)) {
-            Payment other = paid(from);
-            assertThrows(OrderStatusException.class, () -> recovery.requestRefund(tenantId, id(other)), from.name());
-        }
-    }
+        assertEquals("REFUND_DUE", recovery.requestRefund(tenantId, id(payment)).getStatus());
 
-    @Test
-    void testThatTheRefundListShowsRequestsAndFailedRefundsOfThisBusinessOnly() {
-        Payment requested = paid(OrderStatus.UNAVAILABLE);
-        recovery.markUnavailable(tenantId, id(paid(OrderStatus.PAID)), UnavailableReason.RAN_OUT);
-        Order asked = order(requested);
-        asked.setUnavailableReason(UnavailableReason.EQUIPMENT_DOWN);
-        orderRepo.save(asked);
-        recovery.requestRefund(tenantId, id(requested));
-        Payment failed = support.payment(support.order(tenant, OrderStatus.REFUNDED, jollof, 1), PaymentStatus.REFUND_FAILED);
-        Tenant other = tenants.other();
-        Item theirs = support.item(other, "Their refund plate", 700, true);
-        support.paidOrder(other, OrderStatus.REFUND_REQUESTED, theirs);
-        support.payment(support.order(other, OrderStatus.REFUNDED, theirs, 1), PaymentStatus.REFUND_FAILED);
-
-        RefundQueueResponse queue = recovery.refundQueue(tenantId);
-
-        assertEquals(1, queue.getRequests().stream().filter(r -> r.getOrderId().equals(id(requested))).count());
-        assertEquals("EQUIPMENT_DOWN", queue.getRequests().stream().filter(r -> r.getOrderId().equals(id(requested))).findFirst().orElseThrow().getReason());
-        assertEquals(1, queue.getRequests().stream().filter(r -> r.getOrderId().equals(id(requested))).findFirst().orElseThrow().getAmount().compareTo(java.math.BigDecimal.ZERO));
-        assertTrue(queue.getFailedRefunds().stream().anyMatch(f -> f.getPaymentReference().equals(failed.getReference())));
-        assertTrue(queue.getRequests().stream().allMatch(r -> orderRepo.findOrderByOrderId(r.getOrderId()).getTenant().getTenantId().equals(tenantId)));
-        assertEquals(queue.getFailedRefunds().size(), queue.getFailedRefunds().stream().filter(f -> paymentRepo.findByReference(f.getPaymentReference()).orElseThrow().getTenant().getTenantId().equals(tenantId)).count());
-    }
-
-    // ---- approve
-
-    @Test
-    void testThatApprovingARefundAsksPaystackForTheFullAmountAndEndsTheOrderAsRefunded() {
-        Payment payment = paid(OrderStatus.REFUND_REQUESTED);
-
-        var response = recovery.approveRefund(tenantId, id(payment));
-
-        assertEquals("REFUNDED", response.getStatus());
-        assertEquals(OrderStatus.REFUNDED, order(payment).getOrderStatus());
-        Payment saved = paymentRepo.findByReference(payment.getReference()).orElseThrow();
-        assertEquals(PaymentStatus.REFUND_PENDING, saved.getStatus());
-        assertEquals("RF-" + payment.getReference() + "-1", saved.getRefundReference());
-        verify(paystackClient, times(1)).createRefund(payment.getReference(), "RF-" + payment.getReference() + "-1");
-    }
-
-    @Test
-    void testThatApprovingTwiceDoesNotRefundTwice() {
-        Payment payment = paid(OrderStatus.REFUND_REQUESTED);
-        recovery.approveRefund(tenantId, id(payment));
-        assertThrows(OrderStatusException.class, () -> recovery.approveRefund(tenantId, id(payment)));
-        verify(paystackClient, times(1)).createRefund(anyString(), anyString());
-    }
-
-    @Test
-    void testThatARefundCannotBeApprovedFromAnyOtherState() {
-        for (OrderStatus from : List.of(OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.PREPARING, OrderStatus.READY,
-                OrderStatus.DELIVERED, OrderStatus.CANCELED, OrderStatus.UNAVAILABLE)) {
-            Payment payment = paid(from);
-            assertThrows(OrderStatusException.class, () -> recovery.approveRefund(tenantId, id(payment)), from.name());
-            assertEquals(from, order(payment).getOrderStatus());
-        }
+        assertEquals(OrderStatus.REFUND_DUE, order(payment).getOrderStatus());
+        Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
+        assertEquals(RefundReason.KITCHEN_UNAVAILABLE, refund.getReason());
+        assertEquals(RefundStatus.DUE, refund.getStatus());
+        assertEquals(250000, refund.getAmountKobo());
+        assertEquals(tenantId, refund.getTenant().getTenantId());
+        assertEquals(PaymentStatus.SUCCESSFUL, paymentRepo.findByReference(payment.getReference()).orElseThrow().getStatus());
         verifyNoInteractions(paystackClient);
     }
 
     @Test
-    void testThatAnOrderWithNoPaymentCannotBeRefunded() {
-        Order unpaid = support.order(tenant, OrderStatus.REFUND_REQUESTED, jollof, 1);
-        assertThrows(OrderStatusException.class, () -> recovery.approveRefund(tenantId, unpaid.getOrderId()));
+    void testThatARefundCanOnlyBeAskedForOnAnUnavailableOrder() {
+        for (OrderStatus from : List.of(OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.PREPARING, OrderStatus.READY,
+                OrderStatus.DELIVERED, OrderStatus.CANCELED, OrderStatus.REFUND_DUE, OrderStatus.REFUNDED)) {
+            Payment other = paid(from);
+            assertThrows(OrderStatusException.class, () -> recovery.requestRefund(tenantId, id(other)), from.name());
+            assertTrue(refundRepo.findByPayment_Id(other.getId()).isEmpty());
+        }
     }
 
     @Test
-    void testThatWhenPaystackCannotStartTheRefundNothingChanges() {
-        Payment payment = paid(OrderStatus.REFUND_REQUESTED);
-        doThrow(new RefundRejectedException("Paystack could not start the refund")).when(paystackClient).createRefund(anyString(), anyString());
+    void testThatAskingTwiceDoesNotMakeTwoRefunds() {
+        Payment payment = paid(OrderStatus.UNAVAILABLE);
+        recovery.requestRefund(tenantId, id(payment));
+        assertThrows(OrderStatusException.class, () -> recovery.requestRefund(tenantId, id(payment)));
+        assertEquals(1, refundRepo.findByTenant_TenantIdOrderByCreatedAtDesc(tenantId).stream()
+                .filter(r -> r.getPayment().getId().equals(payment.getId())).count());
+    }
 
-        assertThrows(RefundRejectedException.class, () -> recovery.approveRefund(tenantId, id(payment)));
-
-        assertEquals(PaymentStatus.SUCCESSFUL, paymentRepo.findByReference(payment.getReference()).orElseThrow().getStatus());
+    @Test
+    void testThatAnUnavailableOrderWithNoSuccessfulPaymentCannotBeRefunded() {
+        Order unpaid = support.order(tenant, OrderStatus.UNAVAILABLE, jollof, 1);
+        assertThrows(OrderStatusException.class, () -> recovery.requestRefund(tenantId, unpaid.getOrderId()));
+        assertEquals(OrderStatus.UNAVAILABLE, orderRepo.findOrderByOrderId(unpaid.getOrderId()).getOrderStatus());
     }
 
     @Test
@@ -297,23 +254,37 @@ class OrderRecoveryTest {
         assertThrows(OrderNotFoundException.class, () -> recovery.markUnavailable(tenantId, theirOrder, UnavailableReason.RAN_OUT));
         assertThrows(OrderNotFoundException.class, () -> recovery.swap(tenantId, theirOrder, swapTo("Rice recovery", 1)));
         assertThrows(OrderNotFoundException.class, () -> recovery.requestRefund(tenantId, theirOrder));
-        assertThrows(OrderNotFoundException.class, () -> recovery.approveRefund(tenantId, theirOrder));
-        assertThrows(OrderNotFoundException.class, () -> recovery.approveRefund(tenantId, "no-such-order"));
+        assertThrows(OrderNotFoundException.class, () -> recovery.requestRefund(tenantId, "no-such-order"));
         assertEquals(OrderStatus.UNAVAILABLE, order(payment).getOrderStatus());
     }
 
     // ---- receipt and lists
 
     @Test
-    void testThatTheReceiptShowsRefundedForARefundedOrderEvenWhileThePaymentIsStillPending() {
-        Payment payment = paid(OrderStatus.REFUND_REQUESTED);
-        recovery.approveRefund(tenantId, id(payment));
+    void testThatTheReceiptSaysARefundIsDueAndLaterThatTheRestaurantSentIt() {
+        Payment payment = paid(OrderStatus.UNAVAILABLE);
+        recovery.requestRefund(tenantId, id(payment));
 
+        ReceiptResponse due = receiptService.getReceiptData(tenantId, payment.getReference());
+        assertEquals("Refund of ₦2,500.00 due from Test Place", due.getRefundMessage());
+        assertEquals(PaymentStatus.SUCCESSFUL, due.getStatus());
+        assertEquals(2500, due.getTotalPaid().intValue());
+        Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
+        assertTrue(due.getRefundLink().endsWith("/refund/" + refund.getId() + "?t=" + refund.getGuestToken()));
+
+        refund.setStatus(RefundStatus.SETTLED);
+        refund.setSettledAt(java.time.LocalDateTime.of(2026, 3, 9, 14, 0));
+        refundRepo.save(refund);
+        ReceiptResponse sent = receiptService.getReceiptData(tenantId, payment.getReference());
+        assertEquals("Refund of ₦2,500.00 sent by Test Place on 2026-03-09", sent.getRefundMessage());
+    }
+
+    @Test
+    void testThatAReceiptWithNoRefundSaysNothingAboutOne() {
+        Payment payment = paid(OrderStatus.PAID);
         ReceiptResponse receipt = receiptService.getReceiptData(tenantId, payment.getReference());
-
-        assertEquals(PaymentStatus.REFUNDED, receipt.getStatus());
-        assertEquals(2500, receipt.getTotalPaid().intValue());
-        assertTrue(new String(receiptService.generateReceiptCsv(tenantId, payment.getReference())).contains("REFUNDED"));
+        assertNull(receipt.getRefundMessage());
+        assertNull(receipt.getRefundLink());
     }
 
     @Test
@@ -337,7 +308,7 @@ class OrderRecoveryTest {
 
         assertTrue(orderService.getKitchenOrders(tenantId, "READY").stream().anyMatch(o -> o.getOrderId().equals(id(payment)) && o.getStatus().equals("UNAVAILABLE")));
         recovery.requestRefund(tenantId, id(payment));
-        assertTrue(orderService.getKitchenOrders(tenantId, "READY").stream().anyMatch(o -> o.getOrderId().equals(id(payment)) && o.getStatus().equals("REFUND_REQUESTED")));
+        assertTrue(orderService.getKitchenOrders(tenantId, "READY").stream().anyMatch(o -> o.getOrderId().equals(id(payment)) && o.getStatus().equals("REFUND_DUE")));
         assertTrue(orderService.getKitchenOrders(tenantId, null).stream().noneMatch(o -> o.getOrderId().equals(id(payment))));
     }
 }

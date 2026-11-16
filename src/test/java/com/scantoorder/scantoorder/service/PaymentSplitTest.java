@@ -51,6 +51,8 @@ class PaymentSplitTest {
 
     @BeforeEach
     void setUp() {
+        // The seeder spoke to the mock while the app started; only what the test does counts.
+        clearInvocations(paystackClient);
         tenant = tenants.main();
         plate = support.item(tenant, "Split plate", 1500, true);
         when(paystackClient.initialize(anyString(), anyLong(), anyString(), any()))

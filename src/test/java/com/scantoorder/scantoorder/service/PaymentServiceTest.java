@@ -42,6 +42,8 @@ class PaymentServiceTest {
 
     @Autowired
     private PaymentRepo paymentRepo;
+    @Autowired
+    private com.scantoorder.scantoorder.data.repository.RefundRepo refundRepo;
 
     @Autowired
     private OrderRepo orderRepo;
@@ -379,7 +381,7 @@ class PaymentServiceTest {
 
     @Transactional
     @Test
-    void testVerifyAndSyncPayment_PaymentThatLandsAfterTheGuestLeftIsRefundedAndTheOrderStaysCancelled() throws IOException, InterruptedException {
+    void testVerifyAndSyncPayment_PaymentThatLandsAfterTheGuestLeftIsRecordedAsARefundDueAndTheOrderStaysCancelled() throws IOException, InterruptedException {
         Order order = createTestOrder(BigDecimal.valueOf(2500.00));
         Payment payment = new Payment();
         payment.setOrder(order);
@@ -400,10 +402,12 @@ class PaymentServiceTest {
 
         PaymentStatusResponse response = paymentService.verifyAndSyncPayment(tenants.mainId(), reference);
 
-        // The money is given back at once, and the order never reaches the kitchen.
-        assertEquals(PaymentStatus.REFUND_PENDING, response.getPaymentStatus());
+        // The payment is recorded, the order never reaches the kitchen, and the restaurant owes the guest the money.
+        assertEquals(PaymentStatus.SUCCESSFUL, response.getPaymentStatus());
         assertEquals(OrderStatus.CANCELED, response.getOrderStatus());
-        assertEquals(PaymentStatus.REFUND_PENDING, paymentRepo.findByReference(reference).orElseThrow().getStatus());
+        assertEquals(PaymentStatus.SUCCESSFUL, paymentRepo.findByReference(reference).orElseThrow().getStatus());
+        assertEquals(com.scantoorder.scantoorder.data.model.RefundReason.LATE_PAYMENT,
+                refundRepo.findByPayment_Id(paymentRepo.findByReference(reference).orElseThrow().getId()).orElseThrow().getReason());
         assertEquals(OrderStatus.CANCELED, orderRepo.findOrderByOrderId(order.getOrderId()).getOrderStatus());
     }
 }

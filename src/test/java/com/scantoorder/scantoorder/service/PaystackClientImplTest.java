@@ -3,7 +3,6 @@ package com.scantoorder.scantoorder.service;
 import com.scantoorder.scantoorder.dtos.respond.PaystackSplit;
 import com.scantoorder.scantoorder.exception.PayoutAccountRejectedException;
 import com.scantoorder.scantoorder.exception.PaymentGatewayUnavailableException;
-import com.scantoorder.scantoorder.exception.RefundRejectedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -113,28 +112,40 @@ class PaystackClientImplTest {
     }
 
     @Test
-    void testThatARefundIsAskedForByTheTransactionWithOurOwnReference() throws Exception {
-        answer(200, "{\"status\":true,\"message\":\"Refund has been queued for processing\"}");
-        client.createRefund("PAYMENT-ABC12345", "RF-PAYMENT-ABC12345-1");
+    void testThatAPayoutChangeIsSentToTheSubaccountWithTheNewBankAndNumber() throws Exception {
+        answer(200, "{\"status\":true,\"message\":\"Subaccount updated\"}");
+
+        client.updateSubaccount("ACCT_abc", "057", "0000000000");
+
         HttpRequest request = lastRequest();
-        assertTrue(request.uri().toString().endsWith("/refund"));
+        assertEquals("PUT", request.method());
+        assertTrue(request.uri().toString().endsWith("/subaccount/ACCT_abc"));
         String body = bodyOf(request);
-        assertTrue(body.contains("\"transaction\":\"PAYMENT-ABC12345\""));
-        assertTrue(body.contains("\"reference\":\"RF-PAYMENT-ABC12345-1\""));
-        assertFalse(body.contains("amount"));
+        assertTrue(body.contains("\"settlement_bank\":\"057\""));
+        assertTrue(body.contains("\"account_number\":\"0000000000\""));
     }
 
     @Test
-    void testThatARefundThatAlreadyExistsCountsAsTheSameRefund() throws Exception {
-        answer(409, "{\"status\":false,\"message\":\"A refund with reference RF-1 already exists\"}");
-        assertDoesNotThrow(() -> client.createRefund("PAYMENT-ABC12345", "RF-PAYMENT-ABC12345-1"));
+    void testThatARefusedPayoutChangeNeverCarriesTheAccountNumberAndAnOutageIsNotMistakenForARefusal() throws Exception {
+        answer(400, "{\"status\":false,\"message\":\"Account details are invalid\"}");
+        PayoutAccountRejectedException refused = assertThrows(PayoutAccountRejectedException.class,
+                () -> client.updateSubaccount("ACCT_abc", "057", "0123456789"));
+        assertEquals(PaystackClientImpl.PAYOUT_UPDATE_REJECTED, refused.getMessage());
+        assertFalse(refused.getMessage().contains("0123456789"));
+        answer(503, "{}");
+        assertThrows(PaymentGatewayUnavailableException.class, () -> client.updateSubaccount("ACCT_abc", "057", "0123456789"));
     }
 
     @Test
-    void testThatARefusedRefundIsReportedAndAnOutageIsNot() throws Exception {
-        answer(400, "{\"status\":false,\"message\":\"Transaction not found\"}");
-        assertThrows(RefundRejectedException.class, () -> client.createRefund("PAYMENT-NOPE0000", "RF-PAYMENT-NOPE0000-1"));
-        answer(502, "{}");
-        assertThrows(PaymentGatewayUnavailableException.class, () -> client.createRefund("PAYMENT-ABC12345", "RF-PAYMENT-ABC12345-1"));
+    void testThatTheSubaccountListGivesCodesAndBusinessNames() throws Exception {
+        answer(200, "{\"status\":true,\"data\":[{\"subaccount_code\":\"ACCT_one\",\"business_name\":\"The Corner Table (demo)\"},"
+                + "{\"subaccount_code\":\"ACCT_two\",\"business_name\":\"Somewhere Else\"}]}");
+
+        var found = client.listSubaccounts();
+
+        assertEquals(2, found.size());
+        assertEquals("ACCT_one", found.get(0).code());
+        assertEquals("The Corner Table (demo)", found.get(0).businessName());
+        assertTrue(lastRequest().uri().toString().contains("/subaccount?"));
     }
 }

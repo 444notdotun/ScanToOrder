@@ -89,8 +89,7 @@ class PaymentEndpointsTest {
         return List.of(
                 new Endpoint("unavailable", HttpMethod.POST, "/api/v1/orders/{id}/unavailable", "{\"reason\":\"RAN_OUT\"}", Set.CHEF_MANAGER, OrderStatus.PAID, OrderStatus.DELIVERED),
                 new Endpoint("swap", HttpMethod.POST, "/api/v1/orders/{id}/swap", swap, Set.WAITER_MANAGER, OrderStatus.UNAVAILABLE, OrderStatus.PAID),
-                new Endpoint("refund request", HttpMethod.POST, "/api/v1/orders/{id}/refund-request", null, Set.WAITER_MANAGER, OrderStatus.UNAVAILABLE, OrderStatus.PAID),
-                new Endpoint("approve refund", HttpMethod.POST, "/api/v1/orders/{id}/refund", null, Set.MANAGER, OrderStatus.REFUND_REQUESTED, OrderStatus.PAID));
+                new Endpoint("refund request", HttpMethod.POST, "/api/v1/orders/{id}/refund-request", null, Set.WAITER_MANAGER, OrderStatus.UNAVAILABLE, OrderStatus.PAID));
     }
 
     @Test
@@ -107,7 +106,6 @@ class PaymentEndpointsTest {
                     assertEquals(400, call(endpoint, wrongStateId), endpoint.label() + " wrong state as " + role);
                 } else {
                     assertEquals(403, call(endpoint, orderId), endpoint.label() + " as " + role);
-                    assertNotEquals(endpoint.rightState(), OrderStatus.REFUNDED);
                     assertEquals(endpoint.rightState(), orderRepo.findOrderByOrderId(orderId).getOrderStatus(), endpoint.label() + " must not change as " + role);
                 }
             }
@@ -131,27 +129,5 @@ class PaymentEndpointsTest {
             }
             assertEquals(endpoint.rightState(), orderRepo.findOrderByOrderId(theirOrder).getOrderStatus());
         }
-    }
-
-    @Test
-    void testThatOnlyTheManagerSeesTheRefundList() throws Exception {
-        Endpoint list = new Endpoint("refund list", HttpMethod.GET, "/api/v1/refunds", null, Set.MANAGER, OrderStatus.PAID, OrderStatus.PAID);
-        for (String role : List.of("CHEF", "WAITER", "CUSTOMER", "PLATFORM_ADMIN")) {
-            signIn(role, tenant);
-            assertEquals(403, call(list, "x"), role);
-        }
-        signIn("MANAGER", tenant);
-        assertEquals(200, call(list, "x"));
-    }
-
-    @Test
-    void testThatTheRefundListNeverShowsAnotherBusinessesOrders() throws Exception {
-        Tenant other = tenants.other();
-        Payment theirs = support.paidOrder(other, OrderStatus.REFUND_REQUESTED, support.item(other, "Their list plate", 800, true));
-        Payment mine = support.paidOrder(tenant, OrderStatus.REFUND_REQUESTED, plate);
-        signIn("MANAGER", tenant);
-        String body = mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/refunds")).andReturn().getResponse().getContentAsString();
-        assertTrue(body.contains(mine.getOrder().getOrderId()));
-        assertFalse(body.contains(theirs.getOrder().getOrderId()));
     }
 }

@@ -3,12 +3,10 @@ package com.scantoorder.scantoorder.service;
 import com.scantoorder.scantoorder.data.model.*;
 import com.scantoorder.scantoorder.data.repository.OrderRepo;
 import com.scantoorder.scantoorder.data.repository.PaymentRepo;
+import com.scantoorder.scantoorder.data.repository.RefundRepo;
 import com.scantoorder.scantoorder.dtos.respond.PaymentStatusResponse;
 import com.scantoorder.scantoorder.dtos.respond.PaystackVerifyResponseData;
-import com.scantoorder.scantoorder.dtos.respond.RefundQueueResponse;
 import com.scantoorder.scantoorder.exception.InvalidWebhookSignatureException;
-import com.scantoorder.scantoorder.exception.RefundRejectedException;
-import com.scantoorder.scantoorder.service.Interface.OrderRecoveryService;
 import com.scantoorder.scantoorder.service.Interface.PaymentService;
 import com.scantoorder.scantoorder.service.Interface.PaystackClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +33,7 @@ class PaymentWebhookTest {
     @Autowired
     private PaymentService paymentService;
     @Autowired
-    private OrderRecoveryService recovery;
+    private RefundRepo refundRepo;
     @Autowired
     private PaymentRepo paymentRepo;
     @Autowired
@@ -54,6 +52,8 @@ class PaymentWebhookTest {
 
     @BeforeEach
     void setUp() {
+        // The seeder spoke to the mock while the app started; only what the test does counts.
+        clearInvocations(paystackClient);
         tenant = tenants.main();
         plate = support.item(tenant, "Webhook plate", 2000, true);
     }
@@ -61,10 +61,6 @@ class PaymentWebhookTest {
     private String charge(String event, Payment payment) {
         long kobo = payment.getAmount().movePointRight(2).longValue();
         return "{\"event\":\"" + event + "\",\"data\":{\"reference\":\"" + payment.getReference() + "\",\"amount\":" + kobo + "}}";
-    }
-
-    private String refund(String event, Payment payment) {
-        return "{\"event\":\"" + event + "\",\"data\":{\"transaction_reference\":\"" + payment.getReference() + "\",\"status\":\"x\",\"amount\":\"200000\"}}";
     }
 
     private Payment pending() {
@@ -85,7 +81,7 @@ class PaymentWebhookTest {
         webhooks.process(charge("charge.success", payment));
         assertEquals(PaymentStatus.SUCCESSFUL, reload(payment).getStatus());
         assertEquals(OrderStatus.PAID, orderStatus(payment));
-        verify(paystackClient, never()).createRefund(anyString(), anyString());
+        assertTrue(refundRepo.findByPayment_Id(payment.getId()).isEmpty());
     }
 
     @Test
@@ -101,7 +97,7 @@ class PaymentWebhookTest {
 
         assertEquals(PaymentStatus.SUCCESSFUL, reload(payment).getStatus());
         assertEquals(OrderStatus.PREPARING, orderStatus(payment));
-        verify(paystackClient, never()).createRefund(anyString(), anyString());
+        assertTrue(refundRepo.findByPayment_Id(payment.getId()).isEmpty());
     }
 
     @Test
@@ -155,66 +151,36 @@ class PaymentWebhookTest {
     }
 
     @Test
-    void testThatARefundProcessedNoticeFinishesAPendingRefundOnce() {
-        Payment payment = support.payment(support.order(tenant, OrderStatus.REFUNDED, plate, 1), PaymentStatus.REFUND_PENDING);
-        webhooks.process(refund("refund.processed", payment));
-        assertEquals(PaymentStatus.REFUNDED, reload(payment).getStatus());
-        webhooks.process(refund("refund.processed", payment));
-        webhooks.process(refund("refund.failed", payment));
-        assertEquals(PaymentStatus.REFUNDED, reload(payment).getStatus());
-    }
-
-    @Test
-    void testThatARefundFailedNoticeShowsTheRefundToTheManagerAndItCanBeRetried() {
-        Payment payment = support.payment(support.order(tenant, OrderStatus.REFUNDED, plate, 1), PaymentStatus.REFUND_PENDING);
-        payment.setRefundAttempts(1);
-        payment.setRefundReference("RF-" + payment.getReference() + "-1");
-        paymentRepo.save(payment);
-
-        webhooks.process(refund("refund.failed", payment));
-
-        assertEquals(PaymentStatus.REFUND_FAILED, reload(payment).getStatus());
-        RefundQueueResponse queue = recovery.refundQueue(tenant.getTenantId());
-        assertTrue(queue.getFailedRefunds().stream().anyMatch(f -> f.getPaymentReference().equals(payment.getReference())));
-
-        recovery.approveRefund(tenant.getTenantId(), payment.getOrder().getOrderId());
-
-        verify(paystackClient).createRefund(payment.getReference(), "RF-" + payment.getReference() + "-2");
-        assertEquals(PaymentStatus.REFUND_PENDING, reload(payment).getStatus());
-        assertEquals(OrderStatus.REFUNDED, orderStatus(payment));
-        assertTrue(recovery.refundQueue(tenant.getTenantId()).getFailedRefunds().stream().noneMatch(f -> f.getPaymentReference().equals(payment.getReference())));
-    }
-
-    @Test
-    void testThatARefundNoticeForAPaymentThatIsNotBeingRefundedIsIgnored() {
-        Payment payment = support.payment(support.order(tenant, OrderStatus.PAID, plate, 1), PaymentStatus.SUCCESSFUL);
-        webhooks.process(refund("refund.processed", payment));
-        webhooks.process(refund("refund.failed", payment));
-        assertEquals(PaymentStatus.SUCCESSFUL, reload(payment).getStatus());
-    }
-
-    @Test
-    void testThatARefundThatNeedsTheCustomersBankDetailsStaysPending() {
-        Payment payment = support.payment(support.order(tenant, OrderStatus.REFUNDED, plate, 1), PaymentStatus.REFUND_PENDING);
-        webhooks.process(refund("refund.needs-attention", payment));
-        assertEquals(PaymentStatus.REFUND_PENDING, reload(payment).getStatus());
-    }
-
-    @Test
-    void testThatAPaymentThatLandsAfterTheGuestLeftIsRefundedInFullAtOnce() {
+    void testThatAPaymentThatLandsAfterTheGuestLeftBecomesALatePaymentRefundAndTheOrderStaysCancelled() {
         Payment payment = support.payment(support.order(tenant, OrderStatus.CANCELED, plate, 1), PaymentStatus.PENDING);
 
         webhooks.process(charge("charge.success", payment));
 
-        Payment saved = reload(payment);
-        assertEquals(PaymentStatus.REFUND_PENDING, saved.getStatus());
-        assertEquals("RF-" + payment.getReference() + "-1", saved.getRefundReference());
+        assertEquals(PaymentStatus.SUCCESSFUL, reload(payment).getStatus());
         assertEquals(OrderStatus.CANCELED, orderStatus(payment));
-        verify(paystackClient, times(1)).createRefund(payment.getReference(), "RF-" + payment.getReference() + "-1");
+        Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
+        assertEquals(RefundReason.LATE_PAYMENT, refund.getReason());
+        assertEquals(RefundStatus.DUE, refund.getStatus());
+        assertEquals(200000, refund.getAmountKobo());
+        assertEquals(tenant.getTenantId(), refund.getTenant().getTenantId());
     }
 
     @Test
-    void testThatALateRefundIsNotStartedTwiceByDuplicateNotices() {
+    void testThatASecondSuccessfulPaymentForAnOrderAlreadyPaidBecomesADoublePaymentRefund() {
+        Order order = support.order(tenant, OrderStatus.PREPARING, plate, 1);
+        Payment first = support.payment(order, PaymentStatus.SUCCESSFUL);
+        Payment second = support.payment(order, PaymentStatus.PENDING);
+
+        webhooks.process(charge("charge.success", second));
+
+        assertEquals(OrderStatus.PREPARING, orderStatus(second));
+        assertEquals(PaymentStatus.SUCCESSFUL, reload(second).getStatus());
+        assertEquals(RefundReason.DOUBLE_PAYMENT, refundRepo.findByPayment_Id(second.getId()).orElseThrow().getReason());
+        assertTrue(refundRepo.findByPayment_Id(first.getId()).isEmpty());
+    }
+
+    @Test
+    void testThatALateRefundIsNotCreatedTwiceByDuplicateNotices() {
         Payment payment = support.payment(support.order(tenant, OrderStatus.CANCELED, plate, 1), PaymentStatus.PENDING);
         webhooks.process(charge("charge.success", payment));
         webhooks.process(charge("charge.success", payment));
@@ -222,38 +188,32 @@ class PaymentWebhookTest {
                 .thenReturn(new PaystackVerifyResponseData("success", payment.getAmount().movePointRight(2).longValue(), payment.getReference()));
         paymentService.verifyAndSyncPayment(tenant.getTenantId(), payment.getReference());
 
-        verify(paystackClient, times(1)).createRefund(anyString(), anyString());
+        assertEquals(1, refundRepo.findByTenant_TenantIdOrderByCreatedAtDesc(tenant.getTenantId()).stream()
+                .filter(r -> r.getPayment().getId().equals(payment.getId())).count());
         assertEquals(OrderStatus.CANCELED, orderStatus(payment));
     }
 
     @Test
-    void testThatALateRefundPaystackCannotStartShowsUpForTheManagerToRetry() {
-        doThrow(new RefundRejectedException("Paystack could not start the refund")).when(paystackClient).createRefund(anyString(), anyString());
-        Payment payment = support.payment(support.order(tenant, OrderStatus.CANCELED, plate, 1), PaymentStatus.PENDING);
-
-        webhooks.process(charge("charge.success", payment));
-
-        assertEquals(PaymentStatus.REFUND_FAILED, reload(payment).getStatus());
-        assertEquals(OrderStatus.CANCELED, orderStatus(payment));
-        assertTrue(recovery.refundQueue(tenant.getTenantId()).getFailedRefunds().stream().anyMatch(f -> f.getPaymentReference().equals(payment.getReference())));
-
-        doNothing().when(paystackClient).createRefund(anyString(), anyString());
-        recovery.approveRefund(tenant.getTenantId(), payment.getOrder().getOrderId());
-        assertEquals(PaymentStatus.REFUND_PENDING, reload(payment).getStatus());
-        assertEquals(OrderStatus.CANCELED, orderStatus(payment));
-    }
-
-    @Test
-    void testThatALatePaymentFoundByTheVerifyPathIsAlsoRefundedAtOnce() {
+    void testThatALatePaymentFoundByTheVerifyPathAlsoBecomesARefund() {
         Payment payment = support.payment(support.order(tenant, OrderStatus.CANCELED, plate, 1), PaymentStatus.PENDING);
         when(paystackClient.verify(payment.getReference()))
                 .thenReturn(new PaystackVerifyResponseData("success", payment.getAmount().movePointRight(2).longValue(), payment.getReference()));
 
         PaymentStatusResponse response = paymentService.verifyAndSyncPayment(tenant.getTenantId(), payment.getReference());
 
-        assertEquals(PaymentStatus.REFUND_PENDING, response.getPaymentStatus());
+        assertEquals(PaymentStatus.SUCCESSFUL, response.getPaymentStatus());
         assertEquals(OrderStatus.CANCELED, response.getOrderStatus());
-        verify(paystackClient).createRefund(payment.getReference(), "RF-" + payment.getReference() + "-1");
+        assertEquals(RefundReason.LATE_PAYMENT, refundRepo.findByPayment_Id(payment.getId()).orElseThrow().getReason());
+    }
+
+    @Test
+    void testThatNoRefundNoticeFromPaystackIsActedOn() {
+        Payment payment = support.payment(support.order(tenant, OrderStatus.PAID, plate, 1), PaymentStatus.SUCCESSFUL);
+        webhooks.process("{\"event\":\"refund.processed\",\"data\":{\"transaction_reference\":\"" + payment.getReference() + "\"}}");
+        webhooks.process("{\"event\":\"refund.failed\",\"data\":{\"transaction_reference\":\"" + payment.getReference() + "\"}}");
+        assertEquals(PaymentStatus.SUCCESSFUL, reload(payment).getStatus());
+        assertEquals(OrderStatus.PAID, orderStatus(payment));
+        verifyNoInteractions(paystackClient);
     }
 
     private String sign(String body) throws Exception {
