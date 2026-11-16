@@ -2,8 +2,11 @@ import Link from 'next/link';
 import Ground from '@/components/plately/Ground';
 import { Brand, Watermark } from '@/components/plately/Logo';
 import { Handwriting } from '@/components/plately/ui';
+import type { Metadata } from 'next';
 
 // Wrong address: say so kindly and point to the way back.
+export const metadata: Metadata = { title: 'Not found' };
+
 export default function NotFound() {
   return (
     <Ground>
