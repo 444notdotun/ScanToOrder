@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConnection } from '@/components/plately/Connection';
+import OrderTracker from '@/components/guest/OrderTracker';
 import { Brand, Loader } from '@/components/plately/Logo';
 import { Button, Card, Eyebrow, FailureCard, Sheet } from '@/components/plately/ui';
 import { forgetTable, useMyEvent, useSession } from '@/lib/guest';
@@ -93,11 +94,8 @@ export default function PlatesPage() {
           </p>
         </header>
 
-        {event.platePending ? (
-          <div role="status" className="rounded-2xl bg-mustard/20 p-3.5 text-[15px] font-bold text-mustard">
-            Your {event.platePending} is on its way. Order again once it arrives.
-          </div>
-        ) : null}
+        {event.platePending ? <OrderTracker /> : null}
+        {event.platePending ? <p className="text-[15px] font-bold text-mustard">Order again once it arrives.</p> : null}
         {sent && event.platePending ? (
           <div role="status" className="animate-pop rounded-2xl bg-good p-3.5 text-[15px] font-bold text-white">
             {sent}

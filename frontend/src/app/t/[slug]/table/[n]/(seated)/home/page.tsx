@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import OrderTracker from '@/components/guest/OrderTracker';
 import { Brand } from '@/components/plately/Logo';
 import { useConnection } from '@/components/plately/Connection';
 import { Button, Card, FailureCard, Handwriting, Sheet, Switch } from '@/components/plately/ui';
@@ -89,7 +90,7 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-52 pt-6">
+      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-6 pt-6">
         <header className="flex flex-col gap-1.5">
           <Brand size={22} />
           <div className="mt-1 text-[13px] font-bold uppercase tracking-[0.12em] text-soft">
@@ -101,6 +102,8 @@ export default function HomePage() {
         </header>
 
         {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
+
+        <OrderTracker />
 
         <Card>
           <h2 className="mb-3 font-heading text-[22px] font-normal text-bottle">Your table</h2>
@@ -232,14 +235,6 @@ export default function HomePage() {
           </Button>
         </div>
       </main>
-
-      <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bottle via-bottle/95 to-transparent px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom)+var(--corner-clear))] pt-8">
-        <div className="mx-auto max-w-md md:max-w-xl">
-          <Link href={`/t/${slug}/table/${n}/order`} className="flex min-h-[56px] w-full items-center justify-center rounded-full bg-tomato text-[17px] font-bold text-white">
-            Order food
-          </Link>
-        </div>
-      </div>
 
       <Sheet open={leaving} onClose={() => setLeaving(false)} label="Leave the table">
         <h2 className="font-heading text-[28px] font-normal text-bottle">Heading off?</h2>

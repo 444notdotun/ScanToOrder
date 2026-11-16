@@ -103,6 +103,8 @@ export interface MenuItem {
   itemName: string;
   itemDescription?: string;
   itemPrice: string;
+  imageUrl?: string;
+  readyInMinutes?: number;
 }
 
 export interface MenuSection {
@@ -124,8 +126,10 @@ export const guestApi = {
         itemName: item.itemName ?? item.ItemName,
         itemDescription: item.itemDescription ?? item.ItemDescription,
         itemPrice: item.itemPrice ?? item.ItemPrice,
+        imageUrl: item.imageUrl || undefined,
+        readyInMinutes: item.readyInMinutes ? Number(item.readyInMinutes) : undefined,
       })),
-    }));
+    })).filter((section) => section.itemResponse.length > 0);
   },
 };
 
