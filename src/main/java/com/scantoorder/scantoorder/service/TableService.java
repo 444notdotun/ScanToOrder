@@ -10,6 +10,7 @@ import com.scantoorder.scantoorder.exception.ConflictException;
 import com.scantoorder.scantoorder.exception.InvalidRequestException;
 import com.scantoorder.scantoorder.exception.ResourceNotFoundException;
 import com.scantoorder.scantoorder.exception.TableNotFoundException;
+import com.scantoorder.scantoorder.data.repository.TenantRepo;
 import com.scantoorder.scantoorder.service.Interface.MenuService;
 import com.scantoorder.scantoorder.service.Interface.RestaurantTableService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,36 +42,41 @@ public class TableService implements RestaurantTableService {
   @Autowired
   private TableRepo tableRepo;
   @Autowired
+  private TenantRepo tenantRepo;
+  @Autowired
   private SessionSeatRepo sessionSeatRepo;
   @Autowired
   private SeatLedger seatLedger;
+  @Autowired
+  private TenantAccess tenantAccess;
   @org.springframework.beans.factory.annotation.Value("${app.frontend.url:http://localhost:3000}")
   private String frontendUrl;
-    @Autowired
-    private MenuService menuService;
 
     private static final String TABLE_NOT_AVAILABLE = "This table is not available";
 
     @Override
     @Transactional
-    public CreateRestaurantTableResponse createTable(int seatCapacity) {
-        return createTable(new CreateTableRequest(seatCapacity, null));
+    public CreateRestaurantTableResponse createTable(String tenantId, int seatCapacity) {
+        return createTable(tenantId, new CreateTableRequest(seatCapacity, null));
     }
 
     @Override
     @Transactional
-    public CreateRestaurantTableResponse createTable(CreateTableRequest request) {
+    public CreateRestaurantTableResponse createTable(String tenantId, CreateTableRequest request) {
         int seatCapacity = request.getSeatCapacity();
         if (seatCapacity < CreateTableRequest.MIN_CAPACITY || seatCapacity > CreateTableRequest.MAX_CAPACITY) {
             throw new InvalidRequestException("A table needs between " + CreateTableRequest.MIN_CAPACITY
                     + " and " + CreateTableRequest.MAX_CAPACITY + " seats");
         }
+        Tenant tenant = tenantRepo.getReferenceById(tenantId);
         RestaurantTable restaurantTable = new RestaurantTable();
+        restaurantTable.setTenant(tenant);
         restaurantTable.setCapacity(seatCapacity);
-        restaurantTable.setDisplayNumber(chooseDisplayNumber(request.getDisplayNumber()));
+        restaurantTable.setDisplayNumber(chooseDisplayNumber(tenantId, request.getDisplayNumber()));
         tableRepo.save(restaurantTable);
         for(int position=1;position<=seatCapacity;position++){
             Seat seat = new Seat();
+            seat.setTenant(tenant);
             seat.setTableId(restaurantTable);
             seat.setPosition(position);
             seatRepo.save(seat);
@@ -87,29 +93,37 @@ public class TableService implements RestaurantTableService {
 
     @Override
     @Transactional(readOnly = true)
-    public TableStatus syncTableStatus(String tableNumber) {
-        RestaurantTable table = tableRepo.findByTableNumber(tableNumber)
-                .orElseThrow(() -> new TableNotFoundException("table not found"));
-        return statusOf(table);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<TableResponse> viewAllTable() {
+    public List<TableResponse> viewAllTable(String tenantId) {
         List<TableResponse> responses = new ArrayList<>();
-        for (RestaurantTable table : tableRepo.findAllActive()) {
+        for (RestaurantTable table : tableRepo.findAllActive(tenantId)) {
             responses.add(new TableResponse(table.getTableId(), table.getTableNumber(), table.getDisplayNumber(),
                     table.getCapacity(), statusOf(table), table.isActive()));
         }
         return responses;
     }
 
+    // For staff: the table is named by its code, and only a table of the caller's business is found.
     @Override
     @Transactional(readOnly = true)
-    public ViewTableAndSeatAvailabilityResponse viewTableAndSeatAvailability(String tableNumber) {
-        RestaurantTable table = tableRepo.findByTableNumber(tableNumber)
+    public ViewTableAndSeatAvailabilityResponse viewTableAndSeatAvailability(String tenantId, String tableNumber) {
+        RestaurantTable table = tableRepo.findByTableNumberAndTenant_TenantId(tableNumber, tenantId)
                 .filter(RestaurantTable::isActive)
                 .orElseThrow(() -> new TableNotFoundException(TABLE_NOT_AVAILABLE));
+        return seatMapOf(table);
+    }
+
+    // For a guest who scanned the QR code: the link names the business and the table's number.
+    @Override
+    @Transactional(readOnly = true)
+    public ViewTableAndSeatAvailabilityResponse publicSeatMap(String slug, int displayNumber) {
+        Tenant tenant = tenantAccess.openTenantBySlug(slug);
+        RestaurantTable table = tableRepo.findByTenant_TenantIdAndDisplayNumber(tenant.getTenantId(), displayNumber)
+                .filter(RestaurantTable::isActive)
+                .orElseThrow(() -> new TableNotFoundException(TABLE_NOT_AVAILABLE));
+        return seatMapOf(table);
+    }
+
+    private ViewTableAndSeatAvailabilityResponse seatMapOf(RestaurantTable table) {
         Set<String> expiredHolds = expiredHoldSeatIds(table);
         List<ViewTableSeatResponse> seats = new ArrayList<>();
         boolean anyVacant = false;
@@ -134,11 +148,6 @@ public class TableService implements RestaurantTableService {
         return response;
     }
 
-    @Override
-    public MenuResponse generateMenu() {
-        return menuService.generateMenu();
-    }
-
     // A table is OCCUPIED only when no seat is free. Worked out from the seats, never stored.
     private TableStatus statusOf(RestaurantTable table) {
         Set<String> expiredHolds = expiredHoldSeatIds(table);
@@ -157,17 +166,17 @@ public class TableService implements RestaurantTableService {
                 .collect(Collectors.toSet());
     }
 
-    private Integer chooseDisplayNumber(Integer requested) {
+    private Integer chooseDisplayNumber(String tenantId, Integer requested) {
         if (requested != null) {
             if (requested < 1) {
                 throw new InvalidRequestException("Table number must be 1 or more");
             }
-            if (tableRepo.existsByDisplayNumber(requested)) {
+            if (tableRepo.existsByTenant_TenantIdAndDisplayNumber(tenantId, requested)) {
                 throw new ConflictException("Table " + requested + " already exists. Choose another number.");
             }
             return requested;
         }
-        Set<Integer> used = new HashSet<>(tableRepo.findUsedDisplayNumbers());
+        Set<Integer> used = new HashSet<>(tableRepo.findUsedDisplayNumbers(tenantId));
         int next = 1;
         while (used.contains(next)) {
             next++;
@@ -176,18 +185,16 @@ public class TableService implements RestaurantTableService {
     }
 
     @Override
-    public byte[] getQrCode(String tableNumber) {
-        RestaurantTable table = tableRepo.findByTableNumber(tableNumber)
+    public byte[] getQrCode(String tenantId, String tableNumber) {
+        RestaurantTable table = tableRepo.findByTableNumberAndTenant_TenantId(tableNumber, tenantId)
+                .filter(RestaurantTable::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Table not found"));
-
         try {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
             Map<EncodeHintType, Object> hints = new HashMap<>();
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
-
-            String url = frontendUrl + "/table/" + tableNumber;
+            String url = frontendUrl + "/t/" + table.getTenant().getSlug() + "/table/" + table.getDisplayNumber();
             BitMatrix bitMatrix = qrCodeWriter.encode(url, BarcodeFormat.QR_CODE, 350, 350, hints);
-
             ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
             MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
             return pngOutputStream.toByteArray();
@@ -199,8 +206,8 @@ public class TableService implements RestaurantTableService {
     // Past orders still point at the table, so it is switched off and its number freed, not removed.
     @Override
     @Transactional
-    public void deleteTable(String tableId) {
-        RestaurantTable table = tableRepo.findById(tableId)
+    public void deleteTable(String tenantId, String tableId) {
+        RestaurantTable table = tableRepo.findByTableIdAndTenant_TenantId(tableId, tenantId)
                 .filter(RestaurantTable::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Table not found"));
         List<String> seatIds = seatRepo.findSeatIdsByTable(tableId);

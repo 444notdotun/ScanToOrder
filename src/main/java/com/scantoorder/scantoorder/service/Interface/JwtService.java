@@ -8,5 +8,5 @@ public interface JwtService {
     String generateToken(Worker worker);
     boolean validateToken(String token, UserDetails player);
     Claims extractClaims(String token);
-    String generateCustomerToken(String sessionId, String seatId, String tableId, String sessionSeatId);
+    String generateCustomerToken(String sessionId, String seatId, String tableId, String sessionSeatId, String tenantId);
 }

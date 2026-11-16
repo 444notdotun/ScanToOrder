@@ -55,6 +55,7 @@ public class SeatLedger {
         SessionSeat membership = new SessionSeat();
         membership.setSession(session);
         membership.setSeat(seat);
+        membership.setTenant(seat.getTenant());
         seatGuest(membership, name, phone, email, true);
         return membership;
     }
@@ -63,6 +64,7 @@ public class SeatLedger {
         SessionSeat membership = new SessionSeat();
         membership.setSession(session);
         membership.setSeat(seat);
+        membership.setTenant(seat.getTenant());
         membership.setStatus(SessionSeatStatus.HELD);
         membership.setHeldUntil(LocalDateTime.now().plusMinutes(HOLD_MINUTES));
         sessionSeatRepo.save(membership);

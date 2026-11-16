@@ -5,6 +5,7 @@ import com.scantoorder.scantoorder.data.model.DinningSessionStatus;
 import com.scantoorder.scantoorder.data.model.SessionSeat;
 import com.scantoorder.scantoorder.data.model.SessionSeatStatus;
 import com.scantoorder.scantoorder.data.repository.SessionSeatRepo;
+import com.scantoorder.scantoorder.data.model.Worker;
 import com.scantoorder.scantoorder.data.model.WorkerPrincipal;
 import com.scantoorder.scantoorder.service.Interface.JwtService;
 import io.jsonwebtoken.Claims;
@@ -39,6 +40,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
     public static final String SESSION_ENDED_ATTRIBUTE = "plately.sessionEnded";
     public static final String SESSION_ENDED_MESSAGE = "Your session has ended";
+    public static final String CHANGE_PASSWORD_PATH = "/api/v1/auth/change-password";
+    public static final String CHANGE_PASSWORD_MESSAGE = "Choose a new password before you carry on.";
+
+    private void writeForbidden(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"status\":\"ERROR\",\"message\":\"" + message + "\"}");
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
@@ -76,10 +85,17 @@ public class JwtFilter extends OncePerRequestFilter {
                 } else if ("WORKER".equals(type)) {
                     String username = claims.getSubject();
                     UserDetails userDetails = auth.loadUserByUsername(username);
-                    if (jwtService.validateToken(jwt, userDetails)) {
+                    if (jwtService.validateToken(jwt, userDetails) && userDetails.isEnabled()) {
+                        Worker worker = (Worker) userDetails;
+                        if (worker.isMustChangePassword() && !CHANGE_PASSWORD_PATH.equals(request.getRequestURI())) {
+                            writeForbidden(response, CHANGE_PASSWORD_MESSAGE);
+                            return;
+                        }
+                        // Role and tenant come from the account, so a changed account takes effect at once.
                         WorkerPrincipal principal = new WorkerPrincipal(
-                                claims.get("workerId", String.class),
-                                claims.get("role", String.class)
+                                worker.getWorkerId(),
+                                worker.getRole().name(),
+                                worker.getTenant() == null ? null : worker.getTenant().getTenantId()
                         );
                         UsernamePasswordAuthenticationToken authToken =
                                 new UsernamePasswordAuthenticationToken(principal, null,
@@ -115,7 +131,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 membership.getSession().getSessionId(),
                 membership.getSeat().getSeatId(),
                 membership.getSeat().getTableId().getTableId(),
-                membership.getId()
+                membership.getId(),
+                membership.getSession().getTenant().getTenantId()
         );
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(principal, null,

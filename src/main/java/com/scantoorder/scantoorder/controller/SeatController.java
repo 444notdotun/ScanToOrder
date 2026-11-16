@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.dtos.request.ClaimSeatRequest;
 import com.scantoorder.scantoorder.dtos.request.JoinSeatRequest;
@@ -53,13 +54,14 @@ public class SeatController {
     @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @PatchMapping("/update")
     public ResponseEntity<ApiResponse<UpdateSeatResponse>> updateSeat(@Valid @RequestBody UpdateSeatRequest updateSeatRequest) {
-        UpdateSeatResponse response = seatService.updateSeat(updateSeatRequest);
+        UpdateSeatResponse response = seatService.updateSeat(CurrentTenant.id(), updateSeatRequest);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 
+    @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<List<SeatStatusResponse>>> viewAllSeatStatus() {
-        List<SeatStatusResponse> response = seatService.viewAllSeatStatus();
+        List<SeatStatusResponse> response = seatService.viewAllSeatStatus(CurrentTenant.id());
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 
@@ -67,7 +69,7 @@ public class SeatController {
     @PostMapping("/{id}/release")
     public ResponseEntity<ApiResponse<ReleaseSeatResponse>> releaseSeat(
             @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String id) {
-        ReleaseSeatResponse response = seatService.releaseSeat(id);
+        ReleaseSeatResponse response = seatService.releaseSeat(CurrentTenant.id(), id);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 

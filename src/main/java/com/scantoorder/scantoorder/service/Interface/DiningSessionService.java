@@ -19,12 +19,12 @@ public interface DiningSessionService {
     SessionViewResponse confirmGuest(CustomerPrincipal caller, ConfirmGuestRequest request);
     SessionSeat seatToOrderFor(CustomerPrincipal caller, String targetSeatId);
     LeaveSessionResponse leave(CustomerPrincipal caller);
-    CloseSessionResponse closeSession(String sessionId);
-    CloseTableResponse closeTable(String tableId);
-    TableSessionsResponse getTableSessions(String tableId);
-    ReleaseSeatResponse freeSeat(String seatId);
+    CloseSessionResponse closeSession(String tenantId, String sessionId);
+    CloseTableResponse closeTable(String tenantId, String tableId);
+    TableSessionsResponse getTableSessions(String tenantId, String tableId);
+    ReleaseSeatResponse freeSeat(String tenantId, String seatId);
     int expireHolds();
     int closeAllActiveSessions();
-    long getActiveSessionsCount();
+    long getActiveSessionsCount(String tenantId);
     List<String> getSessionPaymentReferences(CustomerPrincipal caller);
 }
