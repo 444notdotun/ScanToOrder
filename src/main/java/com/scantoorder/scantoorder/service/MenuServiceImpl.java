@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -34,6 +35,8 @@ public class MenuServiceImpl implements MenuService {
     @Autowired
     private ModelMapper modelMapper;
     @Autowired
+    private ReadyTimeService readyTimeService;
+    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
     private static final String MENU_KEY_PREFIX = "menu:active:";
@@ -43,7 +46,7 @@ public class MenuServiceImpl implements MenuService {
         String key = MENU_KEY_PREFIX + tenantId;
         Object cachedMenu = redisTemplate.opsForValue().get(key);
         if (cachedMenu != null) {
-            return (MenuResponse) cachedMenu;
+            return withReadyTimes(tenantId, (MenuResponse) cachedMenu);
         }
         List<Category> activeCategories = categoryRepository.findAllByTenant_TenantIdAndIsActiveTrue(tenantId);
         List<CategoryAndItemResponse> categoryAndItemResponseList = activeCategories.stream()
@@ -62,7 +65,19 @@ public class MenuServiceImpl implements MenuService {
         MenuResponse menuResponse = new MenuResponse();
         menuResponse.setCategoryAndItemResponse(categoryAndItemResponseList);
         redisTemplate.opsForValue().set(key, menuResponse, 24, TimeUnit.HOURS);
-        return menuResponse;
+        return withReadyTimes(tenantId, menuResponse);
+    }
+
+    // Ready times are worked out fresh each time and never stored with the cached menu, so they cannot go stale.
+    private MenuResponse withReadyTimes(String tenantId, MenuResponse menu) {
+        Map<String, Integer> times = readyTimeService.byItemName(tenantId);
+        if (times.isEmpty()) return menu;
+        for (CategoryAndItemResponse section : menu.getCategoryAndItemResponse()) {
+            for (ItemResponse item : section.getItemResponse()) {
+                item.setReadyInMinutes(times.get(item.getItemName()));
+            }
+        }
+        return menu;
     }
 
     @Transactional

@@ -26,6 +26,9 @@ public class Item {
     @JoinColumn
     private Category categoryId;
     private boolean isAvailable;
+    // A link to a photo of the dish. Uploading photos comes later; for now the manager pastes a link.
+    @Column(length = 500)
+    private String imageUrl;
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp

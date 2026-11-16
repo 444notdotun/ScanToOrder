@@ -29,7 +29,7 @@ public class MenuStockService {
         return itemRepo.findByTenant_TenantIdOrderByItemNameAsc(tenantId).stream()
                 .map(item -> new StockItemResponse(item.getItemId(), item.getItemName(),
                         item.getCategoryId() == null ? null : item.getCategoryId().getCategoryName(), item.isAvailable(),
-                        item.getItemDescription(), item.getItemPrice()))
+                        item.getItemDescription(), item.getItemPrice(), item.getImageUrl()))
                 .toList();
     }
 

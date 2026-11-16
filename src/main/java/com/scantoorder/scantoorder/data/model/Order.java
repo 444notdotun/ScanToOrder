@@ -59,6 +59,10 @@ public class Order {
     @ManyToOne
     @JoinColumn(name = "session_seat_id")
     private SessionSeat sessionSeat;
+    // Whose phone placed the order: the seat it is for, or the guest who ordered for a friend without a phone.
+    @ManyToOne
+    @JoinColumn(name = "placed_by_seat_id")
+    private SessionSeat placedBy;
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp

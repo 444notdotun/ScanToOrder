@@ -62,13 +62,13 @@ export default function StaffHeader({
         Sign out
       </button>
 
-      <div className="order-3 flex basis-full items-center gap-3 rounded-2xl bg-cream/10 py-2 pl-2 pr-4 xl:ml-auto xl:max-w-[250px] xl:flex-none xl:basis-auto">
+      <div className="order-3 flex basis-full items-center gap-3 rounded-2xl bg-cream/10 py-2 pl-2 pr-4 xl:ml-auto xl:max-w-[340px] xl:flex-none xl:basis-auto">
         <span aria-hidden="true" className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-mustard font-heading text-lg text-bottle">
           {initialsOf(name)}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-base font-bold leading-tight text-cream">{name}</div>
-          <div className="truncate text-[13px] leading-tight text-soft">
+          <div className="break-words text-base font-bold leading-tight text-cream">{name}</div>
+          <div className="break-words text-[13px] leading-tight text-soft">
             {roleLabel(profile)} · {where}
           </div>
         </div>
@@ -77,7 +77,7 @@ export default function StaffHeader({
         ) : null}
       </div>
 
-      {nav ? <div className="order-4 basis-full xl:order-2 xl:min-w-0 xl:basis-auto xl:flex-1">{nav}</div> : null}
+      {nav ? <div className="order-4 hidden basis-full md:block xl:order-2 xl:min-w-0 xl:basis-auto xl:flex-1">{nav}</div> : null}
     </header>
   );
 }

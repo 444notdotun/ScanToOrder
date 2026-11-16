@@ -89,9 +89,9 @@
   --color-status-delivered-text: #475569;
 }
 
-/* Netlify's badge floats over the bottom-right corner of the page: the last tappable thing keeps this far clear of it. */
 :root {
-  --corner-clear: 4.5rem;
+  /* The height of the guest's pinned title bar, so the menu's category chips can sit just under it. The bar sets the real value. */
+  --you-h: calc(3.6rem + env(safe-area-inset-top));
 }
 
 html {

@@ -88,6 +88,39 @@ class SessionOrdersTest {
     }
 
     @Test
+    void testThatTwoGuestsSharingATableEachSeeOnlyTheirOwnOrdersAndTheirOwnFriendsOrders() {
+        CustomerPrincipal ada = support.claim(seats.get(0), "Ada Obi");
+        diningSessionService.holdSeats(ada, List.of(seats.get(1).getSeatId()));
+        ConfirmGuestRequest adasFriend = new ConfirmGuestRequest();
+        adasFriend.setSeatId(seats.get(1).getSeatId());
+        adasFriend.setGuestName("Mama Ada");
+        diningSessionService.confirmGuest(ada, adasFriend);
+
+        CustomerPrincipal bola = support.claim(seats.get(2), "Bola Eze");
+        diningSessionService.holdSeats(bola, List.of(seats.get(3).getSeatId()));
+        ConfirmGuestRequest bolasFriend = new ConfirmGuestRequest();
+        bolasFriend.setSeatId(seats.get(3).getSeatId());
+        bolasFriend.setGuestName("Uncle Bola");
+        diningSessionService.confirmGuest(bola, bolasFriend);
+
+        Order adaOwn = order(ada, null, OrderStatus.PAID, 1);
+        Order adaForMama = order(ada, seats.get(1).getSeatId(), OrderStatus.PREPARING, 1);
+        Order bolaOwn = order(bola, null, OrderStatus.PAID, 1);
+        Order bolaForUncle = order(bola, seats.get(3).getSeatId(), OrderStatus.READY, 1);
+
+        List<String> adaSees = diningSessionService.getSessionOrders(ada).getOrders().stream().map(SessionOrdersResponse.Order::getOrderId).toList();
+        List<String> bolaSees = diningSessionService.getSessionOrders(bola).getOrders().stream().map(SessionOrdersResponse.Order::getOrderId).toList();
+
+        assertEquals(2, adaSees.size());
+        assertTrue(adaSees.containsAll(List.of(adaOwn.getOrderId(), adaForMama.getOrderId())));
+        assertEquals(2, bolaSees.size());
+        assertTrue(bolaSees.containsAll(List.of(bolaOwn.getOrderId(), bolaForUncle.getOrderId())));
+        SessionOrdersResponse.Order forMama = diningSessionService.getSessionOrders(ada).getOrders().stream().filter(o -> o.getOrderId().equals(adaForMama.getOrderId())).findFirst().orElseThrow();
+        assertFalse(forMama.isForMe());
+        assertEquals("Mama Ada", forMama.getForName());
+    }
+
+    @Test
     void testThatAGuestSeesTheirOwnOrdersAndThoseForGuestsWithoutAPhoneButNotAnotherPhonesAndTotalsAddUp() {
         CustomerPrincipal me = support.claim(seats.get(0), "Ada Obi");
         diningSessionService.holdSeats(me, List.of(seats.get(1).getSeatId(), seats.get(2).getSeatId()));
@@ -129,9 +162,9 @@ class SessionOrdersTest {
         assertEquals(0, new BigDecimal("9000.00").compareTo(mineSeen.getPaidByTable()));
 
         SessionOrdersResponse friendSeen = diningSessionService.getSessionOrders(friend);
-        assertEquals(2, friendSeen.getOrders().size(), "the friend sees their own and Mama's, not Ada's");
-        // The friend's own three dishes plus Mama's one.
-        assertEquals(0, new BigDecimal("6000.00").compareTo(friendSeen.getPaidByYou()));
+        assertEquals(1, friendSeen.getOrders().size(), "the friend sees their own only: Mama's order was placed by Ada");
+        // The friend's own three dishes. The whole table still includes everything.
+        assertEquals(0, new BigDecimal("4500.00").compareTo(friendSeen.getPaidByYou()));
         assertEquals(0, new BigDecimal("9000.00").compareTo(friendSeen.getPaidByTable()));
     }
 

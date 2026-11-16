@@ -9,7 +9,8 @@ import PageHead, { Empty, Tile } from '@/components/staff/PageHead';
 import StockSection from '@/components/staff/StockSection';
 import { FAILURE_ID, useAction } from '@/hooks/useAction';
 import { failureOf } from '@/lib/http';
-import { useFloor, useTenant } from '@/lib/manager';
+import { useFloor, usePlates, useTenant } from '@/lib/manager';
+import { staffApi } from '@/lib/staff';
 import type { FloorTable } from '@/lib/staff';
 
 // "ASSISTANCE - Could we have some water?" is filed that way: the manager reads only what was asked.
@@ -19,6 +20,7 @@ export default function FloorNowPage() {
   const { lost } = useConnection();
   const floor = useFloor();
   const tenant = useTenant();
+  const soldOut = (usePlates().data ?? []).filter((item) => !item.available);
   const act = useAction();
   const [closing, setClosing] = useState<FloorTable | null>(null);
   const data = floor.data;
@@ -39,17 +41,34 @@ export default function FloorNowPage() {
       {data ? (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Tile label="In the kitchen" value={String(data.paid + data.cooking)} sub={`${data.paid} new, ${data.cooking} cooking`} />
-            <Tile label="Ready to carry" value={String(data.ready)} sub={data.needVisit > 0 ? `${data.needVisit} need a visit` : 'nothing needs a visit'} />
-            <Tile label="Calls waiting" value={String(data.openCalls)} sub={`${data.takenCalls} being seen to`} />
+            <Tile large label="Cooking" value={String(data.cooking)} sub={`${data.paid} waiting to start`} />
+            <Tile large label="Ready to carry" value={String(data.ready)} sub={data.needVisit > 0 ? `${data.needVisit} need a visit` : 'nothing needs a visit'} />
+            <Tile large label="Calls waiting" value={String(data.openCalls)} sub={`${data.takenCalls} being seen to`} />
             <Tile
+              large
               label="Refunds to settle"
               value={String(data.openRefunds)}
               sub={data.overdueRefunds > 0 ? `${data.overdueRefunds} overdue` : 'none overdue'}
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+          {/* On a phone the floor is the four numbers and what is sold out; the tables and calls are for a bigger screen. */}
+          <section aria-label="Sold out" className="flex flex-col gap-3 md:hidden">
+            <h2 className="font-heading text-[26px] font-normal">Sold out</h2>
+            {soldOut.length === 0 ? <Empty>Nothing is sold out.</Empty> : null}
+            <ul className="flex flex-col gap-2.5">
+              {soldOut.map((item) => (
+                <li key={item.itemId} className="flex items-center justify-between gap-3 rounded-lg bg-paperlight p-3.5 text-ink shadow-[0_8px_20px_rgba(0,0,0,0.22)]">
+                  <span className="min-w-0 font-bold leading-snug">{item.itemName}</span>
+                  <Button full={false} tone="bottle" disabled={lost || act.busy !== null} onClick={() => void act.run(item.itemId, () => staffApi.backInStock(item.itemId))}>
+                    Back on the menu
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <div className="hidden grid-cols-1 gap-6 md:grid lg:grid-cols-[2fr_1fr]">
             <section aria-label="Tables right now" className="flex flex-col gap-3">
               <h2 className="font-heading text-[26px] font-normal">Tables right now</h2>
               {data.tables.length === 0 ? <Empty>No tables yet. Add them under Tables and print the cards.</Empty> : null}
@@ -117,7 +136,9 @@ export default function FloorNowPage() {
             </section>
           </div>
 
-          <StockSection act={act} />
+          <div className="hidden md:block">
+            <StockSection act={act} />
+          </div>
         </>
       ) : null}
 

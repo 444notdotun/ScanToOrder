@@ -13,11 +13,11 @@ export default function PageHead({ title, line, children }: { title: string; lin
   );
 }
 
-export function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+export function Tile({ label, value, sub, large = false }: { label: string; value: string; sub?: string; large?: boolean }) {
   return (
     <div className="rounded-[20px] bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
       <div className="text-[13px] font-bold uppercase tracking-[0.1em] text-quiet">{label}</div>
-      <div className="mt-1 font-heading text-[34px] leading-none text-bottle">{value}</div>
+      <div className={`mt-1 font-heading leading-none text-bottle ${large ? 'text-[52px] md:text-[34px]' : 'text-[34px]'}`}>{value}</div>
       {sub ? <div className="mt-1.5 text-sm text-quiet">{sub}</div> : null}
     </div>
   );

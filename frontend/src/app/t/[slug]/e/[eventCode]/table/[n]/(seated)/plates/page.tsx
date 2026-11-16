@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConnection } from '@/components/plately/Connection';
+import OrderTracker from '@/components/guest/OrderTracker';
 import { Brand, Loader } from '@/components/plately/Logo';
 import { Button, Card, Eyebrow, FailureCard, Sheet } from '@/components/plately/ui';
-import { forgetTable, useMyEvent, useSession } from '@/lib/guest';
+import { forgetTable, useMyEvent } from '@/lib/guest';
 import { dataOf, failureOf, http, type ApiFailure } from '@/lib/http';
 import { firstName } from '@/lib/money';
 
@@ -15,7 +16,6 @@ export default function PlatesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { lost } = useConnection();
-  const session = useSession().data!;
   const mine = useMyEvent();
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [sent, setSent] = useState<string | null>(null);
@@ -37,7 +37,6 @@ export default function PlatesPage() {
   }
 
   const event = mine.data;
-  const seat = session.seats.find((candidate) => candidate.mine);
   const limited = event.plateLimit !== null && event.plateLimit !== undefined;
   const left = limited ? Math.max(0, (event.plateLimit as number) - event.platesUsed) : null;
 
@@ -72,17 +71,13 @@ export default function PlatesPage() {
 
   return (
     <>
-      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-10 pt-6">
+      <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-5 pb-10 pt-6 md:max-w-3xl xl:max-w-5xl">
         <header className="flex flex-col gap-1.5">
           <Brand size={22} />
           <Eyebrow className="mt-1">
             {event.eventName}
             {event.venue ? ` · ${event.venue}` : ''}
           </Eyebrow>
-          <div className="text-[13px] font-bold uppercase tracking-[0.12em] text-soft">
-            Table {session.displayNumber}
-            {seat ? ` · Seat ${seat.position}` : ''}
-          </div>
           <h1 className="font-heading text-[36px] font-normal leading-[1.08]">You&apos;re in, {firstName(event.guestName)}.</h1>
           <p className="text-[17px] text-soft">
             {left === null
@@ -93,11 +88,8 @@ export default function PlatesPage() {
           </p>
         </header>
 
-        {event.platePending ? (
-          <div role="status" className="rounded-2xl bg-mustard/20 p-3.5 text-[15px] font-bold text-mustard">
-            Your {event.platePending} is on its way. Order again once it arrives.
-          </div>
-        ) : null}
+        {event.platePending ? <OrderTracker /> : null}
+        {event.platePending ? <p className="text-[15px] font-bold text-mustard">Order again once it arrives.</p> : null}
         {sent && event.platePending ? (
           <div role="status" className="animate-pop rounded-2xl bg-good p-3.5 text-[15px] font-bold text-white">
             {sent}
@@ -105,7 +97,7 @@ export default function PlatesPage() {
         ) : null}
         {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
 
-        <section className="flex flex-col gap-3">
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {event.plates.length === 0 ? (
             <Card>
               <p className="text-[15px] text-quiet">The kitchen hasn&apos;t put any plates up yet. Ask a host.</p>

@@ -51,6 +51,7 @@ export interface StockItem {
   available: boolean;
   itemDescription?: string;
   itemPrice?: number;
+  imageUrl?: string;
 }
 
 export type UnavailableReason = 'RAN_OUT' | 'SOMETHING_WRONG' | 'EQUIPMENT_DOWN';

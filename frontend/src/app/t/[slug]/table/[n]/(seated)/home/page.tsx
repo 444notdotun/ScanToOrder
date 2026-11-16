@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import OrderTracker from '@/components/guest/OrderTracker';
 import { Brand } from '@/components/plately/Logo';
 import { useConnection } from '@/components/plately/Connection';
 import { Button, Card, FailureCard, Handwriting, Sheet, Switch } from '@/components/plately/ui';
@@ -89,19 +90,18 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-52 pt-6">
+      <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-5 pb-6 pt-6 md:max-w-3xl xl:max-w-5xl">
         <header className="flex flex-col gap-1.5">
           <Brand size={22} />
-          <div className="mt-1 text-[13px] font-bold uppercase tracking-[0.12em] text-soft">
-            {session.businessName ? `${session.businessName} · ` : ''}Table {session.displayNumber}
-            {mine ? ` · Seat ${mine.position}` : ''}
-          </div>
           <h1 className="font-heading text-[36px] font-normal leading-[1.08]">You&apos;re in, {firstName(mine?.guestName)}.</h1>
           <p className="text-[17px] text-soft">Order when you&apos;re ready. Nobody&apos;s rushing you.</p>
         </header>
 
         {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
 
+        <OrderTracker />
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:items-start">
         <Card>
           <h2 className="mb-3 font-heading text-[22px] font-normal text-bottle">Your table</h2>
           <ul className="flex flex-col divide-y divide-rule">
@@ -223,6 +223,8 @@ export default function HomePage() {
           </Card>
         ) : null}
 
+        </div>
+
         <div className="flex gap-2.5">
           <Link href={`/t/${slug}/table/${n}/visit`} className="flex min-h-[44px] flex-1 items-center justify-center rounded-full border-[1.5px] border-cream/45 px-4 text-center text-[15px] font-bold text-cream">
             Your visit
@@ -232,14 +234,6 @@ export default function HomePage() {
           </Button>
         </div>
       </main>
-
-      <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bottle via-bottle/95 to-transparent px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom)+var(--corner-clear))] pt-8">
-        <div className="mx-auto max-w-md md:max-w-xl">
-          <Link href={`/t/${slug}/table/${n}/order`} className="flex min-h-[56px] w-full items-center justify-center rounded-full bg-tomato text-[17px] font-bold text-white">
-            Order food
-          </Link>
-        </div>
-      </div>
 
       <Sheet open={leaving} onClose={() => setLeaving(false)} label="Leave the table">
         <h2 className="font-heading text-[28px] font-normal text-bottle">Heading off?</h2>

@@ -103,6 +103,7 @@ public class EventOrderService {
         order.setTable(me.getSeat().getTableId());
         order.setDinningSession(me.getSession());
         order.setSessionSeat(me);
+        order.setPlacedBy(me);
         order.setEvent(event);
         order.setEventGuest(guest);
         order.setTotalAmount(BigDecimal.ZERO);

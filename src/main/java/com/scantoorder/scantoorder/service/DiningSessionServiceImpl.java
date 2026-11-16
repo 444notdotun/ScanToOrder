@@ -378,7 +378,12 @@ public class DiningSessionServiceImpl implements DiningSessionService {
             if (paid && order.getTotalAmount() != null) {
                 response.setPaidByTable(response.getPaidByTable().add(order.getTotalAmount()));
             }
-            boolean visible = owner == null || owner.getId().equals(me.getId()) || !owner.isHasDevice();
+            // Each guest tracks their own orders and the ones they placed for a friend without a phone: never another
+            // guest's friend. Orders from before the placer was recorded keep the older rule.
+            SessionSeat placer = order.getPlacedBy();
+            boolean mineToSee = placer != null && placer.getId().equals(me.getId());
+            boolean forMeToSee = owner != null && owner.getId().equals(me.getId());
+            boolean visible = mineToSee || forMeToSee || (placer == null && (owner == null || !owner.isHasDevice()));
             if (!visible || order.getOrderStatus() == OrderStatus.CANCELED) continue;
             if (paid && order.getTotalAmount() != null) {
                 response.setPaidByYou(response.getPaidByYou().add(order.getTotalAmount()));
