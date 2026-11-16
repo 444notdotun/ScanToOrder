@@ -25,6 +25,7 @@ public class SchemaConstraints implements ApplicationRunner {
                 "CREATE UNIQUE INDEX IF NOT EXISTS ux_session_seat_one_active_per_seat "
                         + "ON session_seat (seat_id) WHERE status IN ('HELD', 'OCCUPIED')"
         ).executeUpdate();
+        dropOldTableNumberConstraint();
         // Restaurant tables are numbered per business, event tables per event.
         entityManager.createNativeQuery(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ux_table_number_per_business "
@@ -34,5 +35,21 @@ public class SchemaConstraints implements ApplicationRunner {
                 "CREATE UNIQUE INDEX IF NOT EXISTS ux_table_number_per_event "
                         + "ON restaurant_table (event_id, display_number) WHERE event_id IS NOT NULL"
         ).executeUpdate();
+    }
+
+    // A database kept with DDL_AUTO=update still has the old rule that a business's table numbers are unique,
+    // which would refuse an event's Table 1. Its name is made up by Hibernate, so it is looked up, never guessed.
+    private void dropOldTableNumberConstraint() {
+        @SuppressWarnings("unchecked")
+        java.util.List<String> names = entityManager.createNativeQuery(
+                "SELECT c.conname FROM pg_constraint c "
+                        + "WHERE c.conrelid = to_regclass('public.restaurant_table') AND c.contype = 'u' "
+                        + "AND (SELECT array_agg(a.attname::text ORDER BY a.attname::text) FROM pg_attribute a "
+                        + "WHERE a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)) = ARRAY['display_number', 'tenant_id']"
+        ).getResultList();
+        for (String name : names) {
+            entityManager.createNativeQuery("ALTER TABLE public.restaurant_table DROP CONSTRAINT IF EXISTS \"" + name.replace("\"", "\"\"") + "\"")
+                    .executeUpdate();
+        }
     }
 }
