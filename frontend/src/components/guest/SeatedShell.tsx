@@ -30,7 +30,7 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (gone) {
       forgetTable();
-      router.replace(failure?.message.startsWith('Your visit has ended') ? '/?ended=visit' : '/?ended=1');
+      router.replace(failure?.message.startsWith('Your visit has ended') ? '/scan?ended=visit' : '/scan?ended=1');
     }
   }, [gone, failure?.message, router]);
 

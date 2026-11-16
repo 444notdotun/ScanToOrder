@@ -32,7 +32,7 @@ function Returned() {
   useEffect(() => {
     if (forEvent && reference) router.replace(`/planner/payment?reference=${encodeURIComponent(reference)}`);
   }, [forEvent, reference, router]);
-  const home = table ? `/t/${table.slug}/table/${table.n}/home` : '/';
+  const home = table ? `/t/${table.slug}/table/${table.n}/home` : '/scan';
 
   const check = useQuery({
     queryKey: ['payment', reference],
@@ -84,7 +84,7 @@ function Returned() {
           <Button tone="light" onClick={() => void check.refetch()}>
             Check again
           </Button>
-          <Link href={gone ? '/' : home} className="text-center text-sm font-bold text-cream underline underline-offset-4">
+          <Link href={gone ? '/scan' : home} className="text-center text-sm font-bold text-cream underline underline-offset-4">
             {gone ? 'Scan the table again' : 'Back to your table'}
           </Link>
         </main>

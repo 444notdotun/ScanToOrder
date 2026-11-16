@@ -78,7 +78,7 @@ function SignIn() {
         </Card>
 
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-soft">
-          <Link href="/" className="underline underline-offset-4">
+          <Link href="/scan" className="underline underline-offset-4">
             Find your table
           </Link>
           <Link href="/signup" className="underline underline-offset-4">

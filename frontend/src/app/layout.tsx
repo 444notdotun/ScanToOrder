@@ -9,8 +9,11 @@ const caveat = Caveat({ weight: "700", subsets: ["latin"], variable: "--font-cav
 const fraunces = Fraunces({ weight: "600", subsets: ["latin"], variable: "--font-fraunces", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Plately",
-  description: "Pull up a chair. Order and pay from your phone, and a real person brings it over.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  title: { default: "Plately: scan, sit, order, eat", template: "%s · Plately" },
+  description: "Scan the code on your table, pick a seat, then order and pay from your phone. No app to download.",
+  openGraph: { siteName: "Plately", type: "website" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

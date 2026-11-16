@@ -69,7 +69,7 @@ export default function HomePage() {
       await http.post('/api/v1/sessions/me/leave');
       forgetTable();
       queryClient.clear();
-      router.replace('/');
+      router.replace('/scan');
     } catch (error) {
       setLeaving(false);
       setFailure(failureOf(error, "We couldn't free your seat"));

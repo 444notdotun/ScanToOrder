@@ -158,3 +158,48 @@ body {
   background-attachment: fixed !important;
   background-position: center !important;
 }
+
+/* ---------- The scan screen ---------- */
+
+@theme {
+  --animate-drop: drop 640ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-sweep: sweep 1.9s ease-in-out infinite;
+  --animate-flash: flash 520ms ease-out both;
+  --animate-tick: tick 420ms cubic-bezier(.2, .8, .2, 1) 120ms both;
+}
+
+@keyframes drop { 0% { opacity: 0; transform: translateY(-46px) rotate(-9deg) } 70% { opacity: 1; transform: translateY(5px) rotate(-2deg) } 100% { opacity: 1; transform: translateY(0) rotate(-3deg) } }
+@keyframes sweep { 0% { top: 6% } 50% { top: 92% } 100% { top: 6% } }
+@keyframes flash { 0% { opacity: .85 } 100% { opacity: 0 } }
+@keyframes tick { from { stroke-dashoffset: 30; opacity: 0 } to { stroke-dashoffset: 0; opacity: 1 } }
+
+/* ---------- The marketing page: a calm moving background, only when motion is welcome ---------- */
+
+.mk-layer { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.mk-parallax { position: absolute; inset: -20% 0; will-change: transform; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .mk-drift { animation: mk-drift 140s linear infinite; }
+  .mk-turn { animation: mk-turn 160s linear infinite; }
+  .mk-turn-back { animation: mk-turn 220s linear infinite reverse; }
+  .mk-float { animation: mk-float 26s ease-in infinite; opacity: 0; }
+  .mk-glint { animation: mk-glint 17s ease-in-out infinite; }
+  [data-armed]:not(.mk-in) { opacity: 0; transform: translateY(26px); }
+  [data-armed] { transition: opacity 700ms cubic-bezier(.2, .7, .2, 1), transform 700ms cubic-bezier(.2, .7, .2, 1); }
+  .mk-paused * { animation-play-state: paused !important; }
+}
+
+@keyframes mk-drift { from { transform: translate3d(0, 0, 0) } to { transform: translate3d(-120px, 120px, 0) } }
+@keyframes mk-turn { to { transform: rotate(360deg) } }
+@keyframes mk-float {
+  0% { opacity: 0; transform: translate3d(0, 40px, 0) rotate(-8deg) }
+  12% { opacity: .5 }
+  70% { opacity: .35 }
+  100% { opacity: 0; transform: translate3d(0, -140px, 0) rotate(10deg) }
+}
+@keyframes mk-glint {
+  0%, 62% { transform: translate3d(-130%, 0, 0) skewX(-18deg); opacity: 0 }
+  70% { opacity: 1 }
+  88% { opacity: 1 }
+  100% { transform: translate3d(230%, 0, 0) skewX(-18deg); opacity: 0 }
+}

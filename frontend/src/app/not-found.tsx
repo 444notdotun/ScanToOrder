@@ -2,8 +2,11 @@ import Link from 'next/link';
 import Ground from '@/components/plately/Ground';
 import { Brand, Watermark } from '@/components/plately/Logo';
 import { Handwriting } from '@/components/plately/ui';
+import type { Metadata } from 'next';
 
 // Wrong address: say so kindly and point to the way back.
+export const metadata: Metadata = { title: 'Not found' };
+
 export default function NotFound() {
   return (
     <Ground>
@@ -15,7 +18,7 @@ export default function NotFound() {
         <Handwriting>This page isn&apos;t on the menu.</Handwriting>
         <h1 className="font-heading text-[38px] font-normal leading-[1.1]">We can&apos;t find that.</h1>
         <p className="text-[17px] leading-snug text-soft">The link may be old or mistyped. If you are at a table, scan the card on it again.</p>
-        <Link href="/" className="mt-2 flex min-h-[52px] w-full max-w-xs items-center justify-center rounded-full bg-tomato px-5 text-base font-bold text-white">
+        <Link href="/scan" className="mt-2 flex min-h-[52px] w-full max-w-xs items-center justify-center rounded-full bg-tomato px-5 text-base font-bold text-white">
           Back to the start
         </Link>
       </main>
