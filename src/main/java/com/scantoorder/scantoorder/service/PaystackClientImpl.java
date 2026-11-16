@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.scantoorder.scantoorder.dtos.respond.BankData;
+import com.scantoorder.scantoorder.dtos.respond.PaystackSplit;
 import com.scantoorder.scantoorder.exception.AccountVerificationException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -45,17 +46,19 @@ public class PaystackClientImpl implements PaystackClient {
             .build();
 
     @Override
-    public PaystackInitResponseData initialize(String email, BigDecimal amount, String reference) {
+    public PaystackInitResponseData initialize(String email, long amountKobo, String reference, PaystackSplit split) {
         try {
-            int amountInKobo = amount.multiply(BigDecimal.valueOf(100)).intValue();
-            Map<String, Object> bodyMap = Map.of(
-                    "email", email != null ? email : "customer@scantoorder.com",
-                    "amount", amountInKobo,
-                    "reference", reference,
-                    "callback_url", paystackCallbackUrl
-            );
+            Map<String, Object> bodyMap = new java.util.LinkedHashMap<>();
+            bodyMap.put("email", email != null ? email : "customer@scantoorder.com");
+            bodyMap.put("amount", amountKobo);
+            bodyMap.put("reference", reference);
+            bodyMap.put("callback_url", paystackCallbackUrl);
+            if (split != null) {
+                bodyMap.put("subaccount", split.subaccountCode());
+                bodyMap.put("transaction_charge", split.platelyChargeKobo());
+                bodyMap.put("bearer", split.bearer());
+            }
             String requestBody = objectMapper.writeValueAsString(bodyMap);
-
             HttpRequest httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(paystackBaseUrl + "/transaction/initialize"))
                     .header("Authorization", "Bearer " + paystackSecretKey)
@@ -63,14 +66,11 @@ public class PaystackClientImpl implements PaystackClient {
                     .timeout(Duration.ofSeconds(10))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
-
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-
             int statusCode = response.statusCode();
             if (statusCode >= 500 && statusCode < 600) {
                 throw new PaymentGatewayUnavailableException("Paystack service is currently down");
             }
-
             if (statusCode == 400 || statusCode == 422) {
                 String errorMsg = "Payment validation failed";
                 try {
@@ -79,25 +79,19 @@ public class PaystackClientImpl implements PaystackClient {
                         errorMsg = responseJson.path("message").asText();
                     }
                 } catch (Exception e) {
-
                 }
                 throw new PaymentValidationException(errorMsg);
             }
-
             if (statusCode != 200 && statusCode != 201) {
                 throw new PaymentGatewayException("Paystack payment initialization failed with status " + statusCode);
             }
-
             JsonNode responseJson = objectMapper.readTree(response.body());
             if (!responseJson.path("status").asBoolean()) {
                 throw new PaymentGatewayException("Paystack payment initialization rejected: " + responseJson.path("message").asText());
             }
-
             JsonNode dataNode = responseJson.path("data");
             String authUrl = dataNode.path("authorization_url").asText();
-
             return new PaystackInitResponseData(authUrl, reference);
-
         } catch (PaymentValidationException | PaymentGatewayException e) {
             throw e;
         } catch (HttpTimeoutException e) {
@@ -224,6 +218,87 @@ public class PaystackClientImpl implements PaystackClient {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new PaymentGatewayException("Communication with Paystack interrupted");
+        }
+    }
+
+    public static final String PAYOUT_REJECTED =
+            "Paystack rejected this business's payout account. Ask them to check it and send the form again.";
+
+    @Override
+    public String createSubaccount(String businessName, String bankCode, String accountNumber, java.math.BigDecimal percentageCharge) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("business_name", businessName);
+        body.put("bank_code", bankCode);
+        body.put("account_number", accountNumber);
+        body.put("percentage_charge", percentageCharge);
+        HttpResponse<String> response = post("/subaccount", body);
+        int status = response.statusCode();
+        if (status >= 400 && status < 500) {
+            // Never put the account number in a message or a log.
+            throw new PayoutAccountRejectedException(PAYOUT_REJECTED);
+        }
+        JsonNode root = readJson(response, status);
+        String code = root.path("data").path("subaccount_code").asText();
+        if (!root.path("status").asBoolean() || code.isBlank()) {
+            throw new PayoutAccountRejectedException(PAYOUT_REJECTED);
+        }
+        return code;
+    }
+
+    @Override
+    public void createRefund(String transactionReference, String refundReference) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("transaction", transactionReference);
+        body.put("reference", refundReference);
+        HttpResponse<String> response = post("/refund", body);
+        int status = response.statusCode();
+        // 409: a refund with this reference already exists, so this is the same refund asked for twice.
+        if (status == 409) {
+            return;
+        }
+        if (status >= 400 && status < 500) {
+            String message = "Paystack could not start the refund";
+            try {
+                JsonNode json = objectMapper.readTree(response.body());
+                if (json.hasNonNull("message")) message = "Paystack could not start the refund: " + json.path("message").asText();
+            } catch (Exception ignored) {
+            }
+            throw new RefundRejectedException(message);
+        }
+        JsonNode root = readJson(response, status);
+        if (!root.path("status").asBoolean()) {
+            throw new RefundRejectedException("Paystack could not start the refund: " + root.path("message").asText());
+        }
+    }
+
+    private HttpResponse<String> post(String path, Map<String, Object> body) {
+        try {
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(paystackBaseUrl + path))
+                    .header("Authorization", "Bearer " + paystackSecretKey)
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(10))
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+                    .build();
+            return httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        } catch (HttpTimeoutException e) {
+            throw new PaymentGatewayTimeoutException("Timeout connecting to Paystack");
+        } catch (java.io.IOException e) {
+            throw new PaymentGatewayException("Error communicating with Paystack");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new PaymentGatewayException("Communication with Paystack interrupted");
+        }
+    }
+
+    private JsonNode readJson(HttpResponse<String> response, int status) {
+        if (status >= 500 && status < 600) {
+            throw new PaymentGatewayUnavailableException("Paystack service is currently down");
+        }
+        try {
+            return objectMapper.readTree(response.body());
+        } catch (java.io.IOException e) {
+            throw new PaymentGatewayException("Paystack sent an answer we could not read");
         }
     }
 }

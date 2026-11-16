@@ -56,6 +56,8 @@ public class DataSeeder implements CommandLineRunner {
 
     @Value("${app.seed.manager-password}")
     private String managerPassword;
+    @Value("${app.seed.demo-subaccount:}")
+    private String demoSubaccount;
     @Value("${app.seed.platform-admin-username}")
     private String platformAdminUsername;
     @Value("${app.seed.platform-admin-password}")
@@ -105,6 +107,8 @@ public class DataSeeder implements CommandLineRunner {
             tenant.setAccountNumber("0123456789");
             tenant.setAccountName(name.toUpperCase());
             tenant.setApprovedAt(LocalDateTime.now());
+            // Without SEED_DEMO_SUBACCOUNT the demo restaurants cannot take payments.
+            tenant.setPaystackSubaccountCode(demoSubaccount == null || demoSubaccount.isBlank() ? null : demoSubaccount);
             tenant = tenantRepo.save(tenant);
             menuOf(tenant);
             log.info("Seeded {}", name);

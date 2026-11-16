@@ -22,6 +22,9 @@ import java.util.List;
 @Service
 public class TenantWorkspaceServiceImpl implements TenantWorkspaceService {
 
+    public static final String PAYOUT_NOT_READY =
+            "We can't take payments for you yet. Contact us to finish your payout setup.";
+
     @Autowired
     private TenantRepo tenantRepo;
     @Autowired
@@ -55,6 +58,9 @@ public class TenantWorkspaceServiceImpl implements TenantWorkspaceService {
             }
             if (!missing.isEmpty()) {
                 throw new ConflictException("You can open once you have " + String.join(" and ", missing) + ".");
+            }
+            if (tenant.getPaystackSubaccountCode() == null || tenant.getPaystackSubaccountCode().isBlank()) {
+                throw new ConflictException(PAYOUT_NOT_READY);
             }
         }
         tenant.setOpenForOrders(open);
