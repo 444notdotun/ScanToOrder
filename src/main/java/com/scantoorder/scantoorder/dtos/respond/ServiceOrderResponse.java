@@ -18,6 +18,8 @@ public class ServiceOrderResponse {
     // Items as "2 x Jollof rice", or the plate at an event.
     private List<String> items = new ArrayList<>();
     private String note;
+    // What the guest asked for on a plate, such as "No onions". With several plates it says which plate.
+    private List<String> instructions = new ArrayList<>();
     private String step;
     private long minutesWaiting;
     // For the waiter: "Ready for 25 minutes. It is getting cold." from 20 minutes on.

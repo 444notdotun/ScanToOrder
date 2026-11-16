@@ -67,6 +67,8 @@ class ServiceDayTest {
     @Autowired
     private ItemRepo itemRepo;
     @Autowired
+    private OrderItemRepo orderItemRepo;
+    @Autowired
     private SessionSeatRepo sessionSeatRepo;
     @Autowired
     private DinningSessionRepo sessionRepo;
@@ -228,6 +230,25 @@ class ServiceDayTest {
         assertEquals(List.of("1 x Service plate"), mine.getItems());
         assertEquals("No pepper", mine.getNote());
         assertEquals("PAID", mine.getStep());
+    }
+
+    @Test
+    void testThatATicketCarriesWhatTheGuestAskedForOnThePlate() {
+        Order order = paid(OrderStatus.PAID);
+        OrderItem line = orderItemRepo.findByOrder_OrderId(order.getOrderId()).get(0);
+        line.setSpecialInstructions("No onions, please.");
+        orderItemRepo.save(line);
+
+        ServiceOrderResponse ticket = board.kitchen(tenantId).stream().filter(o -> o.getOrderId().equals(order.getOrderId())).findFirst().orElseThrow();
+
+        assertEquals(List.of("No onions, please."), ticket.getInstructions());
+    }
+
+    @Test
+    void testThatATicketWithNothingAskedForHasNoInstructions() {
+        Order order = paid(OrderStatus.PAID);
+        ServiceOrderResponse ticket = board.kitchen(tenantId).stream().filter(o -> o.getOrderId().equals(order.getOrderId())).findFirst().orElseThrow();
+        assertTrue(ticket.getInstructions().isEmpty());
     }
 
     @Test
