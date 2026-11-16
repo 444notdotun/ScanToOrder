@@ -39,7 +39,7 @@ export default function EventCodePage() {
     const failed = failureOf(preview.error, "We couldn't find this table");
     return (
       <Ground>
-        <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-6 pb-8 pt-10 md:max-w-lg">
+        <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-6 pb-8 pt-10">
           <Brand />
           <h1 className="font-heading text-[34px] font-normal leading-tight">We can&apos;t seat you here yet.</h1>
           <FailureCard title={failed.title} message={failed.message} />
@@ -78,7 +78,7 @@ export default function EventCodePage() {
   return (
     <Ground>
       <Watermark className="-bottom-[70px] -right-24" />
-      <main className="relative mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-3 px-6 pb-8 pt-8 md:max-w-lg md:justify-center">
+      <main className="relative mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-3 px-6 pb-8 pt-8 md:justify-center">
         <Brand size={24} />
         <Eyebrow className="mt-3">
           {event.eventName}

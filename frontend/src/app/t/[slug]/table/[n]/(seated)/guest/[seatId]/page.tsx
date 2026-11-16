@@ -42,7 +42,7 @@ export default function GuestWithoutPhonePage() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-3 px-5 pb-8 pt-6">
+    <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-3 px-5 pb-8 pt-6">
       <BackLink href={`/t/${slug}/table/${n}/home`} />
       <Eyebrow>{seat ? `Seat ${seat.position}` : 'A saved chair'}</Eyebrow>
       <h1 className="font-heading text-[34px] font-normal leading-[1.1]">Who&apos;s joining you?</h1>

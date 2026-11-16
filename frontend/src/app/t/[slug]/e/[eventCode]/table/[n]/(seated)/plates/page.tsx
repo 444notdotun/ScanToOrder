@@ -26,7 +26,7 @@ export default function PlatesPage() {
   if (mine.isError) {
     const failed = failureOf(mine.error, "We couldn't open your plates");
     return (
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-5 pt-8 md:max-w-lg">
+      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 flex-col gap-4 px-5 pt-8">
         <Brand />
         <FailureCard title={failed.title} message={failed.message} />
         <Button tone="light" onClick={() => void mine.refetch()}>
@@ -72,7 +72,7 @@ export default function PlatesPage() {
 
   return (
     <>
-      <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-5 pb-10 pt-6 md:max-w-lg">
+      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-10 pt-6">
         <header className="flex flex-col gap-1.5">
           <Brand size={22} />
           <Eyebrow className="mt-1">
@@ -88,7 +88,7 @@ export default function PlatesPage() {
             {left === null
               ? `You can have as many plates as you like. You've had ${event.platesUsed}.`
               : left === 0
-                ? `You've had all ${event.plateLimit} of your plates.`
+                ? `You've had all ${event.plateLimit} of your plates. The host can add more for you.`
                 : `${left} of ${event.plateLimit} plates left.`}
           </p>
         </header>
@@ -98,7 +98,7 @@ export default function PlatesPage() {
             Your {event.platePending} is on its way. Order again once it arrives.
           </div>
         ) : null}
-        {sent ? (
+        {sent && event.platePending ? (
           <div role="status" className="animate-pop rounded-2xl bg-good p-3.5 text-[15px] font-bold text-white">
             {sent}
           </div>

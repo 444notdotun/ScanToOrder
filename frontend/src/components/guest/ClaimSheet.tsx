@@ -80,6 +80,7 @@ export default function ClaimSheet({
       </h2>
       {joining ? <p className="mb-3 text-[15px] text-quiet">Ask your friend for the six letters on their phone.</p> : null}
       <form
+            noValidate
         className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();

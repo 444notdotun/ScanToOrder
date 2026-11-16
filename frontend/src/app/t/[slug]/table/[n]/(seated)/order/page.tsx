@@ -106,7 +106,7 @@ function OrderScreen() {
 
   return (
     <>
-      <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-3 px-5 pb-32 pt-6">
+      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-3 px-5 pb-32 pt-6">
         <BackLink href={`/t/${slug}/table/${n}/home`} />
         <h1 className="font-heading text-[34px] font-normal leading-[1.1]">{pending ? 'Nearly there.' : "What'll it be?"}</h1>
 
@@ -221,7 +221,7 @@ function OrderScreen() {
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bottle via-bottle/95 to-transparent px-5 pb-5 pt-8">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-md md:max-w-xl">
           <Button tone="primary" big disabled={!canPay || lost || !mine} onClick={() => void pay()}>
             {payLabel}
           </Button>

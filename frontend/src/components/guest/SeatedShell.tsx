@@ -36,7 +36,7 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
     return (
       <Ground>
         <ConnectionBanner lost caughtUp={false} />
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+        <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
           <p className="font-heading text-3xl leading-tight">We can&apos;t reach your table.</p>
           <p className="text-soft">{failure?.message}</p>
           <button type="button" onClick={() => void session.refetch()} className="mt-2 min-h-[44px] rounded-full bg-cream px-6 font-bold text-bottle">

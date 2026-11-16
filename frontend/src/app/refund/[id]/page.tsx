@@ -23,6 +23,8 @@ function RefundScreen() {
     enabled: Boolean(token),
     retry: false,
     queryFn: async () => dataOf<GuestRefund>(await http.get(base, query)),
+    // The link has no live stream (the guest is not seated), so look again when they come back to the page.
+    refetchOnWindowFocus: true,
   });
   const banks = useQuery({
     queryKey: ['banks'],
@@ -55,7 +57,7 @@ function RefundScreen() {
   const shell = (children: React.ReactNode, mark = false) => (
     <Ground>
       {mark ? <Watermark className="-bottom-[70px] -right-24" /> : null}
-      <main className="relative mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-5 pb-10 pt-8 md:max-w-lg">
+      <main className="relative mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-10 pt-8">
         <Brand size={24} />
         {children}
       </main>
@@ -125,6 +127,7 @@ function RefundScreen() {
         </p>
         <Card>
           <form
+            noValidate
             className="flex flex-col gap-4"
             onSubmit={(e) => {
               e.preventDefault();
@@ -195,6 +198,7 @@ function RefundScreen() {
             <p className="mt-1 text-sm text-quiet">Optional. If you were paid in cash at the table, you can skip this.</p>
           )}
           <form
+            noValidate
             className="mt-3 flex flex-col gap-3"
             onSubmit={(e) => {
               e.preventDefault();
