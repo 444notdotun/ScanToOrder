@@ -2,10 +2,10 @@
 
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
-import { managerApi, type TableRow } from '@/lib/manager';
+import { managerApi } from '@/lib/manager';
 
 // One printed card: the table's number, its code and a line for the guest. The code never changes, so a lost card is reprinted.
-export default function QrCard({ table }: { table: TableRow }) {
+export default function QrCard({ table }: { table: { tableNumber: string; displayNumber?: number } }) {
   const label = `Table ${table.displayNumber ?? table.tableNumber}`;
   const code = useQuery({
     queryKey: ['qr', table.tableNumber],

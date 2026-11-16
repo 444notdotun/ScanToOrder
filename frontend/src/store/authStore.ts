@@ -14,6 +14,7 @@ export interface WorkerProfile {
   fullName?: string;
   businessName?: string;
   mustChangePassword?: boolean;
+  tenantType?: 'RESTAURANT' | 'EVENT_PLANNER';
 }
 
 interface AuthState {
@@ -48,11 +49,11 @@ export function useAuthHydrated(): boolean {
   );
 }
 
-// Where each role starts its day.
-export function homeFor(role: StaffRole): string {
-  if (role === 'CHEF') return '/kitchen';
-  if (role === 'WAITER') return '/waiter';
+// Where each person starts their day. A planner's manager opens the events, not a restaurant floor.
+export function homeFor(profile: Pick<WorkerProfile, 'role' | 'tenantType'>): string {
+  if (profile.role === 'CHEF') return '/kitchen';
+  if (profile.role === 'WAITER') return '/waiter';
   // The platform owner's own screens arrive in a later pull request.
-  if (role === 'PLATFORM_ADMIN') return '/';
-  return '/manager';
+  if (profile.role === 'PLATFORM_ADMIN') return '/';
+  return profile.tenantType === 'EVENT_PLANNER' ? '/planner' : '/manager';
 }

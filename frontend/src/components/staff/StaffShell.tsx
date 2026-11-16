@@ -12,13 +12,15 @@ import { staffApi } from '@/lib/staff';
 import { homeFor, useAuthHydrated, useAuthStore, type StaffRole } from '@/store/authStore';
 
 // The frame around every staff screen: the signed-in check, the live stream, the header and the way out.
-export default function StaffShell({ allow, children }: { allow: StaffRole[]; children: ReactNode }) {
+export default function StaffShell({ allow, children, workspace }: { allow: StaffRole[]; children: ReactNode; workspace?: 'RESTAURANT' | 'EVENT_PLANNER' }) {
   const router = useRouter();
   const hydrated = useAuthHydrated();
   const profile = useAuthStore((state) => state.workerProfile);
   const logout = useAuthStore((state) => state.logout);
 
-  const allowed = profile !== null && !profile.mustChangePassword && allow.includes(profile.role);
+  // A manager of events belongs in /planner, a restaurant's manager in /manager: each is sent to the other's door.
+  const rightWorkspace = !workspace || profile?.role !== 'MANAGER' || (profile.tenantType ?? 'RESTAURANT') === workspace;
+  const allowed = profile !== null && !profile.mustChangePassword && allow.includes(profile.role) && rightWorkspace;
   const stream = useLiveStream('staff', allowed);
 
   // Today's count doubles as the check that the sign-in is still good.
@@ -31,10 +33,10 @@ export default function StaffShell({ allow, children }: { allow: StaffRole[]; ch
       router.replace('/staff/login');
     } else if (profile.mustChangePassword) {
       router.replace('/staff/new-password');
-    } else if (!allow.includes(profile.role)) {
-      router.replace(homeFor(profile.role));
+    } else if (!allow.includes(profile.role) || !rightWorkspace) {
+      router.replace(homeFor(profile));
     }
-  }, [hydrated, profile, allow, router]);
+  }, [hydrated, profile, allow, rightWorkspace, router]);
 
   useEffect(() => {
     if (expired) {
