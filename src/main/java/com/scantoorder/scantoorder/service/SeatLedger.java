@@ -32,6 +32,8 @@ public class SeatLedger {
     private SeatRepo seatRepo;
     @Autowired
     private OrderRepo orderRepo;
+    @Autowired
+    private LiveUpdates liveUpdates;
 
     /**
      * Who has the seat right now. A hold that has run out is released here, so it counts as vacant.
@@ -66,10 +68,12 @@ public class SeatLedger {
         membership.setSeat(seat);
         membership.setTenant(seat.getTenant());
         membership.setStatus(SessionSeatStatus.HELD);
+        membership.setHeldAt(LocalDateTime.now());
         membership.setHeldUntil(LocalDateTime.now().plusMinutes(HOLD_MINUTES));
         sessionSeatRepo.save(membership);
         seat.setStatus(SeatStatus.HELD);
         seatRepo.save(seat);
+        seatChanged(membership, "HELD");
         return membership;
     }
 
@@ -85,6 +89,7 @@ public class SeatLedger {
         Seat seat = membership.getSeat();
         seat.setStatus(SeatStatus.OCCUPIED);
         seatRepo.save(seat);
+        seatChanged(membership, "OCCUPIED");
     }
 
     public void release(SessionSeat membership) {
@@ -96,6 +101,14 @@ public class SeatLedger {
         Seat seat = membership.getSeat();
         seat.setStatus(SeatStatus.VACANT);
         seatRepo.save(seat);
+        seatChanged(membership, "VACANT");
+    }
+
+    // Staff screens and the guests of this session are told a seat changed.
+    private void seatChanged(SessionSeat membership, String state) {
+        liveUpdates.publish(membership.getTenant().getTenantId(),
+                membership.getSession() == null ? null : membership.getSession().getSessionId(),
+                "seat", membership.getSeat().getSeatId(), state);
     }
 
     public int cancelUnpaidOrders(SessionSeat membership) {

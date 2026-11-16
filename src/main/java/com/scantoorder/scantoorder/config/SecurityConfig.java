@@ -66,13 +66,16 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/payments/webhook").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/refunds/*/guest").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/refunds/*/guest/*").permitAll()
+                        // A stream finishes with an async dispatch, which carries no sign-in of its own.
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC, jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, e) -> {
                     res.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
                     res.setContentType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE);
-                    String message = req.getAttribute(JwtFilter.SESSION_ENDED_ATTRIBUTE) != null
-                            ? JwtFilter.SESSION_ENDED_MESSAGE : "Unauthorized";
+                    Object ended = req.getAttribute(JwtFilter.SESSION_ENDED_ATTRIBUTE);
+                    String message = ended != null
+                            ? (ended instanceof String text ? text : JwtFilter.SESSION_ENDED_MESSAGE) : "Unauthorized";
                     res.getWriter().write("{\"status\":\"ERROR\",\"message\":\"" + message + "\"}");
                 }))
                 .authenticationProvider(authenticationProvider())

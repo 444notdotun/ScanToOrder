@@ -22,6 +22,9 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class MenuServiceImpl implements MenuService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private LiveUpdates liveUpdates;
+
     @Autowired
     private CategoryRepository categoryRepository;
     @Autowired
@@ -74,5 +77,7 @@ public class MenuServiceImpl implements MenuService {
     @Override
     public void clearCache(String tenantId) {
         redisTemplate.delete(MENU_KEY_PREFIX + tenantId);
+        // Every change to the menu comes through here, so every open screen is told to fetch it again.
+        liveUpdates.publish(tenantId, "menu", null, null);
     }
 }
