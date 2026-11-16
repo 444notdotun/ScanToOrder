@@ -245,32 +245,6 @@ public class PaystackClientImpl implements PaystackClient {
         return code;
     }
 
-    @Override
-    public void createRefund(String transactionReference, String refundReference) {
-        Map<String, Object> body = new java.util.LinkedHashMap<>();
-        body.put("transaction", transactionReference);
-        body.put("reference", refundReference);
-        HttpResponse<String> response = post("/refund", body);
-        int status = response.statusCode();
-        // 409: a refund with this reference already exists, so this is the same refund asked for twice.
-        if (status == 409) {
-            return;
-        }
-        if (status >= 400 && status < 500) {
-            String message = "Paystack could not start the refund";
-            try {
-                JsonNode json = objectMapper.readTree(response.body());
-                if (json.hasNonNull("message")) message = "Paystack could not start the refund: " + json.path("message").asText();
-            } catch (Exception ignored) {
-            }
-            throw new RefundRejectedException(message);
-        }
-        JsonNode root = readJson(response, status);
-        if (!root.path("status").asBoolean()) {
-            throw new RefundRejectedException("Paystack could not start the refund: " + root.path("message").asText());
-        }
-    }
-
     private HttpResponse<String> post(String path, Map<String, Object> body) {
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()

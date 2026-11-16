@@ -80,11 +80,6 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
     }
 
-    @ExceptionHandler(RefundRejectedException.class)
-    public ResponseEntity<Object> handleRefundRejectedException(RefundRejectedException ex) {
-        return buildResponse(HttpStatus.BAD_GATEWAY, ex.getMessage());
-    }
-
     @ExceptionHandler(AccountVerificationException.class)
     public ResponseEntity<Object> handleAccountVerificationException(AccountVerificationException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());

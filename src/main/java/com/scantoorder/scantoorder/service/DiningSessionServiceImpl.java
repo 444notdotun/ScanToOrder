@@ -327,7 +327,7 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         SessionSeat me = requireSeated(caller);
         List<Payment> payments = paymentRepo.findByOrderDinningSessionSessionIdAndStatusIn(
                 me.getSession().getSessionId(),
-                List.of(PaymentStatus.SUCCESSFUL, PaymentStatus.REFUND_PENDING, PaymentStatus.REFUNDED, PaymentStatus.REFUND_FAILED));
+                List.of(PaymentStatus.SUCCESSFUL));
         return payments.stream()
                 .filter(payment -> {
                     SessionSeat owner = payment.getOrder().getSessionSeat();

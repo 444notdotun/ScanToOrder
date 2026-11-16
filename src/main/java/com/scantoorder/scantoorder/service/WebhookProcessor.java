@@ -3,7 +3,6 @@ package com.scantoorder.scantoorder.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scantoorder.scantoorder.data.model.Payment;
-import com.scantoorder.scantoorder.data.model.PaymentStatus;
 import com.scantoorder.scantoorder.data.repository.PaymentRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,10 +35,6 @@ public class WebhookProcessor {
             switch (event) {
                 case "charge.success" -> chargeSucceeded(data, payload);
                 case "charge.failed" -> chargeFailed(data, payload);
-                case "refund.processed" -> refundProcessed(data);
-                case "refund.failed" -> refundFailed(data);
-                case "refund.needs-attention" ->
-                        log.warn("Refund for payment {} needs the customer's bank details. It stays pending.", data.path("transaction_reference").asText());
                 default -> log.debug("Ignored a {} notice", event);
             }
         } catch (Exception e) {
@@ -66,22 +61,6 @@ public class WebhookProcessor {
         Payment payment = lock(data.path("reference").asText());
         if (payment != null) {
             settlement.failure(payment, payload);
-        }
-    }
-
-    private void refundProcessed(JsonNode data) {
-        Payment payment = lock(data.path("transaction_reference").asText());
-        if (payment != null && payment.getStatus() == PaymentStatus.REFUND_PENDING) {
-            payment.setStatus(PaymentStatus.REFUNDED);
-            paymentRepo.save(payment);
-        }
-    }
-
-    private void refundFailed(JsonNode data) {
-        Payment payment = lock(data.path("transaction_reference").asText());
-        if (payment != null && payment.getStatus() == PaymentStatus.REFUND_PENDING) {
-            payment.setStatus(PaymentStatus.REFUND_FAILED);
-            paymentRepo.save(payment);
         }
     }
 

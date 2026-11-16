@@ -16,9 +16,6 @@ public interface PaystackClient {
     // Returns the new subaccount's code. Throws PayoutAccountRejectedException when Paystack refuses the account.
     String createSubaccount(String businessName, String bankCode, String accountNumber, java.math.BigDecimal percentageCharge);
 
-    // Refunds the full amount of a transaction. A refund reference that already exists counts as accepted.
-    void createRefund(String transactionReference, String refundReference);
-
     List<BankData> listBanks();
 
     // Returns the account holder's name, or throws AccountVerificationException when the bank has no such account.
