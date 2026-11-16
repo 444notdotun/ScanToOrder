@@ -757,6 +757,39 @@ class EventDayTest {
         assertTrue(oldPath == 401 || oldPath == 403 || oldPath == 404 || oldPath == 405, "old path answered " + oldPath);
     }
 
+    @Test
+    void testThatTheTablePreviewNamesTheEventAndSaysWhetherCodesWorkYet() throws Exception {
+        assignedEvent(1, 1);
+        EventTableResponse table = support.table(planner, event, 2);
+        MockMvc open = MockMvcBuilders.webAppContextSetup(wac).addFilters(securityFilters).build();
+        String path = "/api/v1/t/" + slug + "/e/" + event.getEventCode() + "/tables/" + table.getDisplayNumber();
+
+        var running = seating.preview(slug, event.getEventCode(), table.getDisplayNumber());
+        assertEquals("Test Wedding", running.getEventName());
+        assertEquals("The Hall", running.getVenue());
+        assertTrue(running.isOpen());
+        assertFalse(running.isOver());
+        assertEquals(200, open.perform(MockMvcRequestBuilders.get(path)).andReturn().getResponse().getStatus());
+
+        Event row = eventRepo.findById(event.getId()).orElseThrow();
+        row.setStartsAt(LocalDateTime.now().plusHours(2));
+        row.setEndsAt(LocalDateTime.now().plusHours(6));
+        eventRepo.save(row);
+        var early = seating.preview(slug, event.getEventCode(), table.getDisplayNumber());
+        assertFalse(early.isOpen());
+        assertFalse(early.isOver());
+
+        row.setStartsAt(LocalDateTime.now().minusHours(6));
+        row.setEndsAt(LocalDateTime.now().minusHours(1));
+        eventRepo.save(row);
+        assertTrue(seating.preview(slug, event.getEventCode(), table.getDisplayNumber()).isOver());
+
+        assertThrows(TableNotFoundException.class, () -> seating.preview(slug, "AAAAAA", table.getDisplayNumber()));
+        assertThrows(TableNotFoundException.class, () -> seating.preview(slug, event.getEventCode(), 999));
+        assertThrows(TableNotFoundException.class, () -> seating.preview(TenantTestSupport.MAIN_SLUG, event.getEventCode(), table.getDisplayNumber()));
+        assertEquals(404, open.perform(MockMvcRequestBuilders.get("/api/v1/t/" + slug + "/e/AAAAAA/tables/1")).andReturn().getResponse().getStatus());
+    }
+
     // ---- the demo
 
     @Test

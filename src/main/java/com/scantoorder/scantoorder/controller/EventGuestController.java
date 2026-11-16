@@ -5,6 +5,7 @@ import com.scantoorder.scantoorder.dtos.request.EventCodeRequest;
 import com.scantoorder.scantoorder.dtos.request.EventOrderRequest;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.dtos.respond.EventOrderResponse;
+import com.scantoorder.scantoorder.dtos.respond.EventTablePreviewResponse;
 import com.scantoorder.scantoorder.dtos.respond.MyEventResponse;
 import com.scantoorder.scantoorder.dtos.respond.SeatClaimedResponse;
 import com.scantoorder.scantoorder.service.EventOrderService;
@@ -36,6 +37,15 @@ public class EventGuestController {
     private EventSeatingService seatingService;
     @Autowired
     private EventOrderService orderService;
+
+    // Public: what the event is called, so the guest sees it before typing a code.
+    @GetMapping("/t/{slug}/e/{eventCode}/tables/{displayNumber}")
+    public ResponseEntity<ApiResponse<EventTablePreviewResponse>> preview(
+            @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "Invalid identifier format") String slug,
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9]{6}$", message = "Invalid identifier format") String eventCode,
+            @PathVariable @Min(1) int displayNumber) {
+        return ResponseEntity.ok(new ApiResponse<>(seatingService.preview(slug, eventCode, displayNumber)));
+    }
 
     // Public: the guest has no seat yet. The code is what proves who they are.
     @PostMapping("/t/{slug}/e/{eventCode}/tables/{displayNumber}/code")
