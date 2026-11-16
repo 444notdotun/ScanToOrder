@@ -84,7 +84,12 @@ public class ServiceBoardService {
 
     @Transactional(readOnly = true)
     public List<ServiceOrderResponse> ready(String tenantId) {
-        return orders(tenantId, List.of(OrderStatus.READY), true);
+        // Oldest first means the one that has been waiting to be carried the longest.
+        LocalDateTime now = LocalDateTime.now();
+        return orderRepo.findByTenant_TenantIdAndOrderStatusIn(tenantId, List.of(OrderStatus.READY)).stream()
+                .sorted(Comparator.comparing((Order order) -> order.getReadyAt() != null ? order.getReadyAt() : ticketTime(order)))
+                .map(order -> response(order, now, true))
+                .toList();
     }
 
     // Orders the kitchen could not make: a waiter has to go to the table.
