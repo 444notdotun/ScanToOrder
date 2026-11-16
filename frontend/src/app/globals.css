@@ -1,5 +1,62 @@
 @import "tailwindcss";
 
+/* ---------- Plately ---------- */
+
+@theme {
+  --color-bottle: #183A2E;
+  --color-cream: #F4ECD8;
+  --color-soft: #C9D6C8;
+  --color-paper: #FBF6EA;
+  --color-paperlight: #FFFDF6;
+  --color-ink: #23201A;
+  --color-quiet: #5B5548;
+  --color-mustard: #F0B94A;
+  --color-tomato: #B93C24;
+  --color-hand: #A8351F;
+  --color-good: #2E6B4A;
+  --color-rule: #E6DDC8;
+  --color-rule2: #BDB29A;
+  --color-errbg: #FBE9D7;
+  --color-errborder: #C97A3A;
+  --color-errtext: #5A2A12;
+
+  --font-heading: var(--font-young-serif), Georgia, serif;
+  --font-body: var(--font-karla), "Helvetica Neue", Arial, sans-serif;
+  --font-hand: var(--font-caveat), "Segoe Script", cursive;
+  --font-wordmark: var(--font-fraunces), Georgia, serif;
+
+  --animate-rise: rise 380ms cubic-bezier(.2, .7, .2, 1) both;
+  --animate-sheet: sheet 320ms cubic-bezier(.2, .7, .2, 1) both;
+  --animate-fade: fade 240ms both;
+  --animate-pop: pop 520ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-breathe: breathe 3.2s ease-in-out infinite;
+  --animate-sway: sway 3.6s ease-in-out infinite;
+  --animate-spin-slow: spin 1.1s linear infinite;
+  --animate-shake: shake 420ms both;
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: none } }
+@keyframes sheet { from { transform: translateY(100%) } to { transform: none } }
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes pop { 0% { opacity: 0; transform: scale(.86) } 60% { opacity: 1; transform: scale(1.05) } 100% { transform: scale(1) } }
+@keyframes breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.045) } }
+@keyframes sway { 0%, 100% { transform: rotate(-2.5deg) } 50% { transform: rotate(2.5deg) } }
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes shake { 0%, 100% { transform: translateX(0) } 20% { transform: translateX(-6px) } 40% { transform: translateX(5px) } 60% { transform: translateX(-3px) } 80% { transform: translateX(2px) } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+.plately button, .plately input, .plately select, .plately textarea { font-family: inherit; }
+.plately button { cursor: pointer; transition: transform .14s ease, background-color .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease; }
+.plately button:active:not(:disabled) { transform: scale(.96); }
+.plately button:disabled { cursor: not-allowed; opacity: .55; }
+.plately :focus-visible { outline: 3px solid #F0B94A; outline-offset: 2px; }
+.plately a { color: inherit; }
+
+/* ---------- Before the rebuild: the staff pages still use these, and go when their Plately screens do ---------- */
+
 :root {
   --background: #F8F6F2;
   --foreground: #1C1917; /* Warm dark grey */
