@@ -50,7 +50,8 @@ public class MenuServiceImpl implements MenuService {
                 .map(category -> {
                     CategoryAndItemResponse categoryResponse = new CategoryAndItemResponse();
                     categoryResponse.setCategoryName(category.getCategoryName());
-                    List<Item> items = itemRepo.findAllByCategoryId(category);
+                    // An item that is switched off is hidden from guests, not deleted.
+                    List<Item> items = itemRepo.findAllByCategoryIdAndIsAvailableTrue(category);
                     List<ItemResponse> itemResponses = items.stream()
                             .map(item -> modelMapper.map(item, ItemResponse.class))
                             .toList();
