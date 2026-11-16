@@ -148,7 +148,7 @@ class PayoutAccountTest {
         assertTrue(body.contains("3344"));
         assertFalse(body.contains(NEW_ACCOUNT));
         assertTrue(body.contains("If this wasn't you, contact Plately straight away."));
-        assertTrue(body.matches("(?s).*When: \\d{1,2} \\w{3} \\d{4}, \\d{2}:\\d{2}.*"));
+        assertTrue(body.matches("(?s).*When: \\d{1,2} \\w{3} \\d{4}, \\d{1,2}:\\d{2} (am|pm).*"));
     }
 
     @Test

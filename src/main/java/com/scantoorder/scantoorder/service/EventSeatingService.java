@@ -23,6 +23,7 @@ import com.scantoorder.scantoorder.dtos.respond.EventTablePreviewResponse;
 import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
 import com.scantoorder.scantoorder.dtos.respond.SeatClaimedResponse;
 import com.scantoorder.scantoorder.exception.ConflictException;
+import com.scantoorder.scantoorder.utils.TimeText;
 import com.scantoorder.scantoorder.exception.ResourceNotFoundException;
 import com.scantoorder.scantoorder.exception.SeatStatusException;
 import com.scantoorder.scantoorder.exception.SeatTakenException;
@@ -34,7 +35,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -105,7 +105,7 @@ public class EventSeatingService {
             throw new ConflictException(EVENT_OVER);
         }
         if (now.isBefore(event.getStartsAt())) {
-            throw new ConflictException("Doors open at " + event.getStartsAt().format(DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH))
+            throw new ConflictException("Doors open at " + TimeText.clock(event.getStartsAt())
                     + ". Come back then and your code will work.");
         }
 
