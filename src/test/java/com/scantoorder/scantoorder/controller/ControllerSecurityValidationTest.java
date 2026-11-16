@@ -60,6 +60,13 @@ public class ControllerSecurityValidationTest {
     @MockitoBean
     private RestaurantTableService restaurantTableService;
 
+    // The seeder builds the demo event through these at startup; this test stubs the service layer.
+    @MockitoBean
+    private com.scantoorder.scantoorder.service.EventTableService eventTableService;
+
+    @MockitoBean
+    private com.scantoorder.scantoorder.service.EventGuestService eventGuestService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private void signInAs(String role) {
