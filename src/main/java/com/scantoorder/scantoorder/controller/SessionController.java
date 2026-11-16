@@ -9,6 +9,7 @@ import com.scantoorder.scantoorder.dtos.respond.LeaveSessionResponse;
 import com.scantoorder.scantoorder.dtos.respond.SessionViewResponse;
 import com.scantoorder.scantoorder.dtos.respond.CloseSessionResponse;
 import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
+import com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +42,7 @@ public class SessionController {
 
     @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/me/orders")
-    public ResponseEntity<ApiResponse<com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse>> getMyOrders(
+    public ResponseEntity<ApiResponse<SessionOrdersResponse>> getMyOrders(
             @AuthenticationPrincipal CustomerPrincipal principal) {
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(diningSessionService.getSessionOrders(principal)));
     }

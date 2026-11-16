@@ -37,12 +37,16 @@ import com.scantoorder.scantoorder.exception.SeatNotFoundException;
 import com.scantoorder.scantoorder.exception.SessionEndedException;
 import com.scantoorder.scantoorder.exception.SessionNotFoundException;
 import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
+import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
+import com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse;
+import com.scantoorder.scantoorder.data.model.OrderItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -68,7 +72,7 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     @Autowired
     private OrderRepo orderRepo;
     @Autowired
-    private com.scantoorder.scantoorder.data.repository.OrderItemRepo orderItemRepo;
+    private OrderItemRepo orderItemRepo;
     @Autowired
     private PaymentRepo paymentRepo;
     @Autowired
@@ -360,11 +364,11 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     // Like the receipts: this guest's own orders and those for guests without a phone, never another phone's.
     @Transactional(readOnly = true)
     @Override
-    public com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse getSessionOrders(CustomerPrincipal caller) {
+    public SessionOrdersResponse getSessionOrders(CustomerPrincipal caller) {
         SessionSeat me = requireSeated(caller);
         String sessionId = me.getSession().getSessionId();
-        var response = new com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse();
-        java.util.Map<String, String> references = new java.util.HashMap<>();
+        SessionOrdersResponse response = new SessionOrdersResponse();
+        Map<String, String> references = new HashMap<>();
         for (Payment payment : paymentRepo.findByOrderDinningSessionSessionIdAndStatusIn(sessionId, List.of(PaymentStatus.SUCCESSFUL))) {
             references.putIfAbsent(payment.getOrder().getOrderId(), payment.getReference());
         }
@@ -379,7 +383,7 @@ public class DiningSessionServiceImpl implements DiningSessionService {
             if (paid && order.getTotalAmount() != null) {
                 response.setPaidByYou(response.getPaidByYou().add(order.getTotalAmount()));
             }
-            var view = new com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse.Order();
+            SessionOrdersResponse.Order view = new SessionOrdersResponse.Order();
             view.setOrderId(order.getOrderId());
             view.setOrderNumber(order.getOrderNumber());
             view.setPaymentReference(references.get(order.getOrderId()));
@@ -391,15 +395,13 @@ public class DiningSessionServiceImpl implements DiningSessionService {
                 view.setForSeatPosition(owner.getSeat().getPosition());
                 view.setForName(owner.getGuestName());
             }
-            for (var line : orderItemRepo.findByOrder_OrderId(order.getOrderId())) {
+            for (OrderItem line : orderItemRepo.findByOrder_OrderId(order.getOrderId())) {
                 if (line.isSwappedOut() || line.getItem() == null) continue;
                 view.getItems().add(line.getQuantity() + " x " + line.getItem().getItemName());
             }
             response.getOrders().add(view);
         }
-        response.getOrders().sort(java.util.Comparator.comparing(
-                com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse.Order::getCreatedAt,
-                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+        response.getOrders().sort(Comparator.comparing(SessionOrdersResponse.Order::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
         return response;
     }
 
