@@ -28,6 +28,8 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <!-- Tests rebuild their schema, so they use their own database. Override with -Dtest.db.url=... -->
+        <test.db.url>jdbc:postgresql://localhost:5432/scan_to_order_test</test.db.url>
     </properties>
     <dependencies>
         <dependency>
@@ -138,6 +140,15 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <spring.datasource.url>${test.db.url}</spring.datasource.url>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

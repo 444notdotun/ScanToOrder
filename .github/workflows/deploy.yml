@@ -59,4 +59,4 @@ jobs:
           ENVIRONMENT: test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
-        run: ./mvnw test
+        run: ./mvnw test -Dtest.db.url=jdbc:postgresql://localhost:5432/scan_to_order_test
