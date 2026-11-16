@@ -10,8 +10,8 @@ export default function StaffHeaderCard({ profile }: { profile: WorkerProfile })
         {initialsOf(name)}
       </span>
       <div className="min-w-0">
-        <div className="truncate text-base font-bold text-ink">{name}</div>
-        <div className="truncate text-sm text-quiet">
+        <div className="break-words text-base font-bold text-ink">{name}</div>
+        <div className="break-words text-sm text-quiet">
           {roleLabel(profile)} · {profile.businessName ?? 'Plately'}
         </div>
       </div>

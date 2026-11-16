@@ -67,8 +67,8 @@ export default function StaffHeader({
           {initialsOf(name)}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-base font-bold leading-tight text-cream">{name}</div>
-          <div className="truncate text-[13px] leading-tight text-soft">
+          <div className="break-words text-base font-bold leading-tight text-cream">{name}</div>
+          <div className="break-words text-[13px] leading-tight text-soft">
             {roleLabel(profile)} · {where}
           </div>
         </div>
