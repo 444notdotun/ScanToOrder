@@ -311,4 +311,34 @@ class PlatformApprovalTest {
         assertEquals(403, statusFor("/api/v1/categories", "PLATFORM_ADMIN", null));
         assertEquals(200, statusFor("/api/v1/tenant", "MANAGER", tenants.mainId()));
     }
+
+    @Test
+    void testThatAnApprovalThatFailsAfterPaystackCreatedTheSubaccountLogsItsCodeAndTheTenantAndChangesNothing() {
+        Tenant pending = tenants.pendingTenant("Save Fails");
+        Worker taken = new Worker();
+        taken.setUsername(pending.getSlug() + ".manager");
+        taken.setRole(WorkerRole.CHEF);
+        taken.setPassword("x");
+        workerRepo.save(taken);
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(PlatformServiceImpl.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender = new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            assertThrows(com.scantoorder.scantoorder.exception.ConflictException.class, () -> platformService.approve(pending.getTenantId()));
+        } finally {
+            logger.detachAppender(appender);
+            workerRepo.delete(taken);
+        }
+
+        assertEquals(TenantStatus.PENDING_APPROVAL, tenantRepo.findById(pending.getTenantId()).orElseThrow().getStatus());
+        assertNull(tenantRepo.findById(pending.getTenantId()).orElseThrow().getPaystackSubaccountCode());
+        String logged = appender.list.stream()
+                .filter(event -> event.getLevel() == ch.qos.logback.classic.Level.ERROR)
+                .map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage)
+                .findFirst().orElseThrow();
+        assertTrue(logged.contains("ACCT_approved001"));
+        assertTrue(logged.contains(pending.getTenantId()));
+        assertFalse(logged.contains(pending.getAccountNumber()));
+    }
 }
