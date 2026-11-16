@@ -59,7 +59,7 @@ export default function StaffShell({ allow, children }: { allow: StaffRole[]; ch
     <ConnectionContext.Provider value={connection}>
       <Ground>
         <ConnectionBanner lost={stream.lost} caughtUp={stream.caughtUp} />
-        <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 pb-1 pt-5">
+        <header className="mx-auto flex w-full max-w-6xl print:hidden flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 pb-1 pt-5">
           <Brand size={28} />
           <div className="flex items-center gap-4 text-right">
             <div>

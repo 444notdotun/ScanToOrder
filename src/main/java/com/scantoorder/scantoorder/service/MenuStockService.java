@@ -28,7 +28,8 @@ public class MenuStockService {
     public List<StockItemResponse> list(String tenantId) {
         return itemRepo.findByTenant_TenantIdOrderByItemNameAsc(tenantId).stream()
                 .map(item -> new StockItemResponse(item.getItemId(), item.getItemName(),
-                        item.getCategoryId() == null ? null : item.getCategoryId().getCategoryName(), item.isAvailable()))
+                        item.getCategoryId() == null ? null : item.getCategoryId().getCategoryName(), item.isAvailable(),
+                        item.getItemDescription(), item.getItemPrice()))
                 .toList();
     }
 
