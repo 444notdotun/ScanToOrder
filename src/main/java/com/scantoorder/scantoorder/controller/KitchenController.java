@@ -19,13 +19,27 @@ public class KitchenController {
 
     @Autowired
     private OrderService orderService;
+    @Autowired
+    private com.scantoorder.scantoorder.service.ServiceBoardService board;
 
     @PreAuthorize("hasAnyRole('CHEF', 'WAITER', 'MANAGER')")
     @GetMapping("/orders")
-    public ResponseEntity<ApiResponse<List<KitchenOrderResponse>>> getOrders(
+    public ResponseEntity<ApiResponse<? extends Object>> getOrders(
             @RequestParam(required = false) String status) {
+        if (status == null || status.isBlank()) {
+            // The kitchen's own list. A waiter reaches the lists they used before by naming a status.
+            if (isWaiter()) {
+                throw new org.springframework.security.access.AccessDeniedException("This is not available to your account");
+            }
+            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(board.kitchen(CurrentTenant.id())));
+        }
         List<KitchenOrderResponse> response = orderService.getKitchenOrders(CurrentTenant.id(), status);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
+    }
+
+    private boolean isWaiter() {
+        Object principal = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return principal instanceof com.scantoorder.scantoorder.data.model.WorkerPrincipal worker && "WAITER".equals(worker.getRole());
     }
 
     @PreAuthorize("hasAnyRole('CHEF', 'WAITER', 'MANAGER')")

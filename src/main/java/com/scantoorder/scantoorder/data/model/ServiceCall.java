@@ -21,8 +21,13 @@ public class ServiceCall {
     private String serviceDescription;
     @Enumerated(EnumType.STRING)
     private ServiceStatus serviceStatus;
-    @CreatedBy
+    @org.hibernate.annotations.CreationTimestamp
     private LocalDateTime createdAt;
+    private LocalDateTime takenAt;
+    @ManyToOne
+    @JoinColumn(name = "taken_by")
+    private Worker takenBy;
+    private LocalDateTime doneAt;
     private LocalDateTime resolvedAt;
     @ManyToOne
     @JoinColumn(name = "workerId")

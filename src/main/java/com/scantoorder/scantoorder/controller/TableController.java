@@ -81,9 +81,11 @@ public class TableController {
     @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @PostMapping("/{id}/close")
     public ResponseEntity<ApiResponse<CloseTableResponse>> closeTable(
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format") String id) {
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format") String id,
+            // Needed when paid orders have not been delivered yet.
+            @RequestParam(defaultValue = "false") boolean confirm) {
         return ResponseEntity.status(HttpStatus.OK)
-                .body(new ApiResponse<>(diningSessionService.closeTable(CurrentTenant.id(), id)));
+                .body(new ApiResponse<>(diningSessionService.closeTable(CurrentTenant.id(), id, confirm)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")

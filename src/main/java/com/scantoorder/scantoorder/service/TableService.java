@@ -48,6 +48,8 @@ public class TableService implements RestaurantTableService {
   @Autowired
   private SeatLedger seatLedger;
   @Autowired
+  private LiveUpdates liveUpdates;
+  @Autowired
   private TenantAccess tenantAccess;
   @org.springframework.beans.factory.annotation.Value("${app.frontend.url:http://localhost:3000}")
   private String frontendUrl;
@@ -96,6 +98,7 @@ public class TableService implements RestaurantTableService {
         response.setCapacity(seatCapacity);
         response.setStatus(TableStatus.AVAILABLE);
         response.setMessage("Table created successfully");
+        liveUpdates.publish(tenantId, "table", restaurantTable.getTableId(), "CREATED");
         return response;
     }
 
@@ -252,5 +255,6 @@ public class TableService implements RestaurantTableService {
         table.setActive(false);
         table.setDisplayNumber(null);
         tableRepo.save(table);
+        liveUpdates.publish(tenantId, "table", tableId, "REMOVED");
     }
 }

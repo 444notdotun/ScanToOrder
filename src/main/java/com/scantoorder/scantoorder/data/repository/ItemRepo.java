@@ -21,4 +21,6 @@ public interface ItemRepo extends JpaRepository<Item, String> {
     Optional<Item> findByItemIdAndTenant_TenantId(String itemId, String tenantId);
     boolean existsByCategoryId(Category category);
     long countByTenant_TenantIdAndIsAvailableTrue(String tenantId);
+
+    List<Item> findByTenant_TenantIdAndIsAvailableFalseOrderByItemNameAsc(String tenantId);
 }
