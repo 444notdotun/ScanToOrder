@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import com.scantoorder.scantoorder.dtos.respond.BankData;
 import com.scantoorder.scantoorder.dtos.respond.PaystackSplit;
+import com.scantoorder.scantoorder.dtos.respond.SubaccountData;
 import com.scantoorder.scantoorder.exception.AccountVerificationException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -245,14 +246,55 @@ public class PaystackClientImpl implements PaystackClient {
         return code;
     }
 
+    public static final String PAYOUT_UPDATE_REJECTED =
+            "Paystack didn't accept that account, so nothing was changed. Check the details and try again.";
+
+    @Override
+    public void updateSubaccount(String subaccountCode, String bankCode, String accountNumber) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("settlement_bank", bankCode);
+        body.put("account_number", accountNumber);
+        HttpResponse<String> response = send("PUT", "/subaccount/" + URLEncoder.encode(subaccountCode, StandardCharsets.UTF_8), body);
+        int status = response.statusCode();
+        if (status >= 400 && status < 500) {
+            // Never put the account number in a message or a log.
+            throw new PayoutAccountRejectedException(PAYOUT_UPDATE_REJECTED);
+        }
+        JsonNode root = readJson(response, status);
+        if (!root.path("status").asBoolean()) {
+            throw new PayoutAccountRejectedException(PAYOUT_UPDATE_REJECTED);
+        }
+    }
+
+    @Override
+    public List<SubaccountData> listSubaccounts() {
+        List<SubaccountData> found = new ArrayList<>();
+        for (int page = 1; page <= 20; page++) {
+            JsonNode root = get(paystackBaseUrl + "/subaccount?perPage=100&page=" + page);
+            JsonNode data = root.path("data");
+            for (JsonNode node : data) {
+                String code = node.path("subaccount_code").asText();
+                if (!code.isBlank()) {
+                    found.add(new SubaccountData(code, node.path("business_name").asText()));
+                }
+            }
+            if (data.size() < 100) break;
+        }
+        return found;
+    }
+
     private HttpResponse<String> post(String path, Map<String, Object> body) {
+        return send("POST", path, body);
+    }
+
+    private HttpResponse<String> send(String method, String path, Map<String, Object> body) {
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(paystackBaseUrl + path))
                     .header("Authorization", "Bearer " + paystackSecretKey)
                     .header("Content-Type", "application/json")
                     .timeout(Duration.ofSeconds(10))
-                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+                    .method(method, HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                     .build();
             return httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
         } catch (HttpTimeoutException e) {
