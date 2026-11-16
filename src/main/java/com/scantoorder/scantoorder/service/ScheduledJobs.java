@@ -1,6 +1,7 @@
 package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
+import com.scantoorder.scantoorder.service.Interface.EventService;
 import com.scantoorder.scantoorder.data.model.Order;
 import com.scantoorder.scantoorder.data.model.OrderStatus;
 import com.scantoorder.scantoorder.data.repository.OrderRepo;
@@ -22,12 +23,23 @@ public class ScheduledJobs {
 
     @Autowired
     private DiningSessionService diningSessionService;
+    @Autowired
+    private EventService eventService;
 
     @Scheduled(fixedRate = 60_000)
     public void expireHolds() {
         int released = diningSessionService.expireHolds();
         if (released > 0) {
             log.info("Released {} expired seat holds", released);
+        }
+    }
+
+    // Events end by themselves at their end time: codes stop working and their tables are closed.
+    @Scheduled(fixedRate = 60_000)
+    public void endFinishedEvents() {
+        int ended = eventService.endFinishedEvents();
+        if (ended > 0) {
+            log.info("Ended {} events that reached their end time", ended);
         }
     }
 

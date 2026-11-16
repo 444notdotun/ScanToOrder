@@ -20,6 +20,8 @@ public interface TableRepo extends JpaRepository<RestaurantTable, String> {
     boolean existsByTenant_TenantIdAndDisplayNumber(String tenantId, Integer displayNumber);
 
     @Query("SELECT COUNT(t) FROM RestaurantTable t WHERE t.tenant.tenantId = :tenantId AND t.isActive = true")
+    List<RestaurantTable> findByEvent_IdAndIsActiveTrueOrderByDisplayNumberAsc(String eventId);
+
     long countActive(@Param("tenantId") String tenantId);
 
     @Query("SELECT t FROM RestaurantTable t WHERE t.tenant.tenantId = :tenantId AND t.isActive = true ORDER BY t.displayNumber")

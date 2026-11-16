@@ -5,6 +5,7 @@ public enum CodePrefix {
     ORDER,
     PAYMENT,
     MENU,
-    TABLE;
+    TABLE,
+    EVENT;
 
 }

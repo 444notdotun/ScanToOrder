@@ -51,6 +51,8 @@ public class PaymentImplementation implements PaymentService {
     private PaymentSettlement settlement;
     @Autowired
     private AsyncPaymentService asyncPaymentService;
+    @Autowired
+    private EventPaymentService eventPaymentService;
 
     @Value("${paystack.secret.key:}")
     private String paystackSecretKey;
@@ -110,6 +112,9 @@ public class PaymentImplementation implements PaymentService {
     @Transactional
     @Override
     public PaymentStatusResponse verifyAndSyncPayment(String tenantId, String reference) {
+        if (EventPaymentService.isEventReference(reference)) {
+            return eventPaymentService.verify(tenantId, reference);
+        }
         Payment payment = paymentRepo.findForUpdateByReferenceAndTenant(reference, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("We cannot find that payment"));
 
