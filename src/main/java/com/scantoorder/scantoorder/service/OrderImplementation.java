@@ -30,6 +30,8 @@ public class OrderImplementation implements OrderService {
     @Autowired
     private OrderItemService orderItemService;
     @Autowired
+    private OrderStepService orderStepService;
+    @Autowired
     private OrderRepo orderRepo;
     @Autowired
     private OrderItemRepo orderItemRepo;
@@ -66,10 +68,11 @@ public class OrderImplementation implements OrderService {
 
     @Override
     public Order updateOrder(String tenantId, String newState, String orderId) {
-        Order order = orderRepo.findByOrderIdAndTenant_TenantId(orderId, tenantId).orElseThrow(() -> new OrderNotFoundException("Order not found"));
-        if(!isStateAvailable(newState,order.getOrderStatus().toString())) throw  new OrderStatusException("orderStatus is not allowed");
-        order.setOrderStatus(OrderStatus.valueOf(newState));
-        return orderRepo.save(order);
+        // The same rules as the step buttons: locked, forward only, first change wins.
+        Object principal = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() == null
+                ? null : org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String workerId = principal instanceof WorkerPrincipal worker ? worker.getWorkerId() : null;
+        return orderStepService.moveTo(tenantId, workerId, orderId, newState);
     }
 
     @Override

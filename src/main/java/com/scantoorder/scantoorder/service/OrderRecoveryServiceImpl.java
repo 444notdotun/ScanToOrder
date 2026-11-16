@@ -55,6 +55,8 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
     @Autowired
     private RefundRepo refundRepo;
     @Autowired
+    private LiveUpdates liveUpdates;
+    @Autowired
     private EventPlateRepo plateRepo;
     @Autowired
     private EventGuestRepo guestRepo;
@@ -133,6 +135,11 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
         order.setNote(order.getNote() == null ? note : order.getNote() + " " + note);
         order.setOrderStatus(OrderStatus.PAID);
         order.setSwappedAt(LocalDateTime.now());
+        // A new ticket starts again from the first step.
+        order.setPreparingAt(null);
+        order.setPreparingBy(null);
+        order.setReadyAt(null);
+        order.setReadyBy(null);
         orderRepo.save(order);
         return action(order, "The kitchen has a new ticket for this order.");
     }
@@ -189,6 +196,10 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
         order.setNote(order.getNote() == null ? note : order.getNote() + " " + note);
         order.setOrderStatus(OrderStatus.PAID);
         order.setSwappedAt(LocalDateTime.now());
+        order.setPreparingAt(null);
+        order.setPreparingBy(null);
+        order.setReadyAt(null);
+        order.setReadyBy(null);
         orderRepo.save(order);
         // The guest has this plate now, so it counts again.
         countPlate(order, 1);
@@ -212,6 +223,9 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
     }
 
     private OrderActionResponse action(Order order, String message) {
+        liveUpdates.publish(order.getTenant().getTenantId(),
+                order.getDinningSession() == null ? null : order.getDinningSession().getSessionId(),
+                "order", order.getOrderId(), order.getOrderStatus().name());
         return new OrderActionResponse(order.getOrderId(), order.getOrderNumber(), order.getOrderStatus().name(), message);
     }
 }

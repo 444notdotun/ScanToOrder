@@ -45,6 +45,8 @@ public class EventOrderService {
     @Autowired
     private OrderRepo orderRepo;
     @Autowired
+    private LiveUpdates liveUpdates;
+    @Autowired
     private OrderItemRepo orderItemRepo;
 
     @Transactional(readOnly = true)
@@ -107,7 +109,9 @@ public class EventOrderService {
         order = orderRepo.save(order);
         // Straight to the kitchen as paid: there is nothing to pay.
         order.setOrderStatus(OrderStatus.PAID);
+        order.setPaidAt(LocalDateTime.now());
         order = orderRepo.save(order);
+        liveUpdates.publish(event.getTenant().getTenantId(), me.getSession().getSessionId(), "order", order.getOrderId(), "PAID");
         OrderItem line = new OrderItem();
         line.setTenant(event.getTenant());
         line.setOrder(order);
