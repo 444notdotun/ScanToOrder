@@ -48,6 +48,7 @@ public class ItemImplementation implements ItemService {
         item.setItemName(createitemRequest.getItemName().trim());
         item.setItemDescription(createitemRequest.getItemDescription());
         item.setItemPrice(BigDecimal.valueOf(createitemRequest.getItemPrice()));
+        item.setImageUrl(photo(createitemRequest.getImageUrl()));
         item.setCategoryId(category);
         item.setTenant(tenantRepo.getReferenceById(tenantId));
         item = itemRepo.save(item);
@@ -75,6 +76,7 @@ public class ItemImplementation implements ItemService {
         item.setItemName(request.getItemName().trim());
         item.setItemDescription(request.getItemDescription());
         item.setItemPrice(BigDecimal.valueOf(request.getItemPrice()));
+        item.setImageUrl(photo(request.getImageUrl()));
         item = itemRepo.save(item);
         menuService.clearCache(tenantId);
         return new CreateItemResponse("Item updated successfully", item.getItemId(), item.getItemName());
@@ -91,6 +93,10 @@ public class ItemImplementation implements ItemService {
         }
         itemRepo.delete(item);
         menuService.clearCache(tenantId);
+    }
+
+    private String photo(String link) {
+        return link == null || link.isBlank() ? null : link.trim();
     }
 
     // The path carries an item's id or, as the existing screens send it, its name.

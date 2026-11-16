@@ -18,4 +18,5 @@ public class StockItemResponse {
     // For the manager's menu: the description and the price in naira.
     private String itemDescription;
     private BigDecimal itemPrice;
+    private String imageUrl;
 }
