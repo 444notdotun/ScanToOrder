@@ -13,6 +13,7 @@ import com.scantoorder.scantoorder.exception.SessionEndedException;
 import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
 import com.scantoorder.scantoorder.service.Interface.OrderService;
 import com.scantoorder.scantoorder.service.Interface.RestaurantTableService;
+import com.scantoorder.scantoorder.dtos.request.JoinSeatRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,7 +96,7 @@ class SessionOrdersTest {
         confirm.setGuestName("Mama Ada");
         diningSessionService.confirmGuest(me, confirm);
         SessionSeat friendSeat = sessionSeatRepo.findBySeatAndStatusIn(seats.get(2).getSeatId(), SeatLedger.ACTIVE).orElseThrow();
-        com.scantoorder.scantoorder.dtos.request.JoinSeatRequest join = new com.scantoorder.scantoorder.dtos.request.JoinSeatRequest();
+        JoinSeatRequest join = new JoinSeatRequest();
         join.setJoinCode(friendSeat.getSession().getJoinCode());
         join.setCustomerName("Friend");
         join.setCustomerPhoneNumber("08012345678");

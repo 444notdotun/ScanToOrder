@@ -9,6 +9,7 @@ import com.scantoorder.scantoorder.dtos.respond.LeaveSessionResponse;
 import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
 import com.scantoorder.scantoorder.dtos.respond.TableSessionsResponse;
 import com.scantoorder.scantoorder.dtos.respond.SessionViewResponse;
+import com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse;
 
 import java.util.List;
 
@@ -33,5 +34,5 @@ public interface DiningSessionService {
     List<String> getSessionPaymentReferences(CustomerPrincipal caller);
 
     // The table's orders this guest may see, with what was paid.
-    com.scantoorder.scantoorder.dtos.respond.SessionOrdersResponse getSessionOrders(CustomerPrincipal caller);
+    SessionOrdersResponse getSessionOrders(CustomerPrincipal caller);
 }

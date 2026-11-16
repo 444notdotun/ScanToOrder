@@ -10,6 +10,7 @@ import com.scantoorder.scantoorder.dtos.request.ClaimSeatRequest;
 import com.scantoorder.scantoorder.dtos.respond.SeatClaimedResponse;
 import com.scantoorder.scantoorder.service.Interface.RestaurantTableService;
 import com.scantoorder.scantoorder.service.Interface.SeatService;
+import com.scantoorder.scantoorder.dtos.request.JoinSeatRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -115,7 +116,7 @@ public class SeatingTestSupport {
         return principalFor(response.getSeatId());
     }
 
-    public void joinSeat(String seatId, com.scantoorder.scantoorder.dtos.request.JoinSeatRequest request) {
+    public void joinSeat(String seatId, JoinSeatRequest request) {
         seatService.joinSeat(seatId, request, null);
     }
 
