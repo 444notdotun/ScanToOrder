@@ -1,289 +1,77 @@
 'use client';
 
-import React from 'react';
-import { api, publicApi } from "@/lib/api";
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { managerService } from '@/services/manager.service';
-import { customerService } from '@/services/customer.service';
-import { RestaurantTable } from '@/types';
-import {
-  QrCode, ChefHat, UserCheck, Settings, Utensils,
-  Sparkles, Loader2, CircleDot, CheckCircle2, AlertCircle,
-} from 'lucide-react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Ground from '@/components/plately/Ground';
+import { Brand, Watermark } from '@/components/plately/Logo';
+import { Button, Sheet } from '@/components/plately/ui';
 
-/* ─── Table availability badge ─────────────────────────────────────── */
-function StatusBadge({ status }: { status?: string }) {
-  const isOccupied = status === 'OCCUPIED';
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-        isOccupied
-          ? 'bg-red-50 text-red-500 border border-red-100'
-          : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-      }`}
-    >
-      {isOccupied ? (
-        <CircleDot className="h-2.5 w-2.5" />
-      ) : (
-        <CheckCircle2 className="h-2.5 w-2.5" />
-      )}
-      {isOccupied ? 'Occupied' : 'Available'}
-    </span>
-  );
-}
-
-/* ─── Individual table card — live status from /tables/{num}/status ─── */
-function TableCard({ table, index }: { table: RestaurantTable; index: number }) {
-  const tableNum = table.tableNumber?.toString() ?? `${index + 1}`;
-
-  // GET /api/v1/tables/{tableNumber}/status → 'AVAILABLE' | 'OCCUPIED'
-  // Backend runs the real seat-check: if all seats are HELD/OCCUPIED → OCCUPIED
-  const { data: liveStatus, isLoading: statusLoading } = useQuery<string>({
-    queryKey: ['tableStatus', tableNum],
-    queryFn: () => customerService.syncTableStatus(tableNum),
-    refetchInterval: 10_000,
-    staleTime: 5_000,
-  });
-
-  // Use live status from backend; fall back to static field while loading
-  const resolvedStatus = liveStatus ?? table.status ?? (table.isOccupied ? 'OCCUPIED' : 'AVAILABLE');
-  const isOccupied = resolvedStatus === 'OCCUPIED';
+// The opening page: where someone lands before they have a table.
+function Opening() {
+  const params = useSearchParams();
+  const ended = params.get('ended');
+  const [help, setHelp] = useState(false);
 
   return (
-    <div
-      className={`flex flex-col justify-between gap-3 p-4 rounded-2xl border text-left transition-all ${
-        isOccupied
-          ? 'bg-stone-50 border-stone-200 opacity-70'
-          : 'bg-white border-brand-light/60 hover:border-brand-accent hover:shadow-sm'
-      }`}
-    >
-      {/* Top row */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-xs text-stone-500 font-semibold">Table</p>
-          <h4 className="font-extrabold text-stone-900 text-base leading-tight truncate">
-            {tableNum}
-          </h4>
-          <p className="text-[10px] text-stone-400 mt-0.5">
-            {table.capacity > 0 ? `${table.capacity} seats` : 'N/A'}
-          </p>
-        </div>
-        {/* Show spinner while fetching live status, then show badge */}
-        {statusLoading ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-300 mt-0.5 flex-shrink-0" />
-        ) : (
-          <StatusBadge status={resolvedStatus} />
-        )}
-      </div>
-
-      {/* Action */}
-      <Link
-        href={isOccupied ? '#' : `/table/${tableNum}`}
-        onClick={(e) => {
-          if (isOccupied) {
-            e.preventDefault();
-            alert(`Table ${tableNum} is currently occupied.`);
-          }
-        }}
-        className={`flex items-center justify-center gap-1.5 w-full font-bold py-2 rounded-xl text-xs transition ${
-          isOccupied
-            ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
-            : 'bg-brand-deep hover:bg-brand-accent text-white shadow-xs'
-        }`}
-        aria-disabled={isOccupied}
-        tabIndex={isOccupied ? -1 : 0}
-      >
-        <Utensils className="h-3.5 w-3.5" />
-        {isOccupied ? 'Table Occupied' : 'Scan & Order'}
-      </Link>
-    </div>
-  );
-}
-
-
-/* ─── Main page ─────────────────────────────────────────────────────── */
-export default function Home() {
-  const {
-    data: tables = [],
-    isLoading,
-    isError,
-  } = useQuery<RestaurantTable[]>({
-    queryKey: ['tables-public'],
-    queryFn: async () => {
-      const res = await publicApi.get('/api/v1/tables');
-      const tablesData = Array.isArray(res.data?.data) 
-        ? res.data.data 
-        : Array.isArray(res.data) ? res.data : [];
-      return tablesData.map((t: any) => ({
-        ...t,
-        capacity: t.capacity || t.Capacity
-      }));
-    },
-    refetchInterval: 30_000,
-    staleTime: 15_000,
-  });
-
-  const availableCount = tables.filter(
-    (t) => !(t.isOccupied ?? t.status === 'OCCUPIED'),
-  ).length;
-
-  return (
-    <div className="flex-1 flex flex-col justify-between py-12 px-6 sm:px-12 bg-[#F8F6F2]">
-      {/* Header */}
-      <header className="max-w-5xl mx-auto w-full text-center space-y-3 mb-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-light text-brand-deep font-semibold text-xs tracking-wider uppercase">
-          <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-          QR-Based Restaurant System
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-stone-900">
-          Scan to <span className="text-brand-deep">Order</span>
-        </h1>
-        <p className="text-stone-600 max-w-md md:max-w-3xl lg:max-w-5xl mx-auto text-sm sm:text-base">
-          Experience an interactive, real-time dine-in workflow connecting diners,
-          kitchen staff, waiters, and managers.
+    <Ground>
+      <Watermark className="-bottom-[70px] -right-24" />
+      <main className="relative mx-auto flex w-full max-w-md flex-1 animate-rise flex-col items-center gap-5 px-7 pb-7 pt-10">
+        <Brand />
+        <h1 className="mt-3 text-center font-heading text-[40px] font-normal leading-[1.08]">Pull up a chair.</h1>
+        <p className="text-center text-[17px] leading-[1.45] text-soft">
+          Find the little card on your table and point your camera at it. That&apos;s all it takes.
         </p>
-      </header>
 
-      {/* Main Grid */}
-      <main className="max-w-5xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 items-stretch">
+        <div className="mt-2 flex w-[220px] rotate-[-3deg] animate-pop flex-col items-center gap-2.5 rounded-xl bg-paper px-5 pb-4 pt-5 text-bottle shadow-[0_18px_36px_rgba(0,0,0,0.35)]">
+          <div className="text-xs font-bold uppercase tracking-[0.14em] text-quiet">Table 12</div>
+          <svg aria-hidden="true" width="132" height="132" viewBox="0 0 66 66" fill="currentColor" focusable="false">
+            <path d="M3 3h18v18H3zM7 7v10h10V7zM45 3h18v18H45zM49 7v10h10V7zM3 45h18v18H3zM7 49v10h10V49z" fillRule="evenodd" />
+            <path d="M10 10h4v4h-4zM52 10h4v4h-4zM10 52h4v4h-4z" />
+            <path d="M27 3h4v4h-4zM35 7h4v8h-4zM27 13h4v8h-4zM27 27h8v4h-8zM39 25h4v8h-4zM3 27h8v4H3zM15 31h4v8h-4zM23 35h4v4h-4zM47 27h8v4h-8zM59 31h4v8h-4zM27 43h4v8h-4zM35 39h8v4h-8zM47 43h4v4h-4zM55 47h8v4h-8zM39 51h4v12h-4zM27 59h8v4h-8zM47 55h4v8h-4zM59 59h4v4h-4zM31 19h4v4h-4zM7 35h4v4H7z" />
+          </svg>
+          <div className="text-center font-hand text-2xl font-bold leading-[1.05] text-hand">Scan me. I&apos;ll take your order.</div>
+        </div>
 
-        {/* ── Diner Simulator ──────────────────────────────────────── */}
-        <section className="glass-panel rounded-3xl p-8 flex flex-col gap-6 shadow-sm transition-all duration-300 hover:shadow-md">
-          {/* Section header */}
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-brand-light text-brand-deep rounded-2xl">
-              <QrCode className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-stone-950">Diner Simulator</h2>
-              <p className="text-xs text-stone-500">Scan QR to claim a seat &amp; order</p>
-            </div>
-          </div>
-
-          <p className="text-stone-600 text-sm leading-relaxed">
-            Simulate a customer scanning a table&apos;s QR code. Select any available
-            table below to load the seat layout and open the digital menu.
+        {ended ? (
+          <p role="status" className="mt-1 animate-fade text-center text-[15px] leading-snug text-mustard">
+            {ended === 'visit'
+              ? 'Your table was closed by the staff. Scan again whenever you sit back down.'
+              : 'Your seat has been freed. Scan again whenever you sit back down.'}
           </p>
+        ) : null}
 
-          {/* ── Table grid ─────────────────────────────────────────── */}
-          <div className="flex-1">
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2 py-10 text-stone-400">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="text-xs font-semibold">Loading tables…</span>
-              </div>
-            ) : isError ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-10 text-red-400">
-                <AlertCircle className="h-5 w-5" />
-                <p className="text-xs font-semibold text-center">
-                  Could not reach the backend. Start the Spring Boot server and refresh.
-                </p>
-              </div>
-            ) : tables.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-10 text-stone-400">
-                <Utensils className="h-5 w-5" />
-                <p className="text-xs font-semibold text-center">
-                  No tables yet. Open <strong>Manager Operations</strong> to create tables.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Summary pill */}
-                <p className="text-[11px] text-stone-400 font-semibold mb-3">
-                  {availableCount} of {tables.length} table
-                  {tables.length !== 1 ? 's' : ''} available
-                </p>
-
-                {/* Dynamic table cards grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  {tables.map((table, index) => (
-                    <TableCard
-                      key={table.id || `table-${index}`}
-                      table={table}
-                      index={index}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        {/* ── Staff & Admin ─────────────────────────────────────────── */}
-        <section className="space-y-6 flex flex-col justify-between">
-          <div className="grid grid-cols-1 gap-4">
-
-            {/* KDS */}
-            <Link
-              href="/kitchen/kds"
-              className="group glass-panel rounded-2xl p-5 flex items-center justify-between border border-stone-100 hover:border-brand-light hover:bg-white transition-all shadow-2xs hover:shadow-xs"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-status-prep-bg text-status-prep-text rounded-xl group-hover:scale-105 transition-transform">
-                  <ChefHat className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-stone-900 text-sm">Kitchen Display (KDS)</h3>
-                  <p className="text-xs text-stone-500">Track tickets &amp; push prep states</p>
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-brand-deep group-hover:translate-x-1 transition-transform">
-                Open KDS &rarr;
-              </span>
-            </Link>
-
-            {/* Waiter */}
-            <Link
-              href="/waiter"
-              className="group glass-panel rounded-2xl p-5 flex items-center justify-between border border-stone-100 hover:border-brand-light hover:bg-white transition-all shadow-2xs hover:shadow-xs"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-status-success-bg text-status-success-text rounded-xl group-hover:scale-105 transition-transform">
-                  <UserCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-stone-900 text-sm">Waiter Service Desk</h3>
-                  <p className="text-xs text-stone-500">Handle deliveries &amp; service calls</p>
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-brand-deep group-hover:translate-x-1 transition-transform">
-                Open Floor &rarr;
-              </span>
-            </Link>
-
-            {/* Manager */}
-            <Link
-              href="/admin/dashboard"
-              className="group glass-panel rounded-2xl p-5 flex items-center justify-between border border-stone-100 hover:border-brand-light hover:bg-white transition-all shadow-2xs hover:shadow-xs"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-stone-200 text-stone-700 rounded-xl group-hover:scale-105 transition-transform">
-                  <Settings className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-stone-900 text-sm">Manager Operations</h3>
-                  <p className="text-xs text-stone-500">Menu CRUD, analytics, QR codes</p>
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-stone-600 group-hover:translate-x-1 transition-transform">
-                Open Admin &rarr;
-              </span>
-            </Link>
-
-          </div>
-
-          <div className="text-center text-xs text-stone-400">
-            System utilizes synchronized local state context for fast offline simulation.
-          </div>
-        </section>
+        <div className="flex-1" />
+        <Button tone="primary" big onClick={() => setHelp(true)}>
+          Scan the table code
+        </Button>
+        <p className="text-center text-sm text-soft">No app to download. No account to make.</p>
+        <p className="text-center text-sm text-soft">
+          <Link href="/staff/login" className="underline underline-offset-4">
+            Staff sign in
+          </Link>
+        </p>
       </main>
 
-      {/* Footer */}
-      <footer className="text-center text-xs text-stone-400 pt-8 mt-6">
-        &copy; 2026 Scan to Order Restaurant Systems.
-      </footer>
-    </div>
+      <Sheet open={help} onClose={() => setHelp(false)} label="How to scan">
+        <h2 className="font-heading text-2xl font-normal text-bottle">Point your camera at the card</h2>
+        <p className="mt-2 text-[15px] leading-snug text-quiet">
+          Open your phone&apos;s camera and hold it over the code on your table. A link pops up: tap it and we&apos;ll bring up your table.
+        </p>
+        <div className="mt-5">
+          <Button tone="bottle" onClick={() => setHelp(false)}>
+            Got it
+          </Button>
+        </div>
+      </Sheet>
+    </Ground>
   );
 }
 
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <Opening />
+    </Suspense>
+  );
+}
