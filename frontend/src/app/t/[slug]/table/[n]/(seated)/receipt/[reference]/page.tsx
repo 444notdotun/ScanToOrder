@@ -56,11 +56,14 @@ export default function ReceiptPage() {
   }
 
   const r = receipt.data;
+  // The receipt carries the seat's code; the guest reads "Seat 2".
+  const seat = session.seats.find((candidate) => candidate.seatNumber === r.seatLabel);
+  const seatName = seat ? `Seat ${seat.position}` : r.seatLabel;
   const rows: Array<[string, string]> = [
     ['Receipt', r.receiptNumber],
     ['Date', r.paymentDate ? new Date(r.paymentDate).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : ''],
     ['Table', session.displayNumber ? String(session.displayNumber) : r.tableNumber],
-    ['Seat', r.seatLabel],
+    ['Seat', seatName],
   ];
 
   return (

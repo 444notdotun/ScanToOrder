@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 const backend = (process.env.BACKEND_URL || "https://scantoorder.onrender.com").replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
+  // Lets a second browser identity (127.0.0.1 next to localhost) use the dev server, to try two guests at one table.
+  allowedDevOrigins: ["127.0.0.1"],
   async rewrites() {
     return [
       {

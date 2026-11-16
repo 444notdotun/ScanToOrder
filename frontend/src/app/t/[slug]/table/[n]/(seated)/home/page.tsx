@@ -80,7 +80,7 @@ export default function HomePage() {
   const title = (seat: SessionSeat) => (seat.status === 'HELD' ? 'Saved for a friend' : seat.mine ? `${seat.guestName ?? 'You'} (you)` : (seat.guestName ?? 'Guest'));
   const note = (seat: SessionSeat) => {
     if (seat.status === 'HELD') {
-      const left = seat.heldUntil ? Math.max(0, Math.ceil((new Date(seat.heldUntil).getTime() - now) / 60000)) : 0;
+      const left = seat.heldUntil ? Math.max(0, Math.round((new Date(seat.heldUntil).getTime() - now) / 60000)) : 0;
       return `${left} minute${left === 1 ? '' : 's'} left on the hold`;
     }
     if (seat.mine) return 'This is your phone';
@@ -91,12 +91,10 @@ export default function HomePage() {
     <>
       <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-5 pb-28 pt-6">
         <header className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-[13px] font-bold uppercase tracking-[0.12em] text-soft">
-              {session.businessName ? `${session.businessName} · ` : ''}Table {session.displayNumber}
-              {mine ? ` · Seat ${mine.position}` : ''}
-            </div>
-            <Brand size={20} />
+          <Brand size={22} />
+          <div className="mt-1 text-[13px] font-bold uppercase tracking-[0.12em] text-soft">
+            {session.businessName ? `${session.businessName} · ` : ''}Table {session.displayNumber}
+            {mine ? ` · Seat ${mine.position}` : ''}
           </div>
           <h1 className="font-heading text-[36px] font-normal leading-[1.08]">You&apos;re in, {firstName(mine?.guestName)}.</h1>
           <p className="text-[17px] text-soft">Order when you&apos;re ready. Nobody&apos;s rushing you.</p>
@@ -163,7 +161,10 @@ export default function HomePage() {
                               key={seat.seatId}
                               type="button"
                               aria-pressed={on}
-                              onClick={() => setPicks(on ? picks.filter((id) => id !== seat.seatId) : [...picks, seat.seatId])}
+                              onClick={() => {
+                                setFailure(null);
+                                setPicks(on ? picks.filter((id) => id !== seat.seatId) : [...picks, seat.seatId]);
+                              }}
                               className={`min-h-[44px] rounded-full border-[1.5px] px-4 text-[15px] font-bold ${on ? 'border-bottle bg-bottle text-cream' : 'border-rule2 bg-paperlight text-bottle'}`}
                             >
                               Seat {seat.position}

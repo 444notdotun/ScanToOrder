@@ -95,7 +95,7 @@ export default function TableMapPage() {
           <div className="flex w-full items-center justify-center gap-3 rounded-[28px] border-2 border-cream/30 bg-cream/10 px-4 py-5">
             <div className="text-center">
               <div className="text-[13px] font-bold uppercase tracking-[0.14em] text-cream">Table {table.displayNumber}</div>
-              <div className="text-sm text-soft">seats {table.capacity}</div>
+              <div className="text-sm text-soft">seats {table.Capacity ?? table.capacity ?? seats.length}</div>
             </div>
           </div>
           {bottom.length > 0 ? (

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import BackLink from '@/components/guest/BackLink';
@@ -27,6 +27,11 @@ function OrderScreen() {
   const [paying, setPaying] = useState(false);
   // An order that was made but not paid for is reused if the guest tries again with the same plates.
   const made = useRef<{ key: string; orderId: string } | null>(null);
+  const failureCard = useRef<HTMLDivElement>(null);
+  // The pay button is pinned to the bottom, so a failure is brought into view.
+  useEffect(() => {
+    if (failure) failureCard.current?.scrollIntoView({ block: 'center' });
+  }, [failure]);
 
   const mine = session.seats.find((seat) => seat.mine);
   const withoutPhone = session.seats.filter((seat) => seat.status === 'OCCUPIED' && !seat.mine && seat.hasDevice === false);
@@ -211,7 +216,7 @@ function OrderScreen() {
           ) : null}
         </div>
 
-        {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
+        <div ref={failureCard}>{failure ? <FailureCard title={failure.title} message={failure.message} /> : null}</div>
         <p className="text-center text-sm text-soft">The kitchen starts cooking the moment you&apos;ve paid.</p>
       </main>
 

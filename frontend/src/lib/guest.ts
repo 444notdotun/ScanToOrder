@@ -49,7 +49,9 @@ export interface SeatMap {
   tableId: string;
   tableNumber: string;
   displayNumber: number;
-  capacity: number;
+  // The backend spells this with a capital C.
+  Capacity?: number;
+  capacity?: number;
   seats: SeatOnMap[];
 }
 
