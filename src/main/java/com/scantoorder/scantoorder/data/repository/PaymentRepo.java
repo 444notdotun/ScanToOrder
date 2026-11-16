@@ -23,6 +23,8 @@ public interface PaymentRepo extends JpaRepository<Payment, String> {
     java.util.List<Payment> findByOrder_OrderIdAndStatusIn(String orderId, java.util.Collection<com.scantoorder.scantoorder.data.model.PaymentStatus> statuses);
 
     java.util.List<Payment> findByTenant_TenantIdAndStatusOrderByUpdatedAtAsc(String tenantId, com.scantoorder.scantoorder.data.model.PaymentStatus status);
+    java.util.List<Payment> findByTenant_TenantIdAndStatusAndPaidAtGreaterThanEqualAndPaidAtLessThan(String tenantId, com.scantoorder.scantoorder.data.model.PaymentStatus status, java.time.LocalDateTime from, java.time.LocalDateTime to);
+
     Optional<Payment> findByReferenceAndTenant_TenantId(String reference, String tenantId);
     Optional<Payment> findByOrderOrderId(String orderId);
     java.util.List<Payment> findByOrderDinningSessionSessionIdAndStatusIn(String sessionId, java.util.Collection<com.scantoorder.scantoorder.data.model.PaymentStatus> statuses);

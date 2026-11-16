@@ -40,6 +40,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     public static final String SESSION_ENDED_ATTRIBUTE = "plately.sessionEnded";
     public static final String SESSION_ENDED_MESSAGE = "Your session has ended";
+    public static final String VISIT_ENDED_MESSAGE = "Your visit has ended.";
     public static final String CHANGE_PASSWORD_PATH = "/api/v1/auth/change-password";
     public static final String CHANGE_PASSWORD_MESSAGE = "Choose a new password before you carry on.";
 
@@ -124,7 +125,10 @@ public class JwtFilter extends OncePerRequestFilter {
                 && membership.getStatus() == SessionSeatStatus.OCCUPIED
                 && membership.getSession().getSessionStatus() == DinningSessionStatus.ACTIVE;
         if (!seated) {
-            request.setAttribute(SESSION_ENDED_ATTRIBUTE, Boolean.TRUE);
+            // A table closed by staff says the visit ended; every other ending keeps the old words.
+            boolean closedByStaff = membership != null && membership.getSession().getSessionStatus() == DinningSessionStatus.CLOSED
+                    && membership.getSession().isClosedByStaff();
+            request.setAttribute(SESSION_ENDED_ATTRIBUTE, closedByStaff ? VISIT_ENDED_MESSAGE : SESSION_ENDED_MESSAGE);
             return;
         }
         CustomerPrincipal principal = new CustomerPrincipal(

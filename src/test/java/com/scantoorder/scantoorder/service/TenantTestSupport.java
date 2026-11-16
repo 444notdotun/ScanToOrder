@@ -61,6 +61,10 @@ public class TenantTestSupport {
         });
     }
 
+    public Tenant save(Tenant tenant) {
+        return tenantRepo.save(tenant);
+    }
+
     public Tenant resetMain() {
         Tenant tenant = main();
         tenant.setStatus(TenantStatus.ACTIVE);

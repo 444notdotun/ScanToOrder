@@ -24,6 +24,8 @@ public class DinningSession {
     @CreationTimestamp
     private String createdAt;
     private String completedAt;
+    // True when staff closed the table or session, so the guest is told their visit ended.
+    private boolean closedByStaff;
 
     public DinningSession(){
         this.sessionStatus=DinningSessionStatus.ACTIVE;

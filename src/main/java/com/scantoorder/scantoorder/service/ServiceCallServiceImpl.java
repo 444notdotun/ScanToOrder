@@ -24,6 +24,9 @@ public class ServiceCallServiceImpl implements ServiceCallService {
     @Autowired
     private DinningSessionRepo dinningSessionRepo;
 
+    @Autowired
+    private LiveUpdates liveUpdates;
+
     @Override
     public ServiceCall createServiceCall(CreateServiceCallRequest request, String tenantId, String sessionId) {
         DinningSession session = dinningSessionRepo.findBySessionIdAndTenant_TenantId(sessionId, tenantId)
@@ -38,7 +41,9 @@ public class ServiceCallServiceImpl implements ServiceCallService {
         }
         serviceCall.setServiceDescription(description);
 
-        return serviceCallRepo.save(serviceCall);
+        ServiceCall saved = serviceCallRepo.save(serviceCall);
+        liveUpdates.publish(tenantId, sessionId, "call", saved.getServiceCallId(), "OPEN");
+        return saved;
     }
 
     @Override

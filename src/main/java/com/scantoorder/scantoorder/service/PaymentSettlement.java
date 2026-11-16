@@ -25,6 +25,8 @@ public class PaymentSettlement {
     private OrderRepo orderRepo;
     @Autowired
     private RefundService refundService;
+    @Autowired
+    private LiveUpdates liveUpdates;
 
     // The caller holds the payment row's lock. Returns false when there was nothing to do.
     public boolean success(Payment payment, String gatewayResponse) {
@@ -32,6 +34,7 @@ public class PaymentSettlement {
             return false;
         }
         payment.setStatus(PaymentStatus.SUCCESSFUL);
+        payment.setPaidAt(java.time.LocalDateTime.now());
         if (gatewayResponse != null) {
             payment.setGatewayResponse(gatewayResponse);
         }
@@ -39,7 +42,11 @@ public class PaymentSettlement {
         Order order = payment.getOrder();
         if (order.getOrderStatus() == OrderStatus.PENDING_PAYMENT) {
             order.setOrderStatus(OrderStatus.PAID);
+            order.setPaidAt(java.time.LocalDateTime.now());
             orderRepo.save(order);
+            liveUpdates.publish(order.getTenant().getTenantId(),
+                    order.getDinningSession() == null ? null : order.getDinningSession().getSessionId(),
+                    "order", order.getOrderId(), "PAID");
         } else if (order.getOrderStatus() == OrderStatus.CANCELED) {
             // The guest left or was closed out before the money arrived. The order never reaches the
             // kitchen, and the restaurant owes the guest all of it back.

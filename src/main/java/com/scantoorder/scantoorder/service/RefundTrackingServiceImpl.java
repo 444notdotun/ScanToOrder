@@ -49,6 +49,8 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
     private BankResolver bankResolver;
     @Autowired
     private RefundService refundService;
+    @Autowired
+    private LiveUpdates liveUpdates;
 
     // ---- guest ----
 
@@ -161,6 +163,7 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
         refundRepo.save(refund);
         // Only when the guest gave an email; a cash refund at the table settles without one.
         refundService.tellTheGuestItWasSent(refund);
+        liveUpdates.publish(tenantId, refundService.sessionOf(refund), "refund", refund.getId(), "SETTLED");
         return managerResponse(refund);
     }
 

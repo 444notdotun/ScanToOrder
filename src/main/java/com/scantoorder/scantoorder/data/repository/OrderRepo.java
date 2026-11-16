@@ -26,6 +26,14 @@ public interface OrderRepo extends JpaRepository<Order, String> {
 
     List<Order> findByEvent_Id(String eventId);
 
+    List<Order> findByTenant_TenantIdAndOrderStatusIn(String tenantId, java.util.Collection<OrderStatus> statuses);
+
+    long countByTenant_TenantIdAndOrderStatus(String tenantId, OrderStatus status);
+
+    long countByTenant_TenantIdAndPaidAtGreaterThanEqualAndPaidAtLessThan(String tenantId, java.time.LocalDateTime from, java.time.LocalDateTime to);
+
+    List<Order> findByTenant_TenantIdAndPaidAtGreaterThanEqualAndPaidAtLessThan(String tenantId, java.time.LocalDateTime from, java.time.LocalDateTime to);
+
     List<Order> findByEventGuest_IdAndOrderStatusIn(String guestId, java.util.Collection<OrderStatus> statuses);
 
     boolean existsByEventGuest_IdAndOrderStatus(String guestId, OrderStatus status);

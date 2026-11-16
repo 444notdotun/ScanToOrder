@@ -20,7 +20,11 @@ public interface DiningSessionService {
     SessionSeat seatToOrderFor(CustomerPrincipal caller, String targetSeatId);
     LeaveSessionResponse leave(CustomerPrincipal caller);
     CloseSessionResponse closeSession(String tenantId, String sessionId);
+    // Closes without asking: the scheduler and the event ending use this.
     CloseTableResponse closeTable(String tenantId, String tableId);
+
+    // From a waiter or manager: paid orders not yet delivered need confirm=true.
+    CloseTableResponse closeTable(String tenantId, String tableId, boolean confirm);
     TableSessionsResponse getTableSessions(String tenantId, String tableId);
     ReleaseSeatResponse freeSeat(String tenantId, String seatId);
     int expireHolds();

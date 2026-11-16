@@ -33,6 +33,8 @@ public class RefundService {
     private RefundRepo refundRepo;
     @Autowired
     private EmailSender emailSender;
+    @Autowired
+    private LiveUpdates liveUpdates;
 
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -52,8 +54,13 @@ public class RefundService {
             refund = refundRepo.save(refund);
             log.info("A {} refund is due on payment {}", reason, payment.getReference());
             tellTheGuest(refund);
+            liveUpdates.publish(refund.getTenant().getTenantId(), sessionOf(refund), "refund", refund.getId(), "DUE");
             return refund;
         });
+    }
+
+    String sessionOf(Refund refund) {
+        return refund.getOrder().getDinningSession() == null ? null : refund.getOrder().getDinningSession().getSessionId();
     }
 
     public String linkFor(Refund refund) {

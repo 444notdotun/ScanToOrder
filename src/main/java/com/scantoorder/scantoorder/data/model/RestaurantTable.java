@@ -26,7 +26,8 @@ public class RestaurantTable {
     private  int Capacity;
     private boolean isActive;
     // Set for a table made for one event. Such a table is never part of a restaurant.
-    @ManyToOne
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id")
     private Event event;
 

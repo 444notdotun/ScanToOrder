@@ -27,6 +27,8 @@ public class SessionSeat {
     private String guestPhone;
     private String guestEmail;
     private boolean hasDevice;
+    // Set when a seat was held for a friend, so held and taken-up seats can be counted.
+    private LocalDateTime heldAt;
     private LocalDateTime heldUntil;
     private LocalDateTime claimedAt;
     private LocalDateTime releasedAt;

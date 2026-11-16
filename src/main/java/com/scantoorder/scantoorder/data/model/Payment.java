@@ -40,6 +40,8 @@ public class Payment {
     private Long platelyChargeKobo;
     private Long tenantAmountKobo;
     private String subaccountCode;
+    // When Paystack confirmed it.
+    private LocalDateTime paidAt;
     // The address the payment was made with: where a refund link goes if one is ever due.
     private String customerEmail;
 

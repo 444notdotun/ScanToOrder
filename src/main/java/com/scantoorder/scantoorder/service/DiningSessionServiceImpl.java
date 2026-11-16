@@ -25,6 +25,7 @@ import com.scantoorder.scantoorder.dtos.respond.LeaveSessionResponse;
 import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
 import com.scantoorder.scantoorder.dtos.respond.TableSessionView;
 import com.scantoorder.scantoorder.dtos.respond.TableSessionsResponse;
+import com.scantoorder.scantoorder.exception.ConfirmationNeededException;
 import com.scantoorder.scantoorder.exception.TableNotFoundException;
 import com.scantoorder.scantoorder.dtos.respond.SessionSeatView;
 import com.scantoorder.scantoorder.dtos.respond.SessionViewResponse;
@@ -70,6 +71,8 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     private PaymentRepo paymentRepo;
     @Autowired
     private SeatLedger seatLedger;
+    @Autowired
+    private LiveUpdates liveUpdates;
 
     @Transactional(readOnly = true)
     @Override
@@ -202,6 +205,7 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         }
         lockSeats(sessionId, List.of());
         long paidUndelivered = countPaidUndelivered(sessionId);
+        session.setClosedByStaff(true);
         finishSession(session);
         return new CloseSessionResponse("Session closed successfully", sessionId, DinningSessionStatus.CLOSED.name(), paidUndelivered);
     }
@@ -209,6 +213,12 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     @Transactional
     @Override
     public CloseTableResponse closeTable(String tenantId, String tableId) {
+        return closeTable(tenantId, tableId, true);
+    }
+
+    @Transactional
+    @Override
+    public CloseTableResponse closeTable(String tenantId, String tableId, boolean confirm) {
         RestaurantTable table = tableRepo.findByTableIdAndTenant_TenantId(tableId, tenantId)
                 .orElseThrow(() -> new TableNotFoundException("We cannot find that table"));
         List<String> seatIds = seatRepo.findSeatIdsByTable(tableId);
@@ -218,8 +228,16 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         long paidUndelivered = 0;
         for (DinningSession session : sessions) {
             paidUndelivered += countPaidUndelivered(session.getSessionId());
+        }
+        if (paidUndelivered > 0 && !confirm) {
+            // Nothing has changed yet: the seats are still taken and the groups still open.
+            throw new ConfirmationNeededException(paidUndelivered + " paid orders have not been delivered. The food stays with you and nothing is refunded.", paidUndelivered);
+        }
+        for (DinningSession session : sessions) {
+            session.setClosedByStaff(true);
             finishSession(session);
         }
+        liveUpdates.publish(tenantId, "table", tableId, "CLOSED");
         // A closed table is an empty table: clear any seat left marked by mistake.
         for (Seat seat : seats) {
             if (seat.getStatus() != SeatStatus.VACANT) {

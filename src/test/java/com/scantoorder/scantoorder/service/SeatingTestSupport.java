@@ -122,6 +122,10 @@ public class SeatingTestSupport {
                 membership.getSession().getTenant().getTenantId());
     }
 
+    public com.scantoorder.scantoorder.data.model.DinningSession sessionOf(CustomerPrincipal guest) {
+        return dinningSessionRepo.findById(guest.getSessionId()).orElseThrow();
+    }
+
     public SessionSeat membershipOf(String seatId) {
         return sessionSeatRepo.findBySeatAndStatusIn(seatId, SeatLedger.ACTIVE).orElseThrow();
     }

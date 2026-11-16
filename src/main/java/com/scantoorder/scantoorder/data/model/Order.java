@@ -33,11 +33,23 @@ public class Order {
     // Settled at the table: records a swap's price difference. No money moves in the app.
     private String note;
     private LocalDateTime swappedAt;
+    // The timeline. Steps only move forward: PAID, PREPARING, READY, DELIVERED.
+    private LocalDateTime paidAt;
+    private LocalDateTime preparingAt;
+    private LocalDateTime readyAt;
+    private LocalDateTime deliveredAt;
+    // Who took each step first, for example "Chef Bisi", so a second tap can be told.
+    private String preparingBy;
+    private String readyBy;
+    private String deliveredBy;
     // Set for an event order: it was placed with a guest's code and nothing was paid.
-    @ManyToOne
+    // Lazy: an order should not drag a whole event, its guest and their seat into every query.
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id")
     private Event event;
-    @ManyToOne
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_guest_id")
     private EventGuest eventGuest;
     private String OrderNumber;
