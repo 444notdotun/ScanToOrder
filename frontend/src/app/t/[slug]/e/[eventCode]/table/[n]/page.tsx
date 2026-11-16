@@ -6,8 +6,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Ground from '@/components/plately/Ground';
 import { Brand, Loader, Watermark } from '@/components/plately/Logo';
 import { Button, Eyebrow, FailureCard, Field } from '@/components/plately/ui';
-import { eventGuestApi, rememberTable, useSession } from '@/lib/guest';
-import { failureOf, http, type ApiFailure } from '@/lib/http';
+import { codeRefusal, eventGuestApi, rememberTable, useSession, type CodeRefusal } from '@/lib/guest';
+import { failureOf, http } from '@/lib/http';
 import { clock } from '@/lib/time';
 
 // At an event the code is the seat and the supper: scan the table, type the code.
@@ -16,7 +16,7 @@ export default function EventCodePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [code, setCode] = useState('');
-  const [failure, setFailure] = useState<ApiFailure | null>(null);
+  const [failure, setFailure] = useState<CodeRefusal | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Someone who is already seated goes straight to their plates.
@@ -55,19 +55,18 @@ export default function EventCodePage() {
 
   const redeem = async () => {
     if (!code.trim()) {
-      setFailure({ status: null, title: '', message: 'Type the letters on your invitation.', offline: false });
+      setFailure({ kind: 'refusal', title: 'Type your code', message: 'Type the letters and numbers on your invitation.' });
       return;
     }
     setBusy(true);
     setFailure(null);
     try {
-      await http.post(`/api/v1/t/${slug}/e/${eventCode}/tables/${n}/code`, { code: code.trim() });
+      await http.post(`/api/v1/t/${slug}/e/${eventCode}/tables/${n}/code`, { code: code.replace(/\s+/g, '').toUpperCase() });
       rememberTable({ slug, n });
       await queryClient.invalidateQueries();
       router.replace(`/t/${slug}/e/${eventCode}/table/${n}/plates`);
     } catch (error) {
-      const failed = failureOf(error, 'That code did not work');
-      setFailure(failed);
+      setFailure(codeRefusal(failureOf(error, "We couldn't seat you")));
       // A table that moved on while the guest typed: show the doors as they are now.
       void preview.refetch();
     } finally {
@@ -90,7 +89,7 @@ export default function EventCodePage() {
         {event.over ? (
           <FailureCard title="This event is over" message="Thank you for coming. Codes stop working when the event ends." />
         ) : waiting ? (
-          <FailureCard title="Not open yet" message={`Doors open at ${clock(event.startsAt)}. Come back then and your code will work.`} />
+          <FailureCard title="Doors aren't open yet" message={`Doors open at ${clock(event.startsAt)}. Come back then and your code will work.`} />
         ) : null}
 
         <form
@@ -109,7 +108,14 @@ export default function EventCodePage() {
             autoCapitalize="characters"
             hint="Six letters and numbers, from your invitation."
           />
-          {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
+          {failure?.kind === 'directions' ? (
+            <div role="status" className="animate-fade rounded-2xl border-[1.5px] border-good bg-[#E3F0E4] p-3.5 text-[#1F4D33]">
+              <div className="font-bold">{failure.title}</div>
+              <div className="text-[15px] leading-snug">{failure.message}</div>
+            </div>
+          ) : failure ? (
+            <FailureCard title={failure.title} message={failure.message} />
+          ) : null}
           <Button type="submit" tone="primary" big disabled={busy || event.over}>
             {busy ? 'Finding your seat…' : 'Find my seat'}
           </Button>

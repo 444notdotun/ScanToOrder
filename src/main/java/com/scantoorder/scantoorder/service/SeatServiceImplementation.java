@@ -115,7 +115,8 @@ public class SeatServiceImplementation implements SeatService {
         if (held.getStatus() != SessionSeatStatus.HELD) {
             throw new SeatTakenException("That seat was just taken. Pick another held seat.");
         }
-        String code = joinSeatRequest.getJoinCode() == null ? "" : joinSeatRequest.getJoinCode().trim();
+        // Spaces and case do not matter when a friend types the code.
+        String code = joinSeatRequest.getJoinCode() == null ? "" : joinSeatRequest.getJoinCode().replaceAll("\\s+", "");
         if (!held.getSession().getJoinCode().equalsIgnoreCase(code)) {
             throw new SeatOwnershipException("That code does not match this seat. Check it and try again.");
         }

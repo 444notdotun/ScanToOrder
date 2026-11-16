@@ -200,3 +200,24 @@ export interface Bank {
   name: string;
   code: string;
 }
+
+// What to tell a guest whose code was refused, in words that fit the reason. Each refusal has its own title; a guest
+// at the wrong table is not failing, so they are given directions instead.
+export type CodeRefusal = { kind: 'directions'; title: string; message: string } | { kind: 'refusal'; title: string; message: string };
+
+export function codeRefusal(failure: { message: string; status: number | null; offline?: boolean }): CodeRefusal {
+  const message = failure.message;
+  const wrong = /^Your seat is at (.+?)\.?$/i.exec(message);
+  if (wrong) {
+    return { kind: 'directions', title: "You're at the wrong table", message: `Your seat is at ${wrong[1]}. Head over there and scan its card.` };
+  }
+  if (failure.offline) return { kind: 'refusal', title: 'We lost the connection', message };
+  if (/^Doors open at/i.test(message)) return { kind: 'refusal', title: "Doors aren't open yet", message };
+  if (/event is over/i.test(message)) return { kind: 'refusal', title: 'This event is over', message };
+  if (/can't find that code/i.test(message)) return { kind: 'refusal', title: "We can't find that code", message };
+  if (/in use at/i.test(message)) return { kind: 'refusal', title: 'Your code is in use on another phone', message };
+  if (/table is full/i.test(message)) return { kind: 'refusal', title: 'This table is full', message };
+  if (/sitting in your seat/i.test(message)) return { kind: 'refusal', title: 'Someone is in your seat', message };
+  if (/don't have a seat yet/i.test(message)) return { kind: 'refusal', title: "You don't have a seat yet", message };
+  return { kind: 'refusal', title: "We couldn't seat you", message };
+}

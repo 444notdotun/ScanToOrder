@@ -109,7 +109,8 @@ public class EventSeatingService {
                     + ". Come back then and your code will work.");
         }
 
-        String code = rawCode == null ? "" : rawCode.trim().toUpperCase(Locale.ROOT);
+        // Spaces and case do not matter: "k7m 2qd" is "K7M2QD".
+        String code = rawCode == null ? "" : rawCode.replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
         // A code belongs to one event: another event's code is simply not on this list.
         EventGuest guest = guestRepo.findForUpdateByCode(event.getId(), code)
                 .orElseThrow(() -> new ResourceNotFoundException(UNKNOWN_CODE));
