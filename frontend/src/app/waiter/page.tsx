@@ -1,485 +1,443 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { waiterService } from '@/services/waiter.service';
-import { managerService } from '@/services/manager.service';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import StaffShell from '@/components/staff/StaffShell';
+import Ticket, { agedMinutes } from '@/components/staff/Ticket';
+import { useConnection } from '@/components/plately/Connection';
+import { Button, FailureCard, Field, Sheet } from '@/components/plately/ui';
+import { FAILURE_ID, useAction } from '@/hooks/useAction';
+import { useNow } from '@/hooks/useNow';
+import { failureOf } from '@/lib/http';
+import {
+  minutesText,
+  reasonSaid,
+  staffApi,
+  useCalls,
+  useFloorTables,
+  useReady,
+  useStock,
+  useVisits,
+  type FloorSeat,
+  type FloorTable,
+  type ServiceOrder,
+  type WaiterCall,
+} from '@/lib/staff';
 import { useAuthStore } from '@/store/authStore';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import { ServiceCall, Order, RestaurantTable, Seat, OrderItem } from '@/types';
-import { 
-  BellRing, PackageCheck, Map, UserCheck, ArrowLeft, 
-  Loader2, CheckCircle, Clock, Armchair, LogOut, LayoutDashboard, ChevronRight, Bell
-} from 'lucide-react';
-import { toast } from 'sonner';
 
-function WaiterFloorContent() {
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'deliveries' | 'calls' | 'tables'>('deliveries');
-  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+type Tab = 'orders' | 'calls' | 'tables';
 
-  const { logout, workerProfile } = useAuthStore();
-  const staffName = (workerProfile as any)?.staffName || workerProfile?.username || 'John D.';
-  const role = 'Waiter';
+function Section({ title, count, empty, children }: { title: string; count: number; empty: string; children: React.ReactNode }) {
+  return (
+    <section aria-label={title} className="flex flex-col gap-3">
+      <div className="flex items-baseline gap-2.5">
+        <h2 className="font-heading text-[26px] font-normal">{title}</h2>
+        <span className="rounded-full bg-cream/15 px-2.5 py-0.5 text-sm font-bold text-cream">{count}</span>
+      </div>
+      {count === 0 ? <p className="rounded-lg border border-dashed border-cream/30 p-4 text-[15px] text-soft">{empty}</p> : children}
+    </section>
+  );
+}
 
-  // 1. Fetch Service Calls (Polling)
-  const { data: serviceCalls = [], isLoading: loadingCalls } = useQuery<ServiceCall[]>({
-    queryKey: ['waiterCalls'],
-    queryFn: () => waiterService.getServiceCalls(),
-    refetchInterval: 4000,
-  });
+type Act = ReturnType<typeof useAction>;
 
-  // 2. Fetch Ready Orders (Polling)
-  const { data: orders = [], isLoading: loadingOrders } = useQuery<Order[]>({
-    queryKey: ['waiterOrders'],
-    queryFn: () => waiterService.getReadyOrders(), // The service is configured to fetch ?status=READY
-    refetchInterval: 4000,
-  });
-  
-  // Ensure we strictly display only 'READY' orders on the frontend as per requirement
-  const readyOrders = orders.filter((o: Order) => o.status === 'READY' || (o.status as any) !== 'DELIVERED');
+function Orders({ act, onSwap }: { act: Act; onSwap: (order: ServiceOrder) => void }) {
+  const { lost } = useConnection();
+  const ready = useReady();
+  const visits = useVisits();
+  const now = useNow();
+  const carry = ready.data ?? [];
+  const visit = visits.data ?? [];
 
-  // 3. Fetch Tables / Floor Plan (Polling)
-  const { data: tables = [], isLoading: loadingTables } = useQuery<RestaurantTable[]>({
-    queryKey: ['waiterTables'],
-    queryFn: () => managerService.getTables(),
-    refetchInterval: 4000,
-  });
-
-  const selectedTableNumber = React.useMemo(() => {
-    return tables.find((t: any) => t.id === selectedTableId)?.tableNumber;
-  }, [tables, selectedTableId]);
-
-  const { data: seatMapData, isLoading: loadingSeatMap } = useQuery({
-    queryKey: ['waiterSeatMap', selectedTableNumber],
-    queryFn: () => waiterService.getTableSeatMap(String(selectedTableNumber)),
-    enabled: !!selectedTableNumber,
-    refetchInterval: 4000,
-  });
-
-  // Mutations
-  const updateCallMutation = useMutation({
-    mutationFn: (variables: { id: string; status: 'IN_PROGRESS' | 'RESOLVED'; waiterId: string }) => 
-      waiterService.updateServiceCall(variables.id, { status: variables.status, waiterId: variables.waiterId }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['waiterCalls'] });
-      if (variables.status === 'RESOLVED') {
-        toast.success('Service call resolved');
-      } else {
-        toast.success('Service call claimed');
-      }
-    }
-  });
-
-  const deliverOrderMutation = useMutation({
-    mutationFn: (id: string) => waiterService.markDelivered(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['waiterOrders'] });
-      toast.success('Order marked as DELIVERED successfully!');
-    },
-    onError: () => {
-      toast.error('Failed to mark order as delivered.');
-    }
-  });
-
-  const releaseSeatMutation = useMutation({
-    mutationFn: (id: string) => waiterService.releaseSeat(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['waiterTables'] });
-      toast.success("Seat successfully vacated and released.");
-    }
-  });
-
-  const closeSessionMutation = useMutation({
-    mutationFn: (id: string) => waiterService.closeSession(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['waiterTables'] });
-      toast.success("Table session closed. Table is free for new diners.");
-    }
-  });
-
-  const closeSessionBySeatMutation = useMutation({
-    mutationFn: (seatId: string) => waiterService.closeSessionBySeat(seatId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['waiterTables'] });
-      toast.success("Seat freed.");
-    },
-    onError: (err: any) => {
-      toast.error(err.message || "Failed to close session by seat.");
-    }
-  });
-
-  const handleClaimCall = (id: string) => {
-    updateCallMutation.mutate({ id, status: 'IN_PROGRESS', waiterId: workerProfile?.workerId || staffName });
-  };
-
-  const handleResolveCall = (id: string) => {
-    updateCallMutation.mutate({ id, status: 'RESOLVED', waiterId: workerProfile?.workerId || staffName });
-  };
-
-  const handleDeliver = (id: string) => {
-    deliverOrderMutation.mutate(id);
-  };
-
-  const getRequestLabel = (type: string) => {
-    switch (type) {
-      case 'WAITER': return 'Call Waiter';
-      case 'BILL': return 'Bring Bill';
-      case 'CLEANING': return 'Clean Table';
-      case 'HELP': return 'Menu Query';
-      default: return 'Assistance';
-    }
-  };
-
-  
-  const getSeatNumber = (seatId: string, fallbackSeatNumber?: number | string) => {
-    if (fallbackSeatNumber) return fallbackSeatNumber;
-    if (!seatId) return '?';
-    for (const table of tables) {
-      const seat = table.seats?.find(s => s.id === seatId);
-      if (seat) return seat.seatNumber;
-    }
-    return '?';
-  };
-
-  const openCalls = serviceCalls.filter((c: ServiceCall) => c.status === 'PENDING');
-  const inProgressCalls = serviceCalls.filter((c: ServiceCall) => c.status === 'IN_PROGRESS');
-  const resolvedCalls = serviceCalls.filter((c: ServiceCall) => c.status === 'RESOLVED');
-  const totalActiveCalls = openCalls.length + inProgressCalls.length;
-  
-  const tablesNeedingAttention = tables.filter((t: RestaurantTable) => t.status === 'OCCUPIED' || t.currentSessionId);
+  if (ready.isError || visits.isError) {
+    return <FailureCard title="We couldn't load the orders" message={failureOf(ready.error ?? visits.error).message} />;
+  }
+  if (ready.isPending || visits.isPending) {
+    return (
+      <p role="status" className="text-soft">
+        Fetching the orders…
+      </p>
+    );
+  }
 
   return (
-    <div className="flex-1 bg-waiter-floor min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-stone-200/50 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="p-2 hover:bg-stone-50 rounded-xl text-stone-500 transition">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <UserCheck className="h-6 w-6 text-brand-deep" />
-            <h1 className="text-lg font-black text-stone-900 tracking-tight">Waiter Dashboard</h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Bell className="h-6 w-6 text-stone-600" />
-            {totalActiveCalls > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-white">
-                {totalActiveCalls}
-              </span>
-            )}
-          </div>
-          <span className="text-sm font-bold text-stone-700 bg-stone-100 px-3 py-1.5 rounded-lg">
-            {staffName} · {role}
-          </span>
-          <button 
-            onClick={() => logout()}
-            className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition"
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <Section title="To carry" count={carry.length} empty="Nothing ready yet. The kitchen will send it here.">
+        {carry.map((order) => (
+          <Ticket
+            key={order.orderId}
+            order={order}
+            minutes={agedMinutes(order.minutesWaiting, ready.dataUpdatedAt, now)}
+            waitLabel="ready"
+            mood={order.flag ? 'cold' : 'plain'}
+            flag={order.flag}
           >
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
-      </header>
+            <Button big disabled={lost || act.busy !== null} onClick={() => void act.run(order.orderId, () => staffApi.deliver(order.orderId))}>
+              Delivered
+            </Button>
+          </Ticket>
+        ))}
+      </Section>
 
-      {/* Top Summary Metric Cards */}
-      <div className="px-6 py-4 grid grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col justify-center items-center">
-          <div className="text-2xl font-black text-brand-deep">{readyOrders.length}</div>
-          <div className="text-xs font-bold text-stone-500 mt-1 uppercase flex items-center gap-1"><PackageCheck className="w-3 h-3"/> Ready Orders</div>
+      <Section title="Needs a visit" count={visit.length} empty="No table needs you for an order.">
+        {visit.map((order) => {
+          const minutes = agedMinutes(order.minutesWaiting, visits.dataUpdatedAt, now);
+          if (order.step === 'UNAVAILABLE') {
+            return (
+              <Ticket
+                key={order.orderId}
+                order={order}
+                minutes={minutes}
+                waitLabel="waiting"
+                mood="problem"
+                flag={`The kitchen can't make this: ${reasonSaid(order.unavailableReason)}. Go and offer something else.`}
+              >
+                <Button big disabled={lost || act.busy !== null} onClick={() => onSwap(order)}>
+                  They picked something else
+                </Button>
+                <Button big tone="outline" disabled={lost || act.busy !== null} onClick={() => void act.run(order.orderId, () => staffApi.refundRequest(order.orderId))}>
+                  They want their money back
+                </Button>
+              </Ticket>
+            );
+          }
+          return (
+            <Ticket key={order.orderId} order={order} minutes={minutes} waitLabel="waiting" flag="Refund asked. The manager settles it with the guest." />
+          );
+        })}
+      </Section>
+    </div>
+  );
+}
+
+function Calls({ act }: { act: Act }) {
+  const { lost } = useConnection();
+  const calls = useCalls();
+  const now = useNow();
+  const profile = useAuthStore((state) => state.workerProfile);
+  const myFirstName = (profile?.fullName ?? profile?.username ?? '').trim().split(/\s+/)[0];
+
+  if (calls.isError) return <FailureCard title="We couldn't load the calls" message={failureOf(calls.error).message} />;
+  if (calls.isPending) {
+    return (
+      <p role="status" className="text-soft">
+        Fetching the calls…
+      </p>
+    );
+  }
+  if (calls.data.length === 0) {
+    return <p className="rounded-lg border border-dashed border-cream/30 p-4 text-[15px] text-soft">Nobody is calling. When a guest taps for help it lands here.</p>;
+  }
+
+  const stateOf = (call: WaiterCall) => {
+    if (call.state === 'OPEN') return `Waiting ${minutesText(agedMinutes(call.minutesWaiting, calls.dataUpdatedAt, now))}`;
+    return call.takenBy === myFirstName ? 'You are on it' : `${call.takenBy ?? 'Someone'} is on it`;
+  };
+
+  return (
+    <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      {calls.data.map((call) => {
+        const mine = call.state === 'TAKEN' && call.takenBy === myFirstName;
+        return (
+          <li
+            key={call.callId}
+            className={`flex items-center justify-between gap-3 rounded-lg bg-paperlight p-4 text-ink shadow-[0_8px_20px_rgba(0,0,0,0.22)] ${call.state === 'OPEN' ? 'border-2 border-mustard' : 'border-[1.5px] border-rule'}`}
+          >
+            <div className="min-w-0">
+              <div className="font-heading text-xl text-bottle">{call.where}</div>
+              {call.what ? <div className="text-[17px] font-bold leading-snug">{asked(call.what)}</div> : null}
+              <div className="text-sm font-bold text-quiet">{stateOf(call)}</div>
+            </div>
+            {call.state === 'OPEN' ? (
+              <Button full={false} big disabled={lost || act.busy !== null} onClick={() => void act.run(call.callId, () => staffApi.take(call.callId))}>
+                I&apos;ll take it
+              </Button>
+            ) : mine ? (
+              <Button full={false} big tone="primary" disabled={lost || act.busy !== null} onClick={() => void act.run(call.callId, () => staffApi.done(call.callId))}>
+                Sorted
+              </Button>
+            ) : null}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+// The backend files a call as "ASSISTANCE - Could we have some water?": the waiter reads only what was asked.
+function asked(what: string): string {
+  return what.replace(/^[A-Z_]+ - /, '');
+}
+
+function seatLine(seat: FloorSeat): { title: string; note: string } {
+  if (seat.status === 'OCCUPIED') return { title: seat.guestFirstName ?? 'Someone', note: 'Seated' };
+  if (seat.status === 'HELD') {
+    const minutes = Math.max(1, Math.ceil((seat.secondsLeft ?? 0) / 60));
+    return { title: 'Saved for a friend', note: `Held for ${minutes} more minute${minutes === 1 ? '' : 's'}` };
+  }
+  return { title: 'Free', note: 'Nobody here' };
+}
+
+function Tables({ act, onClose }: { act: Act; onClose: (table: FloorTable) => void }) {
+  const { lost } = useConnection();
+  const tables = useFloorTables();
+
+  if (tables.isError) return <FailureCard title="We couldn't load the tables" message={failureOf(tables.error).message} />;
+  if (tables.isPending) {
+    return (
+      <p role="status" className="text-soft">
+        Fetching the tables…
+      </p>
+    );
+  }
+  if (tables.data.length === 0) {
+    return <p className="rounded-lg border border-dashed border-cream/30 p-4 text-[15px] text-soft">No tables are set up yet. The manager adds them.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {tables.data.map((table) => {
+        const label = `Table ${table.displayNumber ?? table.tableNumber}`;
+        const inUse = table.seats.filter((seat) => seat.status !== 'VACANT').length;
+        return (
+          <section key={table.tableId} aria-label={label} className="flex flex-col gap-2 rounded-[20px] bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-heading text-[26px] font-normal text-bottle">{label}</h2>
+              <span className="text-sm font-bold text-quiet">{inUse === 0 ? 'empty' : `${inUse} of ${table.seats.length} in use`}</span>
+            </div>
+            <ul className="flex flex-col">
+              {table.seats.map((seat) => {
+                const line = seatLine(seat);
+                return (
+                  <li key={seat.seatId} className="flex items-center gap-3 border-t border-dashed border-rule2 py-2">
+                    <span
+                      aria-hidden="true"
+                      className={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-sm font-bold ${
+                        seat.status === 'OCCUPIED' ? 'bg-bottle text-cream' : seat.status === 'HELD' ? 'bg-mustard text-ink' : 'border-[1.5px] border-dashed border-quiet text-ink'
+                      }`}
+                    >
+                      {seat.position}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold leading-tight">{line.title}</div>
+                      <div className="text-sm text-quiet">{line.note}</div>
+                    </div>
+                    {seat.status === 'OCCUPIED' ? (
+                      <Button
+                        full={false}
+                        tone="outline"
+                        big
+                        aria-label={`Free seat ${seat.position} at ${label.toLowerCase()}`}
+                        disabled={lost || act.busy !== null}
+                        onClick={() => void act.run(seat.seatId, () => staffApi.release(seat.seatId))}
+                      >
+                        Free seat
+                      </Button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+            {inUse > 0 ? (
+              <Button big tone="bottle" disabled={lost || act.busy !== null} onClick={() => onClose(table)}>
+                Close this table
+              </Button>
+            ) : (
+              <p className="border-t border-dashed border-rule2 pt-2 text-[15px] text-quiet">Clear and ready for the next guests.</p>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+// Choose what the guest will have instead. Plates can be counted up, since an order can hold several.
+function SwapSheet({ order, act, onDone }: { order: ServiceOrder | null; act: Act; onDone: () => void }) {
+  const { lost } = useConnection();
+  const stock = useStock();
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [note, setNote] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const plates = (stock.data ?? []).filter((item) => item.available);
+  const chosen = plates.filter((item) => (counts[item.itemId] ?? 0) > 0);
+  const change = (id: string, by: number) => setCounts((now) => ({ ...now, [id]: Math.max(0, Math.min(20, (now[id] ?? 0) + by)) }));
+
+  const send = async () => {
+    if (!order) return;
+    if (chosen.length === 0) {
+      setProblem('Choose at least one plate for the guest.');
+      return;
+    }
+    const worked = await act.run(order.orderId, () =>
+      staffApi.swap(order.orderId, chosen.map((item) => ({ itemName: item.itemName, quantity: counts[item.itemId] })), note),
+    );
+    if (worked) {
+      setCounts({});
+      setNote('');
+      onDone();
+    }
+  };
+
+  return (
+    <Sheet open={order !== null} onClose={onDone} label="What they chose instead">
+      <h2 className="font-heading text-[28px] font-normal text-bottle">What did they choose?</h2>
+      <p className="mb-4 mt-2 text-[15px] leading-snug text-quiet">
+        {order ? `${order.orderNumber}: ${order.items.join(', ')}${order.guestName ? ` for ${order.guestName}` : ''}. ` : ''}
+        It goes back to the kitchen as a new ticket. Any price difference is settled at the table.
+      </p>
+      {stock.isPending ? <p className="text-quiet">Fetching the menu…</p> : null}
+      {stock.isError ? <FailureCard title="We couldn't load the menu" message={failureOf(stock.error).message} /> : null}
+      <ul className="flex flex-col">
+        {plates.map((item) => (
+          <li key={item.itemId} className="flex items-center justify-between gap-3 border-t border-dashed border-rule2 py-2">
+            <span className="font-bold leading-tight">{item.itemName}</span>
+            <span className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={`One fewer ${item.itemName}`}
+                disabled={(counts[item.itemId] ?? 0) === 0}
+                onClick={() => change(item.itemId, -1)}
+                className="h-11 w-11 rounded-full border-[1.5px] border-bottle text-xl font-bold text-bottle disabled:opacity-40"
+              >
+                −
+              </button>
+              <span className="w-6 text-center text-lg font-bold" aria-live="polite">
+                {counts[item.itemId] ?? 0}
+              </span>
+              <button type="button" aria-label={`One more ${item.itemName}`} onClick={() => change(item.itemId, 1)} className="h-11 w-11 rounded-full bg-bottle text-xl font-bold text-cream">
+                +
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <Field className="mt-3" label="Note (optional)" hint="For example, that the difference was settled at the table." maxLength={300} value={note} onChange={(event) => setNote(event.target.value)} />
+      {problem && chosen.length === 0 ? <p className="mt-2 text-sm font-bold text-hand">{problem}</p> : null}
+      {act.failure ? <FailureCard className="mt-3" title={act.failure.title} message={act.failure.message} /> : null}
+      <div className="mt-4 flex flex-col gap-2.5">
+        <Button big tone="primary" disabled={lost || act.busy !== null} onClick={() => void send()}>
+          Send to the kitchen
+        </Button>
+        <Button big tone="outline" onClick={onDone}>
+          Never mind
+        </Button>
+      </div>
+    </Sheet>
+  );
+}
+
+function CloseSheet({ table, act, onDone }: { table: FloorTable | null; act: Act; onDone: () => void }) {
+  const { lost } = useConnection();
+  const [owedNow, setOwedNow] = useState<number | null>(null);
+  // How many paid orders are still undelivered, read when the sheet opens.
+  const sessions = useQuery({
+    queryKey: ['table-sessions', table?.tableId],
+    queryFn: () => staffApi.sessions(table!.tableId),
+    enabled: table !== null,
+  });
+  const owed = owedNow ?? sessions.data?.paidUndeliveredOrders ?? 0;
+  const label = table ? `Table ${table.displayNumber ?? table.tableNumber}` : '';
+
+  const close = async () => {
+    if (!table) return;
+    const worked = await act.run(table.tableId, () => staffApi.closeTable(table.tableId, owed > 0));
+    if (worked) {
+      setOwedNow(null);
+      onDone();
+    } else {
+      // A new paid order may have come in since the warning was read: ask again before closing.
+      const fresh = await staffApi.sessions(table.tableId).catch(() => null);
+      if (fresh) setOwedNow(fresh.paidUndeliveredOrders);
+    }
+  };
+
+  return (
+    <Sheet open={table !== null} onClose={onDone} label="Close the table">
+      <h2 className="font-heading text-[28px] font-normal text-bottle">Close {label}?</h2>
+      <p className="mb-3 mt-2 text-[15px] leading-snug text-quiet">
+        Every seat at {label} will be freed and its groups closed. Guests who are still ordering will be told their visit has ended.
+      </p>
+      {owed > 0 ? (
+        <div role="alert" className="mb-3 rounded-2xl border-[1.5px] border-errborder bg-errbg p-3.5 text-[15px] font-bold leading-snug text-errtext">
+          {owed} paid order{owed === 1 ? ' has' : 's have'} not been delivered. The food stays with you and nothing is refunded.
         </div>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col justify-center items-center">
-          <div className="text-2xl font-black text-orange-500">{totalActiveCalls}</div>
-          <div className="text-xs font-bold text-stone-500 mt-1 uppercase flex items-center gap-1"><BellRing className="w-3 h-3"/> Service Calls</div>
-        </div>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex flex-col justify-center items-center">
-          <div className="text-2xl font-black text-blue-600">{tablesNeedingAttention.length}</div>
-          <div className="text-xs font-bold text-stone-500 mt-1 uppercase flex items-center gap-1"><Map className="w-3 h-3"/> Tables active</div>
-        </div>
+      ) : null}
+      {act.failure ? <FailureCard className="mb-3" title={act.failure.title} message={act.failure.message} /> : null}
+      <div className="flex flex-col gap-2.5">
+        <Button big tone="primary" disabled={lost || act.busy !== null || sessions.isPending} onClick={() => void close()}>
+          Close the table
+        </Button>
+        <Button big tone="outline" onClick={onDone}>
+          Not yet
+        </Button>
+      </div>
+    </Sheet>
+  );
+}
+
+function Floor() {
+  const ready = useReady();
+  const visits = useVisits();
+  const calls = useCalls();
+  const act = useAction();
+  const [tab, setTab] = useState<Tab>('orders');
+  const [swapping, setSwapping] = useState<ServiceOrder | null>(null);
+  const [closing, setClosing] = useState<FloorTable | null>(null);
+
+  const open = (calls.data ?? []).filter((call) => call.state === 'OPEN').length;
+  const tabs: Array<{ id: Tab; label: string }> = [
+    { id: 'orders', label: `Orders (${(ready.data?.length ?? 0) + (visits.data?.length ?? 0)})` },
+    { id: 'calls', label: `Calls (${open})` },
+    { id: 'tables', label: 'Tables' },
+  ];
+
+  // A failure shows at the top, except while a sheet is open: the sheet shows its own.
+  const sheetOpen = swapping !== null || closing !== null;
+
+  return (
+    <main className="mx-auto flex w-full max-w-6xl flex-1 animate-rise flex-col gap-4 px-5 pb-6 pt-4">
+      <div>
+        <h1 className="font-heading text-[38px] font-normal leading-[1.1]">The floor</h1>
+        <p className="mt-1 text-[17px] text-soft">Hot food first, then whoever is waving.</p>
       </div>
 
-      {/* Navigation Sub-Header */}
-      <section className="px-6 pb-2">
-        <div className="flex bg-stone-200/50 p-1 rounded-xl">
+      <nav aria-label="Waiter sections" className="flex gap-2">
+        {tabs.map((item) => (
           <button
-            onClick={() => setActiveTab('deliveries')}
-            className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${
-              activeTab === 'deliveries' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+            key={item.id}
+            type="button"
+            aria-current={tab === item.id ? 'page' : undefined}
+            onClick={() => {
+              setTab(item.id);
+              act.clear();
+            }}
+            className={`min-h-[52px] flex-1 rounded-full border-[1.5px] px-4 text-base font-bold md:flex-none md:px-7 ${
+              tab === item.id ? 'border-cream bg-cream text-bottle' : 'border-cream/45 text-cream hover:bg-cream/10'
             }`}
           >
-            Orders {readyOrders.length > 0 && <span className="bg-brand-deep text-white text-[10px] px-1.5 py-0.5 rounded-full">{readyOrders.length}</span>}
+            {item.label}
           </button>
-          <button
-            onClick={() => setActiveTab('calls')}
-            className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${
-              activeTab === 'calls' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
-            }`}
-          >
-            Service Calls {totalActiveCalls > 0 && <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{totalActiveCalls}</span>}
-          </button>
-          <button
-            onClick={() => setActiveTab('tables')}
-            className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${
-              activeTab === 'tables' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
-            }`}
-          >
-            Tables
-          </button>
-        </div>
-      </section>
+        ))}
+      </nav>
 
-      {/* Content Area */}
-      <main className="flex-1 w-full max-w-5xl mx-auto p-6">
-        
-        {/* TAB 1: READY ORDERS */}
-        {activeTab === 'deliveries' && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-black text-stone-800">Ready for Delivery</h2>
-            {loadingOrders ? (
-              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-brand-deep w-8 h-8" /></div>
-            ) : readyOrders.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-2xl border border-stone-200 shadow-sm">
-                <CheckCircle className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
-                <h3 className="font-bold text-stone-800 text-lg">All caught up!</h3>
-                <p className="text-stone-500 text-sm">No ready orders waiting for delivery.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {readyOrders.map((order: Order) => (
-                  <div key={order.id || (order as any).orderId || Math.random().toString()} className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="bg-stone-900 text-white font-black text-sm px-2.5 py-1 rounded-md">{order.tableNumber}</span>
-                          <span className="bg-stone-100 text-stone-600 font-bold text-xs px-2 py-1 rounded-md">{getSeatNumber((order as any).seatId, order.seatNumber)}</span>
-                        </div>
-                        <div className="mt-2 text-xs font-bold text-stone-400">Order #{order.id || (order as any).orderId}</div>
-                      </div>
-                      <div className="bg-yellow-100 text-yellow-800 text-xs font-black px-3 py-1.5 rounded-full flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Ready
-                      </div>
-                    </div>
+      <div id={FAILURE_ID}>{act.failure && !sheetOpen ? <FailureCard title={act.failure.title} message={act.failure.message} /> : null}</div>
 
-                    {/* Visual 4-stage stepper */}
-                    <div className="flex items-center justify-between mb-5 mt-2 relative">
-                      <div className="absolute top-1/2 left-0 w-full h-0.5 bg-stone-200 -z-10 -translate-y-1/2"></div>
-                      <div className="absolute top-1/2 left-0 w-[75%] h-0.5 bg-emerald-500 -z-10 -translate-y-1/2"></div>
-                      
-                      {['Paid', 'Preparing', 'Ready', 'Delivered'].map((step, idx) => (
-                        <div key={step} className="flex flex-col items-center bg-white px-1">
-                          <div className={`w-3 h-3 rounded-full mb-1 ${idx < 3 ? 'bg-emerald-500' : 'bg-stone-200'}`}></div>
-                          <span className={`text-[9px] font-bold ${idx < 3 ? 'text-emerald-700' : 'text-stone-400'}`}>{step}</span>
-                        </div>
-                      ))}
-                    </div>
+      {tab === 'orders' ? <Orders act={act} onSwap={setSwapping} /> : null}
+      {tab === 'calls' ? <Calls act={act} /> : null}
+      {tab === 'tables' ? <Tables act={act} onClose={setClosing} /> : null}
 
-                    <div className="bg-stone-50 rounded-xl p-3 mb-4 space-y-2">
-                      {order.items?.map((item: any, i: number) => (
-                        <div key={i} className="flex justify-between items-center border-b border-stone-200 last:border-0 pb-2 last:pb-0">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-stone-200 rounded-md overflow-hidden shrink-0">
-                               <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || item.itemName)}&background=random`} alt="Item" className="w-full h-full object-cover" />
-                            </div>
-                            <div>
-                              <span className="text-sm font-bold text-stone-800 block">{item.name || item.itemName}</span>
-                            </div>
-                          </div>
-                          <div className="text-sm font-black text-stone-600">x{item.quantity}</div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Customer Special Instructions callout box */}
-                    {order.items?.some((i: any) => i.notes || i.specialInstructions || i.SpecialInstructions) && (
-                      <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-4">
-                        <p className="text-xs font-bold text-orange-800 mb-1">Special Instructions:</p>
-                        <ul className="list-disc pl-4 text-xs text-orange-700 font-medium">
-                          {order.items?.filter((i: any) => i.notes || i.specialInstructions || i.SpecialInstructions).map((i: any, idx: number) => (
-                            <li key={idx}>{i.name || i.itemName}: {i.notes || i.specialInstructions || i.SpecialInstructions}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => handleDeliver(order.id || (order as any).orderId)}
-                      disabled={deliverOrderMutation.isPending}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 transition"
-                    >
-                      <CheckCircle className="w-5 h-5" />
-                      ✓ Mark Delivered
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 2: SERVICE CALLS (Categorized into 3 columns / states) */}
-        {activeTab === 'calls' && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-black text-stone-800">Service Calls & Triage</h2>
-            {loadingCalls ? (
-              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-brand-deep w-8 h-8" /></div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                {/* Column 1: Open Calls */}
-                <div className="bg-stone-100 p-4 rounded-2xl min-h-[400px]">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-stone-700">Open Calls</h3>
-                    <span className="bg-white text-stone-800 text-xs font-black px-2 py-1 rounded-full">{openCalls.length}</span>
-                  </div>
-                  <div className="space-y-3">
-                    {openCalls.map((call: ServiceCall) => (
-                      <div key={call.id} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-orange-500">
-                        <div className="font-bold text-sm text-stone-900 mb-1">{call.tableNumber} - {getSeatNumber(call.seatId, call.seatNumber)}</div>
-                        <div className="text-xs font-semibold text-stone-500 mb-3">{getRequestLabel(call.requestType)}</div>
-                        <button onClick={() => handleClaimCall(call.id)} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 rounded-lg text-xs transition">Claim</button>
-                      </div>
-                    ))}
-                    {openCalls.length === 0 && <div className="text-center text-stone-400 text-sm font-medium py-8">No open calls</div>}
-                  </div>
-                </div>
-
-                {/* Column 2: In Progress */}
-                <div className="bg-blue-50/50 p-4 rounded-2xl min-h-[400px] border border-blue-100">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-blue-800">In Progress</h3>
-                    <span className="bg-white text-blue-800 text-xs font-black px-2 py-1 rounded-full shadow-sm">{inProgressCalls.length}</span>
-                  </div>
-                  <div className="space-y-3">
-                    {inProgressCalls.map((call: ServiceCall) => (
-                      <div key={call.id} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-blue-500">
-                        <div className="font-bold text-sm text-stone-900 mb-1">{call.tableNumber} - {getSeatNumber(call.seatId, call.seatNumber)}</div>
-                        <div className="text-xs font-semibold text-stone-500 mb-1">{getRequestLabel(call.requestType)}</div>
-                        <div className="text-[10px] text-blue-600 font-bold mb-3">Claimed by: {call.waiterName || staffName}</div>
-                        <button onClick={() => handleResolveCall(call.id)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-xs transition">Resolve</button>
-                      </div>
-                    ))}
-                    {inProgressCalls.length === 0 && <div className="text-center text-blue-300 text-sm font-medium py-8">None in progress</div>}
-                  </div>
-                </div>
-
-                {/* Column 3: Resolved */}
-                <div className="bg-emerald-50/50 p-4 rounded-2xl min-h-[400px] border border-emerald-100">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-emerald-800">Resolved (Recent)</h3>
-                    <span className="bg-white text-emerald-800 text-xs font-black px-2 py-1 rounded-full shadow-sm">{resolvedCalls.length}</span>
-                  </div>
-                  <div className="space-y-3">
-                    {resolvedCalls.map((call: ServiceCall) => (
-                      <div key={call.id} className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100 opacity-60">
-                        <div className="font-bold text-sm text-stone-900">{call.tableNumber} - {getSeatNumber(call.seatId, call.seatNumber)}</div>
-                        <div className="text-xs font-semibold text-stone-500 mt-1">{getRequestLabel(call.requestType)}</div>
-                        <div className="text-[10px] text-emerald-600 font-bold mt-2">✓ Resolved</div>
-                      </div>
-                    ))}
-                    {resolvedCalls.length === 0 && <div className="text-center text-emerald-300 text-sm font-medium py-8">No resolved calls</div>}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 3: TABLES & GHOST SEATS */}
-        {activeTab === 'tables' && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-black text-stone-800">Tables & Ghost Seats</h2>
-            {loadingTables ? (
-              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-brand-deep w-8 h-8" /></div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {tables.map((table: RestaurantTable) => {
-                  const isExpanded = selectedTableId === table.id;
-                  const seats = (isExpanded && seatMapData?.seats) ? seatMapData.seats : (table.seats || []);
-                  const capacity = table.capacity || 4;
-                  const isOccupied = table.status === 'OCCUPIED';
-                  
-                  // Occupancy status dots
-                  const getStatusColor = () => {
-                    return isOccupied ? 'bg-brand-deep' : 'bg-emerald-500';
-                  };
-
-                  return (
-                    <div key={table.id} className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-                      <div className="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${getStatusColor()}`}></div>
-                          <div>
-                            <div className="font-black text-stone-900 text-base">{table.tableNumber}</div>
-                            <div className="text-xs text-stone-500 font-semibold">{isOccupied ? 'Currently Occupied' : 'Available'} • {capacity} Seats</div>
-                          </div>
-                        </div>
-                        <button onClick={() => setSelectedTableId(isExpanded ? null : table.id)} className="text-brand-deep text-xs font-bold px-3 py-1.5 bg-brand-light rounded-lg">
-                          {isExpanded ? 'Close' : 'Manage'}
-                        </button>
-                      </div>
-
-                      {isExpanded && (
-                        <div className="p-4 bg-white">
-                          <h4 className="text-xs font-black text-stone-400 uppercase tracking-wider mb-3">Table Manager</h4>
-                          
-                          {seats.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                              {seats.map((seat: Seat) => {
-                                const isSeatOccupied = seat.status === 'OCCUPIED';
-                                return (
-                                  <div key={seat.seatNumber || seat.id} className={`p-3 rounded-xl border flex flex-col items-center text-center gap-2 ${isSeatOccupied ? 'border-brand-deep bg-brand-light/30' : 'border-stone-200 bg-stone-50'}`}>
-                                    <div className="text-xs font-bold text-stone-800">Seat {(seat as any).position ?? seat.seatNumber}</div>
-                                    <div className={`text-[10px] font-black px-2 py-1 rounded ${isSeatOccupied ? 'bg-brand-deep text-white' : 'bg-stone-200 text-stone-600'}`}>
-                                      {seat.status}
-                                    </div>
-                                    {seat.status !== 'VACANT' && (
-                                      <button 
-                                        onClick={() => closeSessionBySeatMutation.mutate(String((seat as any).seatId))}
-                                        disabled={closeSessionBySeatMutation.isPending}
-                                        className="mt-1 text-[10px] font-bold text-white bg-stone-900 hover:bg-black px-3 py-1 rounded-md w-full"
-                                      >
-                                        Free Seat
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-stone-500 mb-4 text-center italic border border-dashed border-stone-200 rounded-xl p-3 bg-stone-50">
-                              Seat-level details are not currently provided by the server. You can flush the entire table.
-                            </p>
-                          )}
-                          
-                          {seats.some((seat: Seat) => seat.status !== 'VACANT') && (
-                            <button 
-                              onClick={() => closeSessionMutation.mutate(table.tableId || table.id)}
-                              disabled={closeSessionMutation.isPending}
-                              className="w-full bg-stone-900 hover:bg-black text-white font-black py-2.5 rounded-xl text-xs transition shadow-md"
-                            >
-                              Close Session (Flush Table)
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+      <SwapSheet order={swapping} act={act} onDone={() => { setSwapping(null); act.clear(); }} />
+      <CloseSheet table={closing} act={act} onDone={() => { setClosing(null); act.clear(); }} />
+    </main>
   );
 }
 
 export default function WaiterPage() {
   return (
-    <ProtectedRoute allowedRoles={['WAITER', 'MANAGER']}>
-      <WaiterFloorContent />
-    </ProtectedRoute>
+    <StaffShell allow={['WAITER', 'MANAGER']}>
+      <Floor />
+    </StaffShell>
   );
 }

@@ -138,7 +138,7 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
         aria-label={label}
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
-        className="max-h-[92dvh] w-full max-w-md animate-sheet overflow-y-auto rounded-t-[28px] bg-paper p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom)+var(--corner-clear))] text-ink shadow-2xl sm:rounded-[28px] sm:pb-6"
+        className="max-h-[92dvh] w-full max-w-md animate-sheet outline-none overflow-y-auto rounded-t-[28px] bg-paper p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom)+var(--corner-clear))] text-ink shadow-2xl sm:rounded-[28px] sm:pb-6"
       >
         {children}
       </div>
