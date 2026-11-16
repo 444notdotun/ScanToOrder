@@ -77,7 +77,7 @@ export default function StaffHeader({
         ) : null}
       </div>
 
-      {nav ? <div className="order-4 basis-full xl:order-2 xl:min-w-0 xl:basis-auto xl:flex-1">{nav}</div> : null}
+      {nav ? <div className="order-4 hidden basis-full md:block xl:order-2 xl:min-w-0 xl:basis-auto xl:flex-1">{nav}</div> : null}
     </header>
   );
 }

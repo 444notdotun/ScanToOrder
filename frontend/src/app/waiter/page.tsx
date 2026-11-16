@@ -24,8 +24,8 @@ import {
   type WaiterCall,
 } from '@/lib/staff';
 import { useAuthStore } from '@/store/authStore';
-
-type Tab = 'orders' | 'calls' | 'tables';
+import { useWaiterTab } from '@/store/waiterTab';
+import { WaiterBar, WaiterNav } from '@/components/staff/RoleBars';
 
 function Section({ title, count, empty, children }: { title: string; count: number; empty: string; children: React.ReactNode }) {
   return (
@@ -41,7 +41,7 @@ function Section({ title, count, empty, children }: { title: string; count: numb
 
 type Act = ReturnType<typeof useAction>;
 
-function Orders({ act, onSwap }: { act: Act; onSwap: (order: ServiceOrder) => void }) {
+function Orders({ act, part, onSwap }: { act: Act; part: 'carry' | 'visits'; onSwap: (order: ServiceOrder) => void }) {
   const { lost } = useConnection();
   const ready = useReady();
   const visits = useVisits();
@@ -61,7 +61,8 @@ function Orders({ act, onSwap }: { act: Act; onSwap: (order: ServiceOrder) => vo
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6">
+      {part === 'carry' ? (
       <Section title="To carry" count={carry.length} empty="Nothing ready yet. The kitchen will send it here.">
         {carry.map((order) => (
           <Ticket
@@ -78,7 +79,7 @@ function Orders({ act, onSwap }: { act: Act; onSwap: (order: ServiceOrder) => vo
           </Ticket>
         ))}
       </Section>
-
+      ) : (
       <Section title="Needs a visit" count={visit.length} empty="No table needs you for an order.">
         {visit.map((order) => {
           const minutes = agedMinutes(order.minutesWaiting, visits.dataUpdatedAt, now);
@@ -106,6 +107,7 @@ function Orders({ act, onSwap }: { act: Act; onSwap: (order: ServiceOrder) => vo
           );
         })}
       </Section>
+      )}
     </div>
   );
 }
@@ -329,20 +331,10 @@ function SwapSheet({ order, act, onDone }: { order: ServiceOrder | null; act: Ac
 }
 
 function Floor() {
-  const ready = useReady();
-  const visits = useVisits();
-  const calls = useCalls();
   const act = useAction();
-  const [tab, setTab] = useState<Tab>('orders');
+  const { tab } = useWaiterTab();
   const [swapping, setSwapping] = useState<ServiceOrder | null>(null);
   const [closing, setClosing] = useState<FloorTable | null>(null);
-
-  const open = (calls.data ?? []).filter((call) => call.state === 'OPEN').length;
-  const tabs: Array<{ id: Tab; label: string }> = [
-    { id: 'orders', label: `Orders (${(ready.data?.length ?? 0) + (visits.data?.length ?? 0)})` },
-    { id: 'calls', label: `Calls (${open})` },
-    { id: 'tables', label: 'Tables' },
-  ];
 
   // A failure shows at the top, except while a sheet is open: the sheet shows its own.
   const sheetOpen = swapping !== null || closing !== null;
@@ -354,28 +346,9 @@ function Floor() {
         <p className="mt-1 text-[17px] text-soft">Hot food first, then whoever is waving.</p>
       </div>
 
-      <nav aria-label="Waiter sections" className="flex gap-2">
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-current={tab === item.id ? 'page' : undefined}
-            onClick={() => {
-              setTab(item.id);
-              act.clear();
-            }}
-            className={`min-h-[52px] flex-1 rounded-full border-[1.5px] px-4 text-base font-bold md:flex-none md:px-7 ${
-              tab === item.id ? 'border-cream bg-cream text-bottle' : 'border-cream/45 text-cream hover:bg-cream/10'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </nav>
-
       <div id={FAILURE_ID}>{act.failure && !sheetOpen ? <FailureCard title={act.failure.title} message={act.failure.message} /> : null}</div>
 
-      {tab === 'orders' ? <Orders act={act} onSwap={setSwapping} /> : null}
+      {tab === 'carry' || tab === 'visits' ? <Orders act={act} part={tab} onSwap={setSwapping} /> : null}
       {tab === 'calls' ? <Calls act={act} /> : null}
       {tab === 'tables' ? <Tables act={act} onClose={setClosing} /> : null}
 
@@ -387,8 +360,9 @@ function Floor() {
 
 export default function WaiterPage() {
   return (
-    <StaffShell allow={['WAITER', 'MANAGER']}>
+    <StaffShell allow={['WAITER', 'MANAGER']} nav={<WaiterNav />}>
       <Floor />
+      <WaiterBar />
     </StaffShell>
   );
 }
