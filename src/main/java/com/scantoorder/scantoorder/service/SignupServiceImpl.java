@@ -14,7 +14,9 @@ import com.scantoorder.scantoorder.exception.ConflictException;
 import com.scantoorder.scantoorder.exception.InvalidRequestException;
 import com.scantoorder.scantoorder.service.Interface.PaystackClient;
 import com.scantoorder.scantoorder.service.Interface.SignupService;
+import com.scantoorder.scantoorder.utils.BusinessNames;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +27,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class SignupServiceImpl implements SignupService {
 
-    public static final String EMAIL_TAKEN =
-            "There is already a business on Plately with this email. Sign in with the details we sent you.";
+    public static final String EMAIL_TAKEN = "This email already has a business on Plately. Sign in instead, or use another email.";
+    public static final String NAME_TAKEN = "This name already has a business on Plately. Use another name, or add your area, like Triple4 Ikeja.";
     private static final String BANKS_KEY = "signup:banks";
 
     @Autowired
@@ -63,6 +65,12 @@ public class SignupServiceImpl implements SignupService {
             throw new ConflictException(EMAIL_TAKEN);
         }
         String businessName = request.getBusinessName().trim();
+        String normalised = BusinessNames.normalise(businessName);
+        tenantRepo.findByNormalizedName(normalised)
+                .filter(other -> existing == null || !other.getTenantId().equals(existing.getTenantId()))
+                .ifPresent(other -> {
+                    throw new ConflictException(NAME_TAKEN);
+                });
         // A declined owner who sends the form again replaces the old application and keeps its slug.
         Tenant tenant = existing != null ? existing : new Tenant();
         if (existing == null) {
@@ -78,9 +86,22 @@ public class SignupServiceImpl implements SignupService {
         tenant.setOpenForOrders(false);
         tenant.setHoldsEnabled(request.getType() == TenantType.RESTAURANT);
         applyBank(tenant, request);
-        tenant = tenantRepo.save(tenant);
+        try {
+            tenant = tenantRepo.saveAndFlush(tenant);
+        } catch (DataIntegrityViolationException e) {
+            // Two people sending the same name or email at once: the database's unique indexes decide.
+            String cause = String.valueOf(e.getMostSpecificCause().getMessage());
+            throw new ConflictException(cause.contains("normalized_name") ? NAME_TAKEN : EMAIL_TAKEN);
+        }
         return new SignupResponse(tenant.getSlug(), tenant.getStatus().name(),
                 "Thank you. We will look at your application and email you at " + email + ".");
+    }
+
+    // Answers from the same unique index that guards the sign-up, so the form can say so while the owner types.
+    @Override
+    public boolean nameAvailable(String name) {
+        String normalised = BusinessNames.normalise(name);
+        return !normalised.isEmpty() && !tenantRepo.existsByNormalizedName(normalised);
     }
 
     // A restaurant's account is checked again here, so a number changed after the first check is caught.

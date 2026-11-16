@@ -15,6 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/signup")
@@ -27,6 +28,11 @@ public class SignupController {
     @GetMapping("/banks")
     public ResponseEntity<ApiResponse<List<BankData>>> banks() {
         return ResponseEntity.ok(new ApiResponse<>(signupService.banks()));
+    }
+
+    @GetMapping("/name-available")
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> nameAvailable(@RequestParam String name) {
+        return ResponseEntity.ok(new ApiResponse<>(Map.of("available", signupService.nameAvailable(name))));
     }
 
     @PostMapping("/verify-account")

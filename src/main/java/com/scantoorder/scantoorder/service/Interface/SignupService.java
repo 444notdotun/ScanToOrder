@@ -11,6 +11,8 @@ import java.util.List;
 public interface SignupService {
     List<BankData> banks();
 
+    boolean nameAvailable(String name);
+
     VerifyAccountResponse verifyAccount(VerifyAccountRequest request);
 
     SignupResponse signup(SignupRequest request);

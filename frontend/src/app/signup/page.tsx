@@ -1,15 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Ground from '@/components/plately/Ground';
 import { Brand, Watermark } from '@/components/plately/Logo';
 import { Button, Card, FailureCard, Field, SelectField } from '@/components/plately/ui';
-import { failureOf, type ApiFailure } from '@/lib/http';
+import { dataOf, failureOf, http, type ApiFailure } from '@/lib/http';
 import { managerApi, useBanks } from '@/lib/manager';
 import { platformApi, type SignupForm } from '@/lib/platform';
 
 type Kind = SignupForm['type'];
+
+const NAME_TAKEN = 'That name is taken. Try adding your area, like Triple4 Ikeja.';
 
 const KINDS: Array<{ id: Kind; label: string; sub: string }> = [
   { id: 'RESTAURANT', label: 'A restaurant', sub: 'Guests scan, sit, order and pay' },
@@ -33,6 +36,23 @@ export default function SignupPage() {
   const [sent, setSent] = useState<{ email: string; message: string } | null>(null);
 
   const restaurant = kind === 'RESTAURANT';
+
+  // The name is checked a moment after the owner stops typing, against the same records the sign-up is guarded by.
+  const [checkedName, setCheckedName] = useState('');
+  const pause = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const typeName = (value: string) => {
+    setBusiness(value);
+    clearTimeout(pause.current);
+    pause.current = setTimeout(() => setCheckedName(value.trim()), 500);
+  };
+  const nameCheck = useQuery({
+    queryKey: ['name-available', checkedName],
+    queryFn: async () => dataOf<{ available: boolean }>(await http.get('/api/v1/signup/name-available', { params: { name: checkedName } })),
+    enabled: checkedName.length >= 2,
+    retry: false,
+  });
+  const nameTaken = checkedName === business.trim() && nameCheck.data?.available === false;
+  const nameFree = checkedName === business.trim() && nameCheck.data?.available === true;
 
   // A changed bank or number means the name shown no longer belongs to it.
   const changeBank = (value: string) => {
@@ -65,6 +85,7 @@ export default function SignupPage() {
     event.preventDefault();
     const found: Record<string, string> = {};
     if (!business.trim()) found.business = 'Tell us the name of your place.';
+    else if (nameTaken) found.business = NAME_TAKEN;
     if (!owner.trim()) found.owner = 'Tell us your name.';
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) found.email = "That email doesn't look right.";
     if (!/^[0-9+ ()-]{7,20}$/.test(phone.trim())) found.phone = "That phone number doesn't look right.";
@@ -84,7 +105,11 @@ export default function SignupPage() {
       });
       setSent({ email: email.trim(), message: done.message });
     } catch (error) {
-      setFailure(failureOf(error, "We couldn't send your details"));
+      const refused = failureOf(error, "We couldn't send your details");
+      // A refusal about the name or the email belongs on that field; anything else is a card.
+      if (refused.message.startsWith('This name')) setErrors({ business: refused.message });
+      else if (refused.message.startsWith('This email')) setErrors({ email: refused.message });
+      else setFailure(refused);
     } finally {
       setBusy(false);
     }
@@ -150,7 +175,15 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <Field label={restaurant ? 'Name of your restaurant' : 'Name of your business'} value={business} onChange={(e) => setBusiness(e.target.value)} error={errors.business} placeholder="The Corner Table" autoComplete="organization" />
+            <Field
+              label={restaurant ? 'Name of your restaurant' : 'Name of your business'}
+              value={business}
+              onChange={(e) => typeName(e.target.value)}
+              error={errors.business ?? (nameTaken ? NAME_TAKEN : undefined)}
+              hint={nameFree ? '✓ That name is free.' : undefined}
+              placeholder="The Corner Table"
+              autoComplete="organization"
+            />
             <Field label="Your name" value={owner} onChange={(e) => setOwner(e.target.value)} error={errors.owner} autoComplete="name" />
             <Field label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} hint="Your sign-in is emailed here once you are approved." autoComplete="email" />
             <Field label="Phone number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={errors.phone} autoComplete="tel" />

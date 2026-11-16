@@ -2,6 +2,7 @@ package com.scantoorder.scantoorder.data.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import com.scantoorder.scantoorder.utils.BusinessNames;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,9 @@ public class Tenant {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String tenantId;
     private String name;
+    // The name without case or spaces. The database refuses a second business with the same one.
+    @Column(unique = true)
+    private String normalizedName;
     @Column(nullable = false, unique = true)
     private String slug;
     @Enumerated(EnumType.STRING)
@@ -38,8 +42,14 @@ public class Tenant {
     private LocalDateTime createdAt;
     private LocalDateTime approvedAt;
 
+    @PreUpdate
+    public void keepTheNormalizedNameInStep() {
+        normalizedName = name == null || name.isBlank() ? null : BusinessNames.normalise(name);
+    }
+
     @PrePersist
     public void prePersist() {
+        keepTheNormalizedNameInStep();
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (status == null) status = TenantStatus.PENDING_APPROVAL;
     }
