@@ -48,7 +48,7 @@ export default function ReceiptPage() {
   if (receipt.isError) {
     const failure = failureOf(receipt.error, "We can't open that receipt");
     return (
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-5 pt-6">
+      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 flex-col gap-4 px-5 pt-6">
         <BackLink href={`/t/${slug}/table/${n}/home`} />
         <FailureCard title={failure.title} message={failure.message} />
       </main>
@@ -67,7 +67,7 @@ export default function ReceiptPage() {
   ];
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-5 pb-8 pt-6">
+    <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-8 pt-6">
       <BackLink href={`/t/${slug}/table/${n}/home`} />
       <div className="relative overflow-hidden rounded-lg bg-paperlight p-6 text-ink shadow-[0_18px_36px_rgba(0,0,0,0.3)]">
         <Watermark className="-bottom-10 -right-16" color="#183A2E" opacity={0.06} />

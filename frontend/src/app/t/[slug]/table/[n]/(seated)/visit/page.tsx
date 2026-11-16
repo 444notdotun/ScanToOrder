@@ -40,7 +40,7 @@ export default function VisitPage() {
   ].join('\n');
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-5 pb-8 pt-6">
+    <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-8 pt-6">
       <BackLink href={`/t/${slug}/table/${n}/home`} />
       <Card>
         <h1 className="font-heading text-[30px] font-normal leading-tight text-bottle">Your visit</h1>

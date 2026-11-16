@@ -89,7 +89,7 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-5 pb-52 pt-6">
+      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-52 pt-6">
         <header className="flex flex-col gap-1.5">
           <Brand size={22} />
           <div className="mt-1 text-[13px] font-bold uppercase tracking-[0.12em] text-soft">
@@ -234,7 +234,7 @@ export default function HomePage() {
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-bottle via-bottle/95 to-transparent px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom)+var(--corner-clear))] pt-8">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-md md:max-w-xl">
           <Link href={`/t/${slug}/table/${n}/order`} className="flex min-h-[56px] w-full items-center justify-center rounded-full bg-tomato text-[17px] font-bold text-white">
             Order food
           </Link>

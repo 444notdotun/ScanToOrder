@@ -27,7 +27,7 @@ export function EtchedPattern() {
 // Every Plately screen sits on this: bottle green, the pattern, and room for content above it.
 export default function Ground({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`plately relative flex min-h-dvh w-full flex-col bg-bottle font-body text-cream ${className}`}>
+    <div className={`plately relative flex min-h-dvh w-full flex-col overflow-clip bg-bottle font-body text-cream ${className}`}>
       <EtchedPattern />
       {/* The green runs behind the status bar and the bottom bar; the content keeps clear of them, and of the corner a hosting badge can cover. */}
       <div className="relative flex min-h-dvh w-full flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+var(--corner-clear))]">{children}</div>

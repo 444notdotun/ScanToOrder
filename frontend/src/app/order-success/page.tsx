@@ -37,7 +37,7 @@ function Returned() {
   if (!reference) {
     return (
       <Ground>
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4 px-6">
+        <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 flex-col justify-center gap-4 px-6">
           <Brand />
           <h1 className="font-heading text-[32px] font-normal leading-tight">We can&apos;t tell which payment this was.</h1>
           <FailureCard message="Go back to your table. If you paid, your order is already with the kitchen." />
@@ -62,7 +62,7 @@ function Returned() {
     const gone = sessionEnded(failure);
     return (
       <Ground>
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4 px-6">
+        <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 flex-col justify-center gap-4 px-6">
           <Brand />
           <h1 className="font-heading text-[32px] font-normal leading-tight">{gone ? 'Your seat has been freed.' : "We couldn't check that payment."}</h1>
           <FailureCard title={failure.title} message={failure.message} />
@@ -85,7 +85,7 @@ function Returned() {
     <Ground>
       <ConnectionBanner lost={stream.lost} caughtUp={stream.caughtUp} />
       {paid ? <Watermark className="-bottom-[70px] -right-24" /> : null}
-      <main className="relative mx-auto flex w-full max-w-md flex-1 animate-rise flex-col items-center justify-center gap-4 px-7 text-center">
+      <main className="relative mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col items-center justify-center gap-4 px-7 text-center">
         {paid ? (
           <>
             <div className="animate-pop">
