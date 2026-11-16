@@ -4,6 +4,7 @@ import com.scantoorder.scantoorder.dtos.respond.ReceiptItemDto;
 import com.scantoorder.scantoorder.dtos.respond.ReceiptResponse;
 import com.scantoorder.scantoorder.data.model.Order;
 import com.scantoorder.scantoorder.data.model.OrderItem;
+import com.scantoorder.scantoorder.data.model.OrderStatus;
 import com.scantoorder.scantoorder.data.model.Payment;
 import com.scantoorder.scantoorder.data.model.PaymentStatus;
 import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
@@ -22,6 +23,9 @@ import java.util.stream.Collectors;
 @Service
 public class ReceiptServiceImpl implements ReceiptService {
 
+    private static final java.util.Set<PaymentStatus> EVER_PAID = java.util.Set.of(
+            PaymentStatus.SUCCESSFUL, PaymentStatus.REFUND_PENDING, PaymentStatus.REFUNDED, PaymentStatus.REFUND_FAILED);
+
     @Autowired
     private PaymentRepo paymentRepo;
 
@@ -33,7 +37,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         Payment payment = paymentRepo.findByReferenceAndTenant_TenantId(paymentReference, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("We cannot find that receipt"));
 
-        if (payment.getStatus() != PaymentStatus.SUCCESSFUL) {
+        if (!EVER_PAID.contains(payment.getStatus())) {
             throw new PaymentValidationException("Payment status is not successful for reference: " + paymentReference);
         }
 
@@ -41,7 +45,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         String orderId = order.getOrderId();
 
         // Fetch OrderItems by orderId using JPA default method + Java stream filtering
-        List<OrderItem> orderItems = orderItemRepo.findByOrder_OrderId(orderId);
+        List<OrderItem> orderItems = orderItemRepo.findByOrder_OrderId(orderId).stream().filter(item -> !item.isSwappedOut()).toList();
 
         List<ReceiptItemDto> items = orderItems.stream().map(oi -> new ReceiptItemDto(
                 oi.getItem() != null ? oi.getItem().getItemName() : "Unknown Item",
@@ -69,7 +73,8 @@ public class ReceiptServiceImpl implements ReceiptService {
                 items,
                 subtotal,
                 payment.getAmount(),
-                payment.getStatus()
+                // A refunded order shows REFUNDED even while Paystack is still paying the money back.
+                order.getOrderStatus() == OrderStatus.REFUNDED ? PaymentStatus.REFUNDED : payment.getStatus()
         );
     }
 
