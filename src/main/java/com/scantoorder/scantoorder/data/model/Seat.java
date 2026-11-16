@@ -13,6 +13,9 @@ public class Seat {
     @ManyToOne
     @JoinColumn(name = "tableId")
     private RestaurantTable tableId;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
     private String seatNumber;
     private int position;
     @Enumerated(EnumType.STRING)

@@ -15,6 +15,7 @@ import java.util.List;
 @Repository
 public interface OrderRepo extends JpaRepository<Order, String> {
     Order findOrderByOrderId(String orderId);
+    java.util.Optional<Order> findByOrderIdAndTenant_TenantId(String orderId, String tenantId);
     List<Order> findByOrderStatus(OrderStatus status);
     List<Order> findByOrderStatusAndUpdatedAtBefore(OrderStatus status, java.time.LocalDateTime time);
     List<Order> findByDinningSessionSessionId(String sessionId);

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@jakarta.persistence.Table(uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "display_number"}))
 @Data
 @Builder
 @NoArgsConstructor
@@ -16,9 +17,11 @@ public class RestaurantTable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String tableId;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
     @Column(unique = true)
     private String tableNumber;
-    @Column(unique = true)
     private Integer displayNumber;
     private  int Capacity;
     private boolean isActive;

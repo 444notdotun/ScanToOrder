@@ -14,6 +14,9 @@ public class DinningSession {
     @ManyToOne
     @JoinColumn(name = "tableId")
     private RestaurantTable tableId;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
     @Column(nullable = false, length = 6)
     private String joinCode;
     @Enumerated(EnumType.STRING)

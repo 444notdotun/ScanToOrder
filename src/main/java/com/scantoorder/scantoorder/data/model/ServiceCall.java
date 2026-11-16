@@ -12,6 +12,9 @@ public class ServiceCall {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String serviceCallId;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
     @ManyToOne
     @JoinColumn(name = "sessionId")
     private DinningSession sessionId;

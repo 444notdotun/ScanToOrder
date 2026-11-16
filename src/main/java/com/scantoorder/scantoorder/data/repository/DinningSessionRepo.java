@@ -12,6 +12,8 @@ import java.util.Optional;
 public interface DinningSessionRepo extends JpaRepository<DinningSession,String> {
     Optional<DinningSession> findDinningSessionBySessionId(String sessionId);
     long countBySessionStatus(DinningSessionStatus status);
+    long countBySessionStatusAndTenant_TenantId(DinningSessionStatus status, String tenantId);
+    Optional<DinningSession> findBySessionIdAndTenant_TenantId(String sessionId, String tenantId);
     List<DinningSession> findBySessionStatus(DinningSessionStatus status);
     List<DinningSession> findByTableId_TableIdAndSessionStatusOrderByCreatedAtAsc(String tableId, DinningSessionStatus status);
 }

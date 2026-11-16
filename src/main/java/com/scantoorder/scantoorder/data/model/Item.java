@@ -11,12 +11,15 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
+@jakarta.persistence.Table(uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "item_name"}))
 public class Item {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String itemId;
-    @Column(unique = true)
     private String itemName;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
     private String itemDescription;
     private BigDecimal itemPrice;
     @ManyToOne

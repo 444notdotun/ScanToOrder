@@ -14,16 +14,18 @@ public interface OrderItemRepo extends JpaRepository<OrderItem, String> {
     @Query("""
         SELECT oi FROM OrderItem oi
         JOIN FETCH oi.order o
-        WHERE o.orderStatus = :status
+        WHERE o.orderStatus = :status AND o.tenant.tenantId = :tenantId
         ORDER BY o.createdAt ASC
     """)
-    List<OrderItem> findAllByOrderStatusWithOrder(@Param("status") OrderStatus status);
+    List<OrderItem> findAllByOrderStatusWithOrder(@Param("status") OrderStatus status, @Param("tenantId") String tenantId);
 
     @Query("""
         SELECT oi FROM OrderItem oi
         JOIN FETCH oi.order o
-        WHERE o.orderStatus IN :statuses
+        WHERE o.orderStatus IN :statuses AND o.tenant.tenantId = :tenantId
         ORDER BY o.createdAt ASC
     """)
-    List<OrderItem> findAllByOrderStatusesWithOrder(@Param("statuses") List<OrderStatus> statuses);
+    List<OrderItem> findAllByOrderStatusesWithOrder(@Param("statuses") List<OrderStatus> statuses, @Param("tenantId") String tenantId);
+
+    List<OrderItem> findByOrder_OrderId(String orderId);
 }

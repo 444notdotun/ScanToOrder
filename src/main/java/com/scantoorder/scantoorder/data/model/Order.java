@@ -15,6 +15,9 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String orderId;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
     @ManyToOne
     @JoinColumn(name = "table_id")
     private RestaurantTable table;

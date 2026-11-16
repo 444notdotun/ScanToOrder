@@ -20,6 +20,10 @@ public interface SeatRepo extends JpaRepository<Seat, String> {
 
     List<Seat> findByTableIdOrderByPositionAsc(RestaurantTable tableId);
 
+    List<Seat> findByTenant_TenantId(String tenantId);
+
+    Optional<Seat> findBySeatIdAndTenant_TenantId(String seatId, String tenantId);
+
     @Query("SELECT s.seatId FROM Seat s WHERE s.tableId.tableId = :tableId")
     List<String> findSeatIdsByTable(@Param("tableId") String tableId);
 
