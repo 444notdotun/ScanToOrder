@@ -61,6 +61,6 @@ class ScheduledJobsTest {
         }
         assertEquals(DinningSessionStatus.CLOSED, dinningSessionRepo.findById(host.getSessionId()).orElseThrow().getSessionStatus());
         assertEquals(DinningSessionStatus.CLOSED, dinningSessionRepo.findById(stranger.getSessionId()).orElseThrow().getSessionStatus());
-        assertEquals(0, diningSessionService.getActiveSessionsCount());
+        assertEquals(0, diningSessionService.getActiveSessionsCount(support.tenantId()));
     }
 }

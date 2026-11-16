@@ -107,7 +107,7 @@ class SeatJoinTest {
 
     @Test
     void testThatAfterTheGroupsSessionClosesTheFriendClaimsNormally() {
-        seatService.releaseSeat(id(0));
+        seatService.releaseSeat(support.tenantId(), id(0));
         assertThrows(SeatStatusException.class, () -> seatService.joinSeat(id(1), join(joinCode), null));
         SeatClaimedResponse claimed = seatService.claimSeat(support.claimRequest(seats.get(1), "friend"), null);
         assertNotEquals(host.getSessionId(), claimed.getSessionId());

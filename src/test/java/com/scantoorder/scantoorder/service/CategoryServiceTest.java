@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataIntegrityViolationException;
+import com.scantoorder.scantoorder.exception.ConflictException;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,12 +24,15 @@ class CategoryServiceTest {
     private CategoryRepository categoryRepository;
     @Autowired
     private ItemRepo itemRepo;
+    @Autowired
+    private TenantTestSupport tenants;
 
 
     private CreateCategoryRequest  createCategoryRequest;
 
     @BeforeEach
     public void setUp() {
+        tenants.signInAsManager();
         itemRepo.deleteAll();
         categoryRepository.deleteAll();
         createCategoryRequest = new CreateCategoryRequest();
@@ -37,6 +40,7 @@ class CategoryServiceTest {
     }
     @AfterEach
     public void tearDown() {
+        tenants.signOut();
         categoryRepository.deleteAll();
     }
 
@@ -52,7 +56,7 @@ class CategoryServiceTest {
     @Test
     void testThatCategoryWithTheSameNameCanBeCreatedTwice() {
         assertEquals(createCategoryRequest.getCategoryName()+" category created successfully",categoryService.createCategory(createCategoryRequest));
-        assertThrows(DataIntegrityViolationException.class,()->categoryService.createCategory(createCategoryRequest));
+        assertThrows(ConflictException.class,()->categoryService.createCategory(createCategoryRequest));
     }
 
 }

@@ -32,6 +32,8 @@ class OrderItemServiceTest {
     Item item;
     @Autowired
     private ItemRepo itemRepo;
+    @Autowired
+    private TenantTestSupport tenants;
     @AfterEach
     void tearDown() {
         orderItemRepo.deleteAll();
@@ -49,8 +51,10 @@ class OrderItemServiceTest {
 
 
         order = new Order();
+        order.setTenant(tenants.main());
         orderRepo.save(order);
         item = new Item();
+        item.setTenant(tenants.main());
         item.setItemPrice(BigDecimal.valueOf(500));
         item.setItemName("amala");
         itemRepo.save(item);
@@ -70,7 +74,7 @@ class OrderItemServiceTest {
 
     @Test
     void testThatOrderItemCanBeCreated(){
-        OrderItem orderItem =orderItemService.createOrderItem(order.getOrderId(),createOrderItemRequest);
+        OrderItem orderItem =orderItemService.createOrderItem(tenants.mainId(), order.getOrderId(), createOrderItemRequest);
         assertNotNull(orderItem);
         assertEquals(createOrderItemRequest.getItemName(),orderItem.getItem().getItemName());
         assertEquals(1,orderItemRepo.count());

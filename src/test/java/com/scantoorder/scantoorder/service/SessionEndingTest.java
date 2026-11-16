@@ -75,12 +75,7 @@ class SessionEndingTest {
         seats = support.seatsOf(table);
         host = support.claim(seats.get(0), "host");
         joinCode = diningSessionService.getMySession(host).getJoinCode();
-        Item item = itemRepo.findItemsByItemName("leavingDish").orElseGet(Item::new);
-        item.setItemName("leavingDish");
-        item.setItemPrice(BigDecimal.valueOf(1000));
-        item = itemRepo.save(item);
-        item.setAvailable(true);
-        itemRepo.save(item);
+        support.saveItem("leavingDish", 1000, true);
     }
 
     @AfterEach
@@ -233,7 +228,7 @@ class SessionEndingTest {
         order(friend, OrderStatus.DELIVERED);
         Order strangersUnpaid = order(stranger, OrderStatus.PENDING_PAYMENT);
 
-        CloseSessionResponse response = diningSessionService.closeSession(host.getSessionId());
+        CloseSessionResponse response = diningSessionService.closeSession(support.tenantId(), host.getSessionId());
 
         assertEquals("CLOSED", response.getStatus());
         assertEquals(2, response.getPaidUndeliveredOrders());
@@ -257,7 +252,7 @@ class SessionEndingTest {
         CustomerPrincipal elsewhere = support.claim(support.seatsOf(support.newTable(1)).get(0), "elsewhere");
         order(stranger, OrderStatus.PAID);
 
-        CloseTableResponse response = diningSessionService.closeTable(table.getTableId());
+        CloseTableResponse response = diningSessionService.closeTable(support.tenantId(), table.getTableId());
 
         assertEquals(2, response.getClosedSessions());
         assertEquals(1, response.getPaidUndeliveredOrders());
@@ -276,7 +271,7 @@ class SessionEndingTest {
         order(friend, OrderStatus.PAID);
         order(host, OrderStatus.PENDING_PAYMENT);
 
-        TableSessionsResponse response = diningSessionService.getTableSessions(table.getTableId());
+        TableSessionsResponse response = diningSessionService.getTableSessions(support.tenantId(), table.getTableId());
 
         assertEquals(2, response.getSessions().size());
         assertEquals(1, response.getPaidUndeliveredOrders());

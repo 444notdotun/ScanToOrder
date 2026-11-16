@@ -61,7 +61,7 @@ class SeatServiceTest {
 
     @Test
     void testThatSeatStatusCanBeSeen() {
-        assertEquals(2, seatService.viewAllSeatStatus().size());
+        assertEquals(2, seatService.viewAllSeatStatus(support.tenantId()).size());
     }
 
     @Test
@@ -200,9 +200,9 @@ class SeatServiceTest {
         UpdateSeatRequest request = new UpdateSeatRequest();
         request.setSeatId(seats.get(0).getSeatId());
         request.setNewState("OCCUPIED");
-        assertThrows(SeatStatusException.class, () -> seatService.updateSeat(request));
+        assertThrows(SeatStatusException.class, () -> seatService.updateSeat(support.tenantId(), request));
         request.setNewState("HELD");
-        assertThrows(SeatStatusException.class, () -> seatService.updateSeat(request));
+        assertThrows(SeatStatusException.class, () -> seatService.updateSeat(support.tenantId(), request));
         assertEquals(SeatStatus.VACANT, support.reload(seats.get(0)).getStatus());
     }
 
@@ -212,7 +212,7 @@ class SeatServiceTest {
         DinningSession session = dinningSessionRepo.findById(host.getSessionId()).orElseThrow();
         seatLedger.hold(session, support.reload(seats.get(1)));
 
-        seatService.releaseSeat(seats.get(1).getSeatId());
+        seatService.releaseSeat(support.tenantId(), seats.get(1).getSeatId());
 
         assertEquals(SeatStatus.VACANT, support.reload(seats.get(1)).getStatus());
         assertEquals(SeatStatus.OCCUPIED, support.reload(seats.get(0)).getStatus());
@@ -228,7 +228,7 @@ class SeatServiceTest {
         UpdateSeatRequest request = new UpdateSeatRequest();
         request.setSeatId(seats.get(0).getSeatId());
         request.setNewState("VACANT");
-        seatService.updateSeat(request);
+        seatService.updateSeat(support.tenantId(), request);
 
         assertEquals(SeatStatus.VACANT, support.reload(seats.get(0)).getStatus());
         assertEquals(SeatStatus.VACANT, support.reload(seats.get(1)).getStatus());
@@ -237,6 +237,6 @@ class SeatServiceTest {
 
     @Test
     void testThatFreeingAnAlreadyFreeSeatIsHarmless() {
-        assertEquals("Seat is already free", seatService.releaseSeat(seats.get(0).getSeatId()).getMessage());
+        assertEquals("Seat is already free", seatService.releaseSeat(support.tenantId(), seats.get(0).getSeatId()).getMessage());
     }
 }
