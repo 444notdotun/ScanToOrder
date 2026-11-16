@@ -28,6 +28,11 @@ public class Order {
     private OrderStatus orderStatus;
     private BigDecimal totalAmount;
     private String description;
+    @Enumerated(EnumType.STRING)
+    private UnavailableReason unavailableReason;
+    // Settled at the table: records a swap's price difference. No money moves in the app.
+    private String note;
+    private LocalDateTime swappedAt;
     private String OrderNumber;
     @ManyToOne
     @JoinColumn(name = "session_id")

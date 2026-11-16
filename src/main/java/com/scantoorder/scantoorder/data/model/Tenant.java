@@ -32,6 +32,8 @@ public class Tenant {
     @JsonIgnore
     private String accountNumber;
     private String accountName;
+    // The Paystack subaccount that receives this restaurant's share of every payment.
+    private String paystackSubaccountCode;
     private String declineReason;
     private LocalDateTime createdAt;
     private LocalDateTime approvedAt;
