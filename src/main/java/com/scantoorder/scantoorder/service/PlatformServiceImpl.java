@@ -67,15 +67,33 @@ public class PlatformServiceImpl implements PlatformService {
     // The account and its status are saved together; the email goes out only once they are safely saved.
     @Override
     public TenantActionResponse approve(String tenantId) {
-        record Approved(Tenant tenant, String username, String password) {
-        }
         // The payout account is set up with Paystack first. If Paystack refuses it, nothing has changed.
         Tenant waiting = find(tenantId);
         if (waiting.getStatus() != TenantStatus.PENDING_APPROVAL) {
             throw new ConflictException("Only an application that is waiting can be approved.");
         }
         String subaccountCode = waiting.getType() == TenantType.RESTAURANT ? createSubaccount(waiting) : null;
-        Approved approved = transactionTemplate.execute(status -> {
+        Approved approved;
+        try {
+            approved = approveInTransaction(tenantId, subaccountCode);
+        } catch (RuntimeException e) {
+            if (subaccountCode != null) {
+                // Paystack already has the subaccount. The platform owner removes it by hand.
+                log.error("Approval of tenant {} failed after Paystack created subaccount {}. The subaccount can be removed.", tenantId, subaccountCode);
+            }
+            throw e;
+        }
+        boolean sent = sendSignIn(approved.tenant(), approved.username(), approved.password());
+        return action(approved.tenant(), approved.username(), sent,
+                sent ? approved.tenant().getName() + " is approved and its sign-in is on the way."
+                        : approved.tenant().getName() + " is approved, but the email could not be sent. Use resend sign-in to try again.");
+    }
+
+    private record Approved(Tenant tenant, String username, String password) {
+    }
+
+    private Approved approveInTransaction(String tenantId, String subaccountCode) {
+        return transactionTemplate.execute(status -> {
             Tenant tenant = find(tenantId);
             if (tenant.getStatus() != TenantStatus.PENDING_APPROVAL) {
                 throw new ConflictException("Only an application that is waiting can be approved.");
@@ -100,10 +118,6 @@ public class PlatformServiceImpl implements PlatformService {
             workerRepo.save(manager);
             return new Approved(tenant, username, password);
         });
-        boolean sent = sendSignIn(approved.tenant(), approved.username(), approved.password());
-        return action(approved.tenant(), approved.username(), sent,
-                sent ? approved.tenant().getName() + " is approved and its sign-in is on the way."
-                        : approved.tenant().getName() + " is approved, but the email could not be sent. Use resend sign-in to try again.");
     }
 
     @Override
