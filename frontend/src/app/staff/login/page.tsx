@@ -86,6 +86,11 @@ function SignIn() {
           <Link href="/" className="underline underline-offset-4">
             Find your table
           </Link>
+          . Run a place?{' '}
+          <Link href="/signup" className="underline underline-offset-4">
+            Bring Plately to it
+          </Link>
+          .
         </p>
       </main>
     </Ground>
