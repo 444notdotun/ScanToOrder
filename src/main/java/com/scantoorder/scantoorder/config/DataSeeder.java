@@ -1,6 +1,16 @@
 package com.scantoorder.scantoorder.config;
 
 import com.scantoorder.scantoorder.data.model.Category;
+import com.scantoorder.scantoorder.data.model.Event;
+import com.scantoorder.scantoorder.data.model.EventPlate;
+import com.scantoorder.scantoorder.data.model.EventSeatingMode;
+import com.scantoorder.scantoorder.data.model.EventStatus;
+import com.scantoorder.scantoorder.data.repository.EventPlateRepo;
+import com.scantoorder.scantoorder.data.repository.EventRepo;
+import com.scantoorder.scantoorder.dtos.request.CreateTableRequest;
+import com.scantoorder.scantoorder.dtos.request.EventGuestRequest;
+import com.scantoorder.scantoorder.service.EventGuestService;
+import com.scantoorder.scantoorder.service.EventTableService;
 import com.scantoorder.scantoorder.data.model.Item;
 import com.scantoorder.scantoorder.data.model.Menu;
 import com.scantoorder.scantoorder.data.model.Tenant;
@@ -38,6 +48,8 @@ public class DataSeeder implements CommandLineRunner {
     public static final String CORNER_TABLE_SLUG = "thecornertable";
     public static final String MAMA_PUT_SLUG = "mamaputexpress";
     public static final String PENDING_SLUG = "sunsetgrill";
+    public static final String PLANNER_SLUG = "owambeco";
+    public static final int DEMO_GUESTS = 12;
     public static final String MANAGER_USERNAME = CORNER_TABLE_SLUG + ".manager";
     public static final int[] TABLE_SIZES = {1, 2, 4, 6};
     // Paystack's published test bank account, the same for both demo restaurants.
@@ -62,6 +74,14 @@ public class DataSeeder implements CommandLineRunner {
     private MenuRepository menuRepository;
     @Autowired
     private RestaurantTableService tableService;
+    @Autowired
+    private EventRepo eventRepo;
+    @Autowired
+    private EventPlateRepo eventPlateRepo;
+    @Autowired
+    private EventTableService eventTableService;
+    @Autowired
+    private EventGuestService eventGuestService;
     @Autowired
     private PaystackClient paystackClient;
     @Autowired
@@ -91,6 +111,62 @@ public class DataSeeder implements CommandLineRunner {
         seedTables(mamaPut, new int[]{3});
 
         seedPendingApplication();
+        seedEventPlanner();
+    }
+
+    // A demo event planner with one paid event on today, so the events flow can be tried at once.
+    // It is marked paid here without calling Paystack.
+    private void seedEventPlanner() {
+        Tenant planner = tenantRepo.findBySlug(PLANNER_SLUG).orElseGet(() -> {
+            Tenant tenant = new Tenant();
+            tenant.setName("Owambe Co");
+            tenant.setSlug(PLANNER_SLUG);
+            tenant.setType(TenantType.EVENT_PLANNER);
+            tenant.setStatus(TenantStatus.ACTIVE);
+            tenant.setOwnerName("Kemi Balogun");
+            tenant.setEmail("kemi@owambeco.example");
+            tenant.setPhone("08011110004");
+            tenant.setApprovedAt(LocalDateTime.now());
+            log.info("Seeded Owambe Co");
+            return tenantRepo.save(tenant);
+        });
+        seedTeam(planner, true);
+        String tenantId = planner.getTenantId();
+        if (!eventRepo.findByTenant_TenantIdOrderByStartsAtDesc(tenantId).isEmpty()) return;
+
+        Event event = new Event();
+        event.setTenant(planner);
+        event.setName("Ada and Tobi, the wedding");
+        event.setVenue("The Garden Hall, Ikeja");
+        event.setStartsAt(java.time.LocalDate.now().atStartOfDay());
+        event.setEndsAt(java.time.LocalDate.now().atTime(23, 59, 59));
+        event.setSeatingMode(EventSeatingMode.ASSIGNED);
+        event.setPlatesPerGuest(2);
+        event.setExpectedGuests(DEMO_GUESTS);
+        event.setPaidGuests(DEMO_GUESTS);
+        event.setStatus(EventStatus.ACTIVE);
+        event = eventRepo.save(event);
+
+        for (String[] plate : new String[][]{
+                {"Jollof rice, chicken and Coke", "Party jollof with a quarter chicken"},
+                {"Fried rice, turkey and Zobo", "With fried plantain"},
+                {"Pounded yam, egusi and Malta", "With assorted meat"}}) {
+            EventPlate saved = new EventPlate();
+            saved.setTenant(planner);
+            saved.setEvent(event);
+            saved.setName(plate[0]);
+            saved.setDescription(plate[1]);
+            eventPlateRepo.save(saved);
+        }
+        for (int i = 0; i < 3; i++) {
+            eventTableService.create(tenantId, event.getId(), new CreateTableRequest(4, null));
+        }
+        for (String name : new String[]{"Funke Adeyemi", "Chidi Okoro", "Bisi Lawal", "Emeka Nwosu"}) {
+            EventGuestRequest guest = new EventGuestRequest();
+            guest.setName(name);
+            eventGuestService.add(tenantId, event.getId(), guest);
+        }
+        log.info("Seeded the demo event with {} guests", 4);
     }
 
     // Asked once. Null means Paystack could not be reached, and no demo restaurant gets a subaccount this start.
