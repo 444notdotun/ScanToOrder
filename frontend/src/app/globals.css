@@ -87,6 +87,11 @@
   --color-status-delivered-text: #475569;
 }
 
+/* Netlify's badge floats over the bottom-right corner of the page: the last tappable thing keeps this far clear of it. */
+:root {
+  --corner-clear: 4.5rem;
+}
+
 html {
   /* Green behind everything, so the strips under the phone's bars and the page bounce are never off-white. */
   background-color: #183A2E;

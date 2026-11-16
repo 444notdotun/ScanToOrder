@@ -29,8 +29,8 @@ export default function Ground({ children, className = '' }: { children: ReactNo
   return (
     <div className={`plately relative flex min-h-dvh w-full flex-col bg-bottle font-body text-cream ${className}`}>
       <EtchedPattern />
-      {/* The green runs behind the status bar and the bottom bar; the content keeps clear of them. */}
-      <div className="relative flex min-h-dvh w-full flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">{children}</div>
+      {/* The green runs behind the status bar and the bottom bar; the content keeps clear of them, and of the corner a hosting badge can cover. */}
+      <div className="relative flex min-h-dvh w-full flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+var(--corner-clear))]">{children}</div>
     </div>
   );
 }
