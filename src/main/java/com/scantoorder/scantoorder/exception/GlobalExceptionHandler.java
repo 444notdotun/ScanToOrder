@@ -70,6 +70,21 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidWebhookSignatureException.class)
+    public ResponseEntity<Object> handleInvalidWebhookSignatureException(InvalidWebhookSignatureException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(PayoutAccountRejectedException.class)
+    public ResponseEntity<Object> handlePayoutAccountRejectedException(PayoutAccountRejectedException ex) {
+        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
+    @ExceptionHandler(RefundRejectedException.class)
+    public ResponseEntity<Object> handleRefundRejectedException(RefundRejectedException ex) {
+        return buildResponse(HttpStatus.BAD_GATEWAY, ex.getMessage());
+    }
+
     @ExceptionHandler(AccountVerificationException.class)
     public ResponseEntity<Object> handleAccountVerificationException(AccountVerificationException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -171,24 +186,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
     }
 
-    private String escapeHtml(String input) {
-        if (input == null) {
-            return null;
-        }
-        return input.replace("&", "&amp;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-                    .replace("\"", "&quot;")
-                    .replace("'", "&#x27;")
-                    .replace("/", "&#x2F;");
-    }
-
     private ResponseEntity<Object> buildResponse(HttpStatus status, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now().toString());
         body.put("status", status.value());
         body.put("error", status.getReasonPhrase());
-        body.put("message", escapeHtml(message));
+        body.put("message", message);
         return new ResponseEntity<>(body, status);
     }
 }
