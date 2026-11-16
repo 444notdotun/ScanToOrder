@@ -58,7 +58,7 @@ class SeatJoinTest {
 
     @Test
     void testThatAFriendJoinsAHeldSeatWithTheCodeAndGetsTheirOwnToken() {
-        SeatClaimedResponse response = seatService.joinSeat(id(1), join(" " + joinCode.toLowerCase() + " "), null);
+        SeatClaimedResponse response = seatService.joinSeat(id(1), join(" " + joinCode.substring(0, 3).toLowerCase() + " " + joinCode.substring(3).toLowerCase() + " "), null);
 
         assertNotNull(response.getToken());
         assertEquals(host.getSessionId(), response.getSessionId());

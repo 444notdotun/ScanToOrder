@@ -30,4 +30,6 @@ public interface OrderItemRepo extends JpaRepository<OrderItem, String> {
     List<OrderItem> findByOrder_OrderId(String orderId);
 
     boolean existsByPlate_Id(String plateId);
+
+    boolean existsByItem_ItemId(String itemId);
 }

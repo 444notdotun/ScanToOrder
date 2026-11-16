@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useConnection } from '@/components/plately/Connection';
-import { Button, Card, FailureCard, Sheet } from '@/components/plately/ui';
+import { Button, Card, FailureCard, MoreMenu, Sheet, Switch } from '@/components/plately/ui';
 import PageHead, { Empty } from '@/components/staff/PageHead';
 import PlateForm from '@/components/staff/PlateForm';
 import { FAILURE_ID, useAction } from '@/hooks/useAction';
@@ -64,28 +64,24 @@ export default function MenuPage() {
                 {items.map((plate) => (
                   <li key={plate.itemId} className="flex flex-wrap items-center gap-3 rounded-lg bg-paperlight p-3.5 text-ink shadow-[0_8px_20px_rgba(0,0,0,0.22)]">
                     <div className="min-w-[180px] flex-1">
-                      <div className="font-bold leading-snug">{plate.itemName}</div>
+                      <div id={`plate-${plate.itemId}`} className="font-bold leading-snug">{plate.itemName}</div>
                       {plate.itemDescription ? <div className="text-sm leading-snug text-quiet">{plate.itemDescription}</div> : null}
                       <div className="font-heading text-lg text-bottle">{naira(plate.itemPrice)}</div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        aria-pressed={!plate.available}
-                        disabled={lost || act.busy !== null}
-                        onClick={() => void act.run(plate.itemId, () => managerApi.togglePlate(plate.itemId))}
-                        className={`min-h-[44px] rounded-full border-[1.5px] px-4 text-[15px] font-bold disabled:opacity-60 ${
-                          plate.available ? 'border-bottle text-bottle' : 'border-bottle bg-bottle text-cream'
-                        }`}
-                      >
-                        {plate.available ? 'In stock' : 'Sold out'}
-                      </button>
+                      <div className="flex items-center gap-2.5">
+                        <Switch
+                          checked={plate.available}
+                          labelledBy={`plate-${plate.itemId}`}
+                          disabled={lost || act.busy !== null}
+                          onChange={() => void act.run(plate.itemId, () => managerApi.togglePlate(plate.itemId))}
+                        />
+                        <span className="w-[4.5rem] text-sm font-bold text-quiet">{plate.available ? 'On the menu' : 'Switched off'}</span>
+                      </div>
                       <Button full={false} tone="outline" disabled={lost || act.busy !== null} onClick={() => setEditing(plate)}>
                         Edit
                       </Button>
-                      <Button full={false} tone="outline" aria-label={`Remove ${plate.itemName}`} disabled={lost || act.busy !== null} onClick={() => setRemoving(plate)}>
-                        Remove
-                      </Button>
+                      <MoreMenu label={`More for ${plate.itemName}`} items={[{ label: `Delete ${plate.itemName}`, danger: true, onSelect: () => setRemoving(plate) }]} />
                     </div>
                   </li>
                 ))}
@@ -137,9 +133,9 @@ export default function MenuPage() {
         {act.failure ? <FailureCard className="mt-3" title={act.failure.title} message={act.failure.message} /> : null}
       </Sheet>
 
-      <Sheet open={removing !== null} onClose={() => { setRemoving(null); act.clear(); }} label="Remove this plate">
-        <h2 className="font-heading text-[28px] font-normal text-bottle">Take {removing?.itemName} off the menu?</h2>
-        <p className="mb-4 mt-2 text-[15px] leading-snug text-quiet">Guests will stop seeing it. Orders already paid for are not touched.</p>
+      <Sheet open={removing !== null} onClose={() => { setRemoving(null); act.clear(); }} label="Delete this plate">
+        <h2 className="font-heading text-[28px] font-normal text-bottle">Delete {removing?.itemName}?</h2>
+        <p className="mb-4 mt-2 text-[15px] leading-snug text-quiet">This can&apos;t be undone. To hide it for now, switch it off instead.</p>
         {act.failure ? <FailureCard className="mb-3" title={act.failure.title} message={act.failure.message} /> : null}
         <div className="flex flex-col gap-2.5">
           <Button
@@ -150,7 +146,7 @@ export default function MenuPage() {
               if (removing && (await act.run(removing.itemId, () => managerApi.removePlate(removing.itemId)))) setRemoving(null);
             }}
           >
-            Yes, remove it
+            Yes, delete it
           </Button>
           <Button big tone="outline" onClick={() => { setRemoving(null); act.clear(); }}>
             Keep it

@@ -12,6 +12,10 @@ import java.util.Optional;
 public interface TenantRepo extends JpaRepository<Tenant, String> {
     Optional<Tenant> findBySlug(String slug);
     boolean existsBySlug(String slug);
+
+    boolean existsByNormalizedName(String normalizedName);
+
+    Optional<Tenant> findByNormalizedName(String normalizedName);
     Optional<Tenant> findByEmailIgnoreCase(String email);
     List<Tenant> findByStatusOrderByCreatedAtDesc(TenantStatus status);
     List<Tenant> findAllByOrderByCreatedAtDesc();

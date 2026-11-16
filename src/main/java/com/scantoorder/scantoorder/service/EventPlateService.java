@@ -28,6 +28,8 @@ public class EventPlateService {
     private EventPlateRepo plateRepo;
     @Autowired
     private OrderItemRepo orderItemRepo;
+    @Autowired
+    private LiveUpdates liveUpdates;
 
     @Transactional(readOnly = true)
     public List<EventPlateResponse> list(String tenantId, String eventId) {
@@ -42,7 +44,9 @@ public class EventPlateService {
         plate.setTenant(event.getTenant());
         plate.setEvent(event);
         apply(plate, request);
-        return EventPlateResponse.of(plateRepo.save(plate));
+        EventPlate saved = plateRepo.save(plate);
+        liveUpdates.publish(tenantId, "menu", null, null);
+        return EventPlateResponse.of(saved);
     }
 
     @Transactional
@@ -50,7 +54,10 @@ public class EventPlateService {
         open(tenantId, eventId);
         EventPlate plate = plateRepo.findByIdAndEvent_Id(plateId, eventId).orElseThrow(() -> new ResourceNotFoundException(PLATE_NOT_FOUND));
         apply(plate, request);
-        return EventPlateResponse.of(plateRepo.save(plate));
+        EventPlate saved = plateRepo.save(plate);
+        // Switching a plate off hides it from every guest at once.
+        liveUpdates.publish(tenantId, "menu", null, null);
+        return EventPlateResponse.of(saved);
     }
 
     // A plate that has been ordered is part of the record: it can be switched off, never deleted.
@@ -59,11 +66,13 @@ public class EventPlateService {
         open(tenantId, eventId);
         EventPlate plate = plateRepo.findByIdAndEvent_Id(plateId, eventId).orElseThrow(() -> new ResourceNotFoundException(PLATE_NOT_FOUND));
         if (orderItemRepo.existsByPlate_Id(plateId)) {
-            throw new ConflictException("This plate has been ordered, so it can't be deleted. Switch it off instead.");
+            throw new ConflictException(ORDERED_BEFORE);
         }
         plateRepo.delete(plate);
+        liveUpdates.publish(tenantId, "menu", null, null);
     }
 
+    public static final String ORDERED_BEFORE = "It's been ordered before, so it can only be switched off.";
     public static final String PLATE_NOT_FOUND = "We cannot find that plate";
 
     private void apply(EventPlate plate, EventPlateRequest request) {

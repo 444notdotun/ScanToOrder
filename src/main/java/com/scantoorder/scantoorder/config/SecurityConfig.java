@@ -57,7 +57,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/t/*/tables/*/seatMap", "/api/v1/t/*/menu").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/signup/banks").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/signup/banks", "/api/v1/signup/name-available").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/signup", "/api/v1/signup/verify-account").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/seats/claim").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/t/*/e/*/tables/*/code").permitAll()

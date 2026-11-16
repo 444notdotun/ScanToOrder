@@ -97,13 +97,14 @@ class SignupTest {
         verify(paystackClient, times(1)).resolveAccountName("058", "0123456789");
     }
 
+    // Two different names can still make the same web address; the next free number is added.
     @Test
     void testThatATakenSlugGetsTheNextFreeNumber() {
-        String name = tenants.uniqueName("Same Name");
-        String base = name.toLowerCase().replaceAll("[^a-z0-9]", "");
-        assertEquals(base, signupService.signup(restaurant(name, email())).getSlug());
-        assertEquals(base + "2", signupService.signup(restaurant(name, email())).getSlug());
-        assertEquals(base + "3", signupService.signup(restaurant(name, email())).getSlug());
+        String stem = "Slug" + System.nanoTime();
+        String base = stem.toLowerCase() + "4";
+        assertEquals(base, signupService.signup(restaurant(stem + "-4", email())).getSlug());
+        assertEquals(base + "2", signupService.signup(restaurant(stem + ".4", email())).getSlug());
+        assertEquals(base + "3", signupService.signup(restaurant(stem + "_4", email())).getSlug());
     }
 
     @Test
@@ -175,7 +176,47 @@ class SignupTest {
         signupService.signup(restaurant(tenants.uniqueName("First"), email));
         ConflictException exception = assertThrows(ConflictException.class,
                 () -> signupService.signup(restaurant(tenants.uniqueName("Second"), email.toUpperCase())));
-        assertEquals("There is already a business on Plately with this email. Sign in with the details we sent you.", exception.getMessage());
+        assertEquals(SignupServiceImpl.EMAIL_TAKEN, exception.getMessage());
+    }
+
+    @Test
+    void testThatABusinessNameAlreadyOnPlatelyIsRefusedIgnoringCaseAndSpaces() {
+        String unique = "Triple" + System.nanoTime();
+        signupService.signup(restaurant(unique + "4", email()));
+
+        ConflictException spaced = assertThrows(ConflictException.class, () -> signupService.signup(restaurant(unique.toLowerCase() + " 4", email())));
+        ConflictException shouted = assertThrows(ConflictException.class, () -> signupService.signup(restaurant(" " + unique.toUpperCase() + "4 ", email())));
+
+        assertEquals(SignupServiceImpl.NAME_TAKEN, spaced.getMessage());
+        assertEquals(SignupServiceImpl.NAME_TAKEN, shouted.getMessage());
+        assertTrue(SignupServiceImpl.NAME_TAKEN.contains("Triple4 Ikeja"));
+    }
+
+    @Test
+    void testThatTheNameCheckAnswersFromTheSameRecordsTheSignUpGuards() {
+        String unique = "Check" + System.nanoTime();
+        assertTrue(signupService.nameAvailable(unique + " Grill"));
+
+        signupService.signup(restaurant(unique + " Grill", email()));
+
+        assertFalse(signupService.nameAvailable(unique + " Grill"));
+        assertFalse(signupService.nameAvailable(unique.toLowerCase() + "grill"));
+        assertFalse(signupService.nameAvailable("   "));
+        assertTrue(signupService.nameAvailable(unique + " Grill Ikeja"));
+    }
+
+    @Test
+    void testThatTheDatabaseItselfRefusesASecondBusinessWithTheSameNormalisedName() {
+        String unique = "Indexed" + System.nanoTime();
+        Tenant first = tenants.pendingTenant(unique);
+        Tenant second = new Tenant();
+        second.setName(first.getName().toUpperCase().replace("-", " - "));
+        second.setSlug("other" + System.nanoTime());
+        second.setType(first.getType());
+        second.setEmail(email());
+
+        assertEquals(com.scantoorder.scantoorder.utils.BusinessNames.normalise(first.getName()), tenantRepo.findBySlug(first.getSlug()).orElseThrow().getNormalizedName());
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> tenantRepo.saveAndFlush(second));
     }
 
     @Test

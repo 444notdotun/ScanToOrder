@@ -293,7 +293,7 @@ class EventDayTest {
         orders.order(phoneOf(guest), plate.getId());
 
         ConflictException refused = assertThrows(ConflictException.class, () -> plates.delete(tenantId, event.getId(), plate.getId()));
-        assertTrue(refused.getMessage().contains("Switch it off"));
+        assertEquals("It's been ordered before, so it can only be switched off.", refused.getMessage());
         EventPlateRequest off = new EventPlateRequest();
         off.setName(plate.getName());
         off.setAvailable(false);
@@ -344,7 +344,7 @@ class EventDayTest {
                 () -> seating.redeem(slug, event.getEventCode(), table.getDisplayNumber(), theirs.getCode(), null));
         assertEquals(EventSeatingService.UNKNOWN_CODE, foreign.getMessage());
         // Lower case and spaces are forgiven, and the real code still works after all those misses.
-        assertNotNull(seating.redeem(slug, event.getEventCode(), table.getDisplayNumber(), " " + mine.getCode().toLowerCase() + " ", null).getToken());
+        assertNotNull(seating.redeem(slug, event.getEventCode(), table.getDisplayNumber(), " " + mine.getCode().substring(0, 3).toLowerCase() + " " + mine.getCode().substring(3).toLowerCase() + " ", null).getToken());
     }
 
     @Test

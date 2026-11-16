@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { failureOf, type ApiFailure } from '@/lib/http';
 
@@ -15,11 +15,6 @@ export function useAction() {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   const [failure, setFailure] = useState<ApiFailure | null>(null);
-
-  // A refusal can land below the fold of a tablet: bring it into view.
-  useEffect(() => {
-    if (failure) document.getElementById(FAILURE_ID)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [failure]);
 
   const run = async (key: string, action: () => Promise<unknown>): Promise<boolean> => {
     setBusy(key);

@@ -20,7 +20,7 @@ export function ConnectionBanner({ lost, caughtUp }: { lost: boolean; caughtUp: 
   if (caughtUp) {
     return (
       <div role="status" className="sticky top-0 z-30 animate-fade bg-good px-4 py-2.5 text-center text-sm font-bold text-white">
-        Connection is back. The screen caught up with anything it missed.
+        Connection is back.
       </div>
     );
   }
