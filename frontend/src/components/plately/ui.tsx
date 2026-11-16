@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
 
 type Tone = 'primary' | 'bottle' | 'outline' | 'light' | 'ghost';
 
@@ -74,6 +74,34 @@ export function Field({
           {hint}
         </span>
       ) : null}
+    </div>
+  );
+}
+
+// A list to choose from, in the same dress as a Field.
+export function SelectField({
+  label,
+  error,
+  hint,
+  className = '',
+  children,
+  ...rest
+}: SelectHTMLAttributes<HTMLSelectElement> & { label: string; error?: string; hint?: string }) {
+  const id = useId();
+  return (
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+      <label htmlFor={id} className="text-sm font-bold text-bottle">
+        {label}
+      </label>
+      <select
+        id={id}
+        aria-invalid={error ? true : undefined}
+        {...rest}
+        className="h-[50px] w-full rounded-xl border-[1.5px] border-rule2 bg-paperlight px-3 text-[17px] text-ink focus:border-bottle"
+      >
+        {children}
+      </select>
+      {error ? <span className="text-sm font-bold text-hand">{error}</span> : hint ? <span className="text-sm text-quiet">{hint}</span> : null}
     </div>
   );
 }

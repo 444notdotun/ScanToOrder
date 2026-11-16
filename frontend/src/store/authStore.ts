@@ -54,5 +54,5 @@ export function homeFor(role: StaffRole): string {
   if (role === 'WAITER') return '/waiter';
   // The platform owner's own screens arrive in a later pull request.
   if (role === 'PLATFORM_ADMIN') return '/';
-  return '/admin/dashboard';
+  return '/manager';
 }

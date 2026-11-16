@@ -266,6 +266,8 @@ public class RefundTrackingServiceImpl implements RefundTrackingService {
         response.setGuestPhone(guest == null ? null : guest.getGuestPhone());
         response.setTableNumber(order.getTable() == null ? null : order.getTable().getTableNumber());
         response.setSeatNumber(order.getSeat() == null ? null : order.getSeat().getSeatNumber());
+        response.setTableDisplayNumber(order.getTable() == null ? null : order.getTable().getDisplayNumber());
+        response.setSeatPosition(order.getSeat() == null ? null : order.getSeat().getPosition());
         response.setOrderNumber(order.getOrderNumber());
         response.setItems(itemLines(order));
         response.setAmount(naira(refund));
