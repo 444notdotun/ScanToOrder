@@ -111,6 +111,7 @@ class AuthFlowTest {
     void testThatSigningInNamesTheBusinessAndThePerson() {
         AuthResponse response = signIn(managerUsername, temporaryPassword);
         assertEquals(tenant.getName(), response.getBusinessName());
+        assertEquals(tenant.getType().name(), response.getTenantType());
         assertNotNull(response.getFullName());
     }
 
