@@ -396,8 +396,13 @@ public class DiningSessionServiceImpl implements DiningSessionService {
                 view.setForName(owner.getGuestName());
             }
             for (OrderItem line : orderItemRepo.findByOrder_OrderId(order.getOrderId())) {
-                if (line.isSwappedOut() || line.getItem() == null) continue;
-                view.getItems().add(line.getQuantity() + " x " + line.getItem().getItemName());
+                if (line.isSwappedOut()) continue;
+                // An event order is one plate, named as the planner wrote it.
+                if (line.getPlate() != null) {
+                    view.getItems().add(line.getPlate().getName());
+                } else if (line.getItem() != null) {
+                    view.getItems().add(line.getQuantity() + " x " + line.getItem().getItemName());
+                }
             }
             response.getOrders().add(view);
         }

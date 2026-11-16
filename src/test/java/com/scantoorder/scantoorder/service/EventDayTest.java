@@ -6,6 +6,7 @@ import com.scantoorder.scantoorder.data.repository.*;
 import com.scantoorder.scantoorder.dtos.request.*;
 import com.scantoorder.scantoorder.dtos.respond.*;
 import com.scantoorder.scantoorder.exception.*;
+import com.scantoorder.scantoorder.service.Interface.DiningSessionService;
 import com.scantoorder.scantoorder.service.Interface.EventService;
 import com.scantoorder.scantoorder.service.Interface.OrderRecoveryService;
 import com.scantoorder.scantoorder.service.Interface.PaystackClient;
@@ -56,6 +57,8 @@ class EventDayTest {
     private EventCoverageService coverage;
     @Autowired
     private EventService events;
+    @Autowired
+    private DiningSessionService diningSessionService;
     @Autowired
     private OrderRecoveryService recovery;
     @Autowired
@@ -677,6 +680,21 @@ class EventDayTest {
 
         assertThrows(ConflictException.class, () -> sit(guest, table, null));
         assertThrows(ConflictException.class, () -> guests.add(tenantId, event.getId(), named("After")));
+    }
+
+    @Test
+    void testThatAnEventGuestSeesTheirPlateByNameInTheTablesOrders() {
+        assignedEvent(1, 2);
+        EventTableResponse table = support.table(planner, event, 2);
+        EventPlateResponse plate = support.plate(planner, event, "Jollof rice, chicken and Coke");
+        Seated seated = seatedGuest(table, "Funke");
+        orders.order(seated.phone(), plate.getId());
+
+        SessionOrdersResponse mineSeen = diningSessionService.getSessionOrders(seated.phone());
+
+        assertEquals(1, mineSeen.getOrders().size());
+        assertEquals(List.of("Jollof rice, chicken and Coke"), mineSeen.getOrders().get(0).getItems());
+        assertEquals("PAID", mineSeen.getOrders().get(0).getStatus());
     }
 
     // ---- numbering and links
