@@ -124,7 +124,7 @@ public class EventServiceImpl implements EventService {
 
     // Paystack is asked first and a payment is saved only once it has accepted. No transaction is open meanwhile.
     @Override
-    public InitializePaymentResponse startPayment(String tenantId, String eventId, int guests) {
+    public InitializePaymentResponse startPayment(String tenantId, String eventId, int guests, String receiptEmail) {
         Event event = eventRepo.findByIdAndTenant_TenantId(eventId, tenantId).orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));
         if (event.getStatus() == EventStatus.ENDED) {
             throw new ConflictException("This event is over, so there is nothing to pay for.");
@@ -132,8 +132,9 @@ public class EventServiceImpl implements EventService {
         requireGuests(guests);
         long amountKobo = pricing.amountKobo(guests);
         String reference = CodeGenerator.generate(CodePrefix.EVENT);
-        // The planner's own email: the whole fee is Plately's, so Paystack's receipt goes to the planner.
-        PaystackInitResponseData paystack = paystackClient.initialize(event.getTenant().getEmail(), amountKobo, reference, null);
+        // The receipt goes to the address the planner gave, or else to the business email: the whole fee is Plately's.
+        String receipt = receiptEmail == null || receiptEmail.isBlank() ? event.getTenant().getEmail() : receiptEmail.trim();
+        PaystackInitResponseData paystack = paystackClient.initialize(receipt, amountKobo, reference, null);
         transactionTemplate.executeWithoutResult(status -> {
             EventPayment payment = new EventPayment();
             payment.setTenant(event.getTenant());

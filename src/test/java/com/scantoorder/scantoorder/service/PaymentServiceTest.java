@@ -175,7 +175,7 @@ class PaymentServiceTest {
 
         InitializePaymentRequest request = new InitializePaymentRequest(order.getOrderId(), "invalid-email");
         PaymentValidationException exception = assertThrows(PaymentValidationException.class, () -> paymentService.initializePayment(tenants.mainId(), null, request));
-        assertEquals("Invalid email address", exception.getMessage());
+        assertEquals("Paystack couldn't use that email for the receipt. Check it and try again.", exception.getMessage());
     }
 
     @Transactional

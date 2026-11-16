@@ -93,6 +93,8 @@ public class DataSeeder implements CommandLineRunner {
     private String platformAdminUsername;
     @Value("${app.seed.platform-admin-password}")
     private String platformAdminPassword;
+    @Value("${app.seed.owner-email:}")
+    private String ownerEmail;
 
     @Override
     public void run(String... args) {
@@ -124,7 +126,7 @@ public class DataSeeder implements CommandLineRunner {
             tenant.setType(TenantType.EVENT_PLANNER);
             tenant.setStatus(TenantStatus.ACTIVE);
             tenant.setOwnerName("Kemi Balogun");
-            tenant.setEmail("kemi@owambeco.example");
+            tenant.setEmail(demoEmail(PLANNER_SLUG, "kemi@owambeco.example"));
             tenant.setPhone("08011110004");
             tenant.setApprovedAt(LocalDateTime.now());
             log.info("Seeded Owambe Co");
@@ -216,6 +218,15 @@ public class DataSeeder implements CommandLineRunner {
         log.info("Seeded the platform admin");
     }
 
+    // With SEED_OWNER_EMAIL set, every demo business is reached at that address with its slug added ("me+slug@mail.com"):
+    // an address Paystack's test mode accepts, that still arrives in one inbox, and that stays different for each business.
+    public String demoEmail(String slug, String fallback) {
+        String own = ownerEmail == null ? "" : ownerEmail.trim();
+        int at = own.indexOf('@');
+        if (at < 1) return fallback;
+        return own.substring(0, at) + "+" + slug + own.substring(at);
+    }
+
     private Tenant seedTenant(String name, String slug, String owner, String email, String phone) {
         return tenantRepo.findBySlug(slug).orElseGet(() -> {
             Tenant tenant = new Tenant();
@@ -226,7 +237,7 @@ public class DataSeeder implements CommandLineRunner {
             tenant.setOpenForOrders(true);
             tenant.setHoldsEnabled(true);
             tenant.setOwnerName(owner);
-            tenant.setEmail(email);
+            tenant.setEmail(demoEmail(slug, email));
             tenant.setPhone(phone);
             tenant.setBankCode(DEMO_BANK_CODE);
             tenant.setBankName(DEMO_BANK_NAME);
@@ -317,7 +328,7 @@ public class DataSeeder implements CommandLineRunner {
         tenant.setStatus(TenantStatus.PENDING_APPROVAL);
         tenant.setHoldsEnabled(true);
         tenant.setOwnerName("Tunde Bello");
-        tenant.setEmail("tunde@sunsetgrill.example");
+        tenant.setEmail(demoEmail(PENDING_SLUG, "tunde@sunsetgrill.example"));
         tenant.setPhone("08011110003");
         tenant.setBankCode("058");
         tenant.setBankName("Guaranty Trust Bank");
