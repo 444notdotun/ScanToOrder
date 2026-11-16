@@ -27,7 +27,7 @@ export function EtchedPattern() {
 // Every Plately screen sits on this: bottle green, the pattern, and room for content above it.
 export default function Ground({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`plately relative flex min-h-dvh w-full flex-col bg-bottle font-body text-cream ${className}`}>
+    <div className={`plately relative flex min-h-dvh w-full flex-col overflow-clip bg-bottle font-body text-cream ${className}`}>
       <EtchedPattern />
       <div className="relative flex min-h-dvh w-full flex-1 flex-col">{children}</div>
     </div>

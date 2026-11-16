@@ -45,7 +45,7 @@ export default function TableMapPage() {
     const failure = failureOf(map.error, "We couldn't find this table");
     return (
       <Ground>
-        <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-4 px-6 pb-8 pt-10">
+        <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-6 pb-8 pt-10">
           <Brand />
           <h1 className="font-heading text-[34px] font-normal leading-tight">We can&apos;t seat you here yet.</h1>
           <FailureCard title={failure.title} message={failure.message} />
@@ -80,7 +80,7 @@ export default function TableMapPage() {
 
   return (
     <Ground>
-      <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-2 px-6 pb-7 pt-7">
+      <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-2 px-6 pb-7 pt-7">
         <Brand size={24} />
         <Eyebrow className="mt-3">{label}</Eyebrow>
         <h1 className="font-heading text-[34px] font-normal leading-[1.1]">Where are you sitting?</h1>

@@ -19,6 +19,7 @@ import com.scantoorder.scantoorder.data.repository.SeatRepo;
 import com.scantoorder.scantoorder.data.repository.SessionSeatRepo;
 import com.scantoorder.scantoorder.data.repository.TableRepo;
 import com.scantoorder.scantoorder.data.repository.TenantRepo;
+import com.scantoorder.scantoorder.dtos.respond.EventTablePreviewResponse;
 import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
 import com.scantoorder.scantoorder.dtos.respond.SeatClaimedResponse;
 import com.scantoorder.scantoorder.exception.ConflictException;
@@ -69,6 +70,23 @@ public class EventSeatingService {
     private JwtService jwtService;
     @Autowired
     private DiningSessionService diningSessionService;
+
+    // The table's QR link names the business, the event and the table. An unknown one answers like any missing table.
+    @Transactional(readOnly = true)
+    public EventTablePreviewResponse preview(String slug, String eventCode, int displayNumber) {
+        Tenant tenant = tenantRepo.findBySlug(slug == null ? "" : slug.toLowerCase())
+                .filter(found -> found.getType() == TenantType.EVENT_PLANNER)
+                .orElseThrow(() -> new TableNotFoundException(TABLE_NOT_AVAILABLE));
+        Event event = eventRepo.findByTenant_TenantIdAndEventCode(tenant.getTenantId(), eventCode == null ? "" : eventCode.toUpperCase(Locale.ROOT))
+                .orElseThrow(() -> new TableNotFoundException(TABLE_NOT_AVAILABLE));
+        tableRepo.findByEvent_IdAndDisplayNumber(event.getId(), displayNumber)
+                .filter(RestaurantTable::isActive)
+                .orElseThrow(() -> new TableNotFoundException(TABLE_NOT_AVAILABLE));
+        LocalDateTime now = LocalDateTime.now();
+        boolean over = event.getStatus() == EventStatus.ENDED || !now.isBefore(event.getEndsAt());
+        boolean open = !over && !now.isBefore(event.getStartsAt());
+        return new EventTablePreviewResponse(event.getName(), event.getVenue(), displayNumber, event.getStartsAt(), event.getEndsAt(), open, over);
+    }
 
     @Transactional
     public SeatClaimedResponse redeem(String slug, String eventCode, int displayNumber, String rawCode, CustomerPrincipal caller) {

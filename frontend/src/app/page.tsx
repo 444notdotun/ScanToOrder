@@ -16,7 +16,7 @@ function Opening() {
   return (
     <Ground>
       <Watermark className="-bottom-[70px] -right-24" />
-      <main className="relative mx-auto flex w-full max-w-md flex-1 animate-rise flex-col items-center gap-5 px-7 pb-7 pt-10">
+      <main className="relative mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col items-center gap-5 px-7 pb-7 pt-10">
         <Brand />
         <h1 className="mt-3 text-center font-heading text-[40px] font-normal leading-[1.08]">Pull up a chair.</h1>
         <p className="text-center text-[17px] leading-[1.45] text-soft">
