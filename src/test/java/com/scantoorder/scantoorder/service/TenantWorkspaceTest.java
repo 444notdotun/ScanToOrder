@@ -137,6 +137,22 @@ class TenantWorkspaceTest {
     }
 
     @Test
+    void testThatARestaurantWithoutASubaccountCannotOpenForOrders() {
+        addItem("Jollof", true);
+        addTable(2);
+        tenant.setPaystackSubaccountCode(null);
+        tenantRepo.save(tenant);
+
+        ConflictException exception = assertThrows(ConflictException.class, () -> workspace.setOpenForOrders(id, true));
+
+        assertEquals("We can't take payments for you yet. Contact us to finish your payout setup.", exception.getMessage());
+        assertFalse(tenantRepo.findById(id).orElseThrow().isOpenForOrders());
+        tenant.setPaystackSubaccountCode(TenantTestSupport.SUBACCOUNT);
+        tenantRepo.save(tenant);
+        assertTrue(workspace.setOpenForOrders(id, true).isOpenForOrders());
+    }
+
+    @Test
     void testThatAPlateThatIsOutOfStockDoesNotCountTowardsOpening() {
         addItem("Sold out", false);
         addTable(2);

@@ -16,6 +16,8 @@ import com.scantoorder.scantoorder.service.Interface.MenuService;
 import com.scantoorder.scantoorder.service.Interface.PlatformService;
 import com.scantoorder.scantoorder.service.email.InMemoryEmailSender;
 import com.scantoorder.scantoorder.service.email.OutboxMessage;
+import com.scantoorder.scantoorder.service.Interface.PaystackClient;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +55,8 @@ class PlatformApprovalTest {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private TenantTestSupport tenants;
+    @MockitoBean
+    private PaystackClient paystackClient;
     @Autowired
     private MenuService menuService;
     @Autowired
@@ -62,6 +66,7 @@ class PlatformApprovalTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.when(paystackClient.createSubaccount(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any())).thenReturn("ACCT_approved001");
         emailSender.clear();
     }
 
@@ -109,6 +114,69 @@ class PlatformApprovalTest {
         assertTrue(email.body().contains("/login"));
         assertTrue(email.body().contains("choose your own password"));
         assertFalse(response.getMessage().contains(password));
+    }
+
+    @Test
+    void testThatApprovingARestaurantCreatesItsPaystackSubaccountFromItsBankDetails() {
+        Tenant pending = tenants.pendingTenant("Subaccount Ok");
+
+        platformService.approve(pending.getTenantId());
+
+        Mockito.verify(paystackClient).createSubaccount(Mockito.eq(pending.getName()), Mockito.eq("058"), Mockito.eq("0123456789"),
+                Mockito.argThat(percent -> percent.compareTo(new java.math.BigDecimal("2.0")) == 0));
+        assertEquals("ACCT_approved001", tenantRepo.findById(pending.getTenantId()).orElseThrow().getPaystackSubaccountCode());
+    }
+
+    @Test
+    void testThatWhenPaystackRefusesThePayoutAccountTheApprovalIsRefusedAndNothingChanges() {
+        Tenant pending = tenants.pendingTenant("Subaccount No");
+        Mockito.when(paystackClient.createSubaccount(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.any()))
+                .thenThrow(new com.scantoorder.scantoorder.exception.PayoutAccountRejectedException(PaystackClientImpl.PAYOUT_REJECTED));
+
+        com.scantoorder.scantoorder.exception.PayoutAccountRejectedException exception = assertThrows(com.scantoorder.scantoorder.exception.PayoutAccountRejectedException.class,
+                () -> platformService.approve(pending.getTenantId()));
+
+        assertEquals("Paystack rejected this business's payout account. Ask them to check it and send the form again.", exception.getMessage());
+        Tenant unchanged = tenantRepo.findById(pending.getTenantId()).orElseThrow();
+        assertEquals(TenantStatus.PENDING_APPROVAL, unchanged.getStatus());
+        assertNull(unchanged.getPaystackSubaccountCode());
+        assertNull(unchanged.getApprovedAt());
+        assertFalse(workerRepo.existsByUsername(pending.getSlug() + ".manager"));
+        assertTrue(emailSender.messages().stream().noneMatch(m -> m.to().equals(pending.getEmail())));
+    }
+
+    @Test
+    void testThatARestaurantWithNoBankDetailsOnFileCannotBeApproved() {
+        Tenant pending = tenants.pendingTenant("No Bank On File");
+        pending.setBankCode(null);
+        pending.setAccountNumber(null);
+        tenantRepo.save(pending);
+        assertThrows(com.scantoorder.scantoorder.exception.PayoutAccountRejectedException.class, () -> platformService.approve(pending.getTenantId()));
+        assertEquals(TenantStatus.PENDING_APPROVAL, tenantRepo.findById(pending.getTenantId()).orElseThrow().getStatus());
+        Mockito.verify(paystackClient, Mockito.never()).createSubaccount(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    void testThatAnEventPlannerGetsNoSubaccount() {
+        Tenant pending = tenants.pendingTenant("Events Co");
+        pending.setType(com.scantoorder.scantoorder.data.model.TenantType.EVENT_PLANNER);
+        pending.setBankCode(null);
+        pending.setAccountNumber(null);
+        tenantRepo.save(pending);
+
+        platformService.approve(pending.getTenantId());
+
+        Mockito.verify(paystackClient, Mockito.never()).createSubaccount(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+        assertNull(tenantRepo.findById(pending.getTenantId()).orElseThrow().getPaystackSubaccountCode());
+        assertEquals(TenantStatus.ACTIVE, tenantRepo.findById(pending.getTenantId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void testThatAnAlreadyApprovedApplicationDoesNotCreateASecondSubaccount() {
+        Tenant pending = tenants.pendingTenant("Once Sub");
+        platformService.approve(pending.getTenantId());
+        assertThrows(ConflictException.class, () -> platformService.approve(pending.getTenantId()));
+        Mockito.verify(paystackClient, Mockito.times(1)).createSubaccount(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
     }
 
     @Test

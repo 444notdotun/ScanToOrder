@@ -379,7 +379,7 @@ class PaymentServiceTest {
 
     @Transactional
     @Test
-    void testVerifyAndSyncPayment_PaymentThatLandsAfterTheGuestLeftIsRecordedAndTheOrderStaysCancelled() throws IOException, InterruptedException {
+    void testVerifyAndSyncPayment_PaymentThatLandsAfterTheGuestLeftIsRefundedAndTheOrderStaysCancelled() throws IOException, InterruptedException {
         Order order = createTestOrder(BigDecimal.valueOf(2500.00));
         Payment payment = new Payment();
         payment.setOrder(order);
@@ -400,9 +400,10 @@ class PaymentServiceTest {
 
         PaymentStatusResponse response = paymentService.verifyAndSyncPayment(tenants.mainId(), reference);
 
-        assertEquals(PaymentStatus.SUCCESSFUL, response.getPaymentStatus());
+        // The money is given back at once, and the order never reaches the kitchen.
+        assertEquals(PaymentStatus.REFUND_PENDING, response.getPaymentStatus());
         assertEquals(OrderStatus.CANCELED, response.getOrderStatus());
-        assertEquals(PaymentStatus.SUCCESSFUL, paymentRepo.findByReference(reference).orElseThrow().getStatus());
+        assertEquals(PaymentStatus.REFUND_PENDING, paymentRepo.findByReference(reference).orElseThrow().getStatus());
         assertEquals(OrderStatus.CANCELED, orderRepo.findOrderByOrderId(order.getOrderId()).getOrderStatus());
     }
 }

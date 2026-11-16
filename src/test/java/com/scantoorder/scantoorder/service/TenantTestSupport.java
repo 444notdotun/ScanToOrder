@@ -22,6 +22,7 @@ import java.util.UUID;
 public class TenantTestSupport {
     public static final String MAIN_SLUG = "testplace";
     public static final String OTHER_SLUG = "otherplace";
+    public static final String SUBACCOUNT = "ACCT_testsub0001";
 
     @Autowired
     private TenantRepo tenantRepo;
@@ -33,7 +34,12 @@ public class TenantTestSupport {
     }
 
     public Tenant other() {
-        return tenant(OTHER_SLUG, "Other Place");
+        Tenant tenant = tenant(OTHER_SLUG, "Other Place");
+        if (tenant.getPaystackSubaccountCode() == null) {
+            tenant.setPaystackSubaccountCode(SUBACCOUNT);
+            tenant = tenantRepo.save(tenant);
+        }
+        return tenant;
     }
 
     public Tenant tenant(String slug, String name) {
@@ -48,6 +54,7 @@ public class TenantTestSupport {
             tenant.setOwnerName("Owner of " + name);
             tenant.setEmail(slug + "@example.com");
             tenant.setPhone("08000000000");
+            tenant.setPaystackSubaccountCode(SUBACCOUNT);
             tenant = tenantRepo.save(tenant);
             menuService.ensureActiveMenu(tenant);
             return tenant;
@@ -60,6 +67,7 @@ public class TenantTestSupport {
         tenant.setOpenForOrders(true);
         tenant.setHoldsEnabled(true);
         tenant.setType(TenantType.RESTAURANT);
+        tenant.setPaystackSubaccountCode(SUBACCOUNT);
         return tenantRepo.save(tenant);
     }
 
@@ -80,6 +88,10 @@ public class TenantTestSupport {
         tenant.setStatus(TenantStatus.PENDING_APPROVAL);
         tenant.setHoldsEnabled(true);
         tenant.setOwnerName("Owner");
+        tenant.setBankCode("058");
+        tenant.setBankName("Guaranty Trust Bank");
+        tenant.setAccountNumber("0123456789");
+        tenant.setAccountName("OWNER LTD");
         tenant.setEmail(UUID.randomUUID().toString().substring(0, 12) + "@example.com");
         tenant.setPhone("08000000000");
         return tenantRepo.save(tenant);
@@ -89,6 +101,7 @@ public class TenantTestSupport {
         Tenant tenant = pendingTenant("fresh");
         tenant.setStatus(TenantStatus.ACTIVE);
         tenant.setApprovedAt(java.time.LocalDateTime.now());
+        tenant.setPaystackSubaccountCode(SUBACCOUNT);
         tenant = tenantRepo.save(tenant);
         menuService.ensureActiveMenu(tenant);
         return tenant;
