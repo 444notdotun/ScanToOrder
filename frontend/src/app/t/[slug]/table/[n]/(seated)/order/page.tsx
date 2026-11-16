@@ -110,11 +110,13 @@ function OrderScreen() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-3 px-5 pb-6 md:max-w-xl">
+    <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-3 px-5 pb-6 md:max-w-3xl xl:max-w-5xl">
       <h1 className="mt-3 font-heading text-[34px] font-normal leading-[1.1]">{pending ? 'Nearly there.' : "What'll it be?"}</h1>
 
       <OrderTracker />
 
+      <div className="flex flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start xl:gap-8">
+        <div className="flex min-w-0 flex-col gap-3">
       {pending ? (
         <div className="rounded-[20px] bg-paper p-5 text-ink">
           <div className="text-base font-bold">{pending.items.join(', ')}</div>
@@ -175,8 +177,8 @@ function OrderScreen() {
               </nav>
 
               {sections.map((sectionOfMenu) => (
-                <section key={sectionOfMenu.categoryName} id={`menu-${sectionOfMenu.categoryName}`} aria-label={sectionOfMenu.categoryName} className="flex scroll-mt-[calc(var(--you-h)+4rem)] flex-col gap-2.5">
-                  <h2 className="mt-2 font-heading text-[22px] font-normal">{sectionOfMenu.categoryName}</h2>
+                <section key={sectionOfMenu.categoryName} id={`menu-${sectionOfMenu.categoryName}`} aria-label={sectionOfMenu.categoryName} className="grid scroll-mt-[calc(var(--you-h)+4rem)] grid-cols-1 gap-2.5 md:grid-cols-2">
+                  <h2 className="mt-2 font-heading text-[22px] font-normal md:col-span-2">{sectionOfMenu.categoryName}</h2>
                   {sectionOfMenu.itemResponse.map((item) => {
                     const quantity = cart[item.itemName] ?? 0;
                     const chosen = quantity > 0;
@@ -224,7 +226,9 @@ function OrderScreen() {
         </>
       )}
 
-      <section id="basket" aria-label="Your basket" className="mt-2 scroll-mt-[calc(var(--you-h)+1rem)] rounded-[20px] bg-paper p-5 text-ink">
+        </div>
+
+      <section id="basket" aria-label="Your basket" className="mt-2 scroll-mt-[calc(var(--you-h)+1rem)] rounded-[20px] bg-paper p-5 text-ink xl:sticky xl:top-[calc(var(--you-h)+1rem)]">
         <h2 className="mb-3 font-heading text-[22px] font-normal text-bottle">Your basket</h2>
         {!pending && priced.length === 0 ? <p className="mb-3 text-[15px] text-quiet">Nothing yet. Tap Add on a plate.</p> : null}
         {!pending && priced.length > 0 ? (
@@ -258,6 +262,7 @@ function OrderScreen() {
         </Button>
         <p className="mt-2 text-center text-sm text-quiet">The kitchen starts cooking the moment you&apos;ve paid.</p>
       </section>
+      </div>
     </main>
   );
 }

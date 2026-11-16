@@ -127,8 +127,7 @@ export function Switch({ checked, onChange, labelledBy, disabled }: { checked: b
 // A title, a plain sentence on what to do next, and a small shake on arrival.
 export function FailureCard({ title, message, className = '' }: { title?: string; message: string; className?: string }) {
   const card = useRef<HTMLDivElement>(null);
-  // A card that arrives below the fold is brought into view, with 7rem kept clear of the bottom edge so a hosting
-  // badge in the corner cannot cover it.
+  // A card that arrives below the fold is brought into view. On a phone it is kept clear of the floating bottom bar.
   useEffect(() => {
     // After the card has taken its place, so what is measured is where it really is.
     const bring = () => card.current?.scrollIntoView({ block: 'nearest' });
@@ -141,7 +140,7 @@ export function FailureCard({ title, message, className = '' }: { title?: string
     };
   }, [title, message]);
   return (
-    <div ref={card} role="alert" className={`flex scroll-mb-28 scroll-mt-4 animate-shake gap-3 rounded-2xl border-[1.5px] border-errborder bg-errbg p-3.5 text-errtext ${className}`}>
+    <div ref={card} role="alert" className={`flex scroll-mb-28 scroll-mt-4 animate-shake md:scroll-mb-4 gap-3 rounded-2xl border-[1.5px] border-errborder bg-errbg p-3.5 text-errtext ${className}`}>
       <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-none">
         <circle cx="12" cy="12" r="10" />
         <path d="M12 7v6M12 17h.01" />
@@ -180,7 +179,7 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
         aria-label={label}
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
-        className="max-h-[92dvh] w-full max-w-md animate-sheet outline-none overflow-y-auto rounded-t-[28px] bg-paper p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom)+var(--corner-clear))] text-ink shadow-2xl sm:rounded-[28px] sm:pb-6"
+        className="max-h-[92dvh] w-full max-w-md animate-sheet outline-none overflow-y-auto rounded-t-[28px] bg-paper p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-ink shadow-2xl sm:rounded-[28px] sm:pb-6"
       >
         {children}
       </div>

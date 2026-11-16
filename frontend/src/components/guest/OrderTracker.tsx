@@ -33,7 +33,8 @@ export default function OrderTracker({ className = '' }: { className?: string })
         const at = STEP_OF[order.status];
         return (
           <div key={order.orderId} className="rounded-[20px] bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
-            <p role="status" className="text-[16px] font-bold leading-snug text-bottle">
+            <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-quiet">{order.forMe ? 'For you' : `For ${order.forName ?? `seat ${order.forSeatPosition}`}`}</div>
+            <p role="status" className="break-words text-[16px] font-bold leading-snug text-bottle">
               {lineFor(order)}
             </p>
             <ol aria-label="Progress" className="mt-3 flex items-start">

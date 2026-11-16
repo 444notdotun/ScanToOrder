@@ -6,7 +6,7 @@ import Ground from '@/components/plately/Ground';
 import { Loader } from '@/components/plately/Logo';
 import { ConnectionBanner, ConnectionContext } from '@/components/plately/Connection';
 import CallWaiterSheet from '@/components/guest/CallWaiterSheet';
-import YouCard from '@/components/guest/YouCard';
+import TitleBar from '@/components/guest/TitleBar';
 import BottomBar, { type BarItem } from '@/components/plately/BottomBar';
 import { icons } from '@/components/plately/Icons';
 import { cartCount, useCart } from '@/store/cartStore';
@@ -60,7 +60,7 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
     <ConnectionContext.Provider value={{ lost: stream.lost }}>
       <Ground>
         <ConnectionBanner lost={stream.lost} caughtUp={stream.caughtUp} />
-        <YouCard session={session.data} />
+        <TitleBar session={session.data} />
         {children}
         <BottomBar
           label="Your table"

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 export interface BarItem {
   key: string;
@@ -17,13 +17,29 @@ export interface BarItem {
 // A cream pill floating above the bottom edge, on phones only. The current item is filled bottle green with cream text,
 // and a count sits in a small tomato circle. On a tablet or laptop the same items are the header's section links.
 export default function BottomBar({ items, label = 'Main' }: { items: BarItem[]; label?: string }) {
+  // While a field is being typed in, the on-screen keyboard takes the bottom of the screen: the bar steps aside so it
+  // never sits over the keyboard or covers the button under the field.
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    const isField = (target: EventTarget | null) => target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
+    const on = (event: FocusEvent) => setTyping(isField(event.target));
+    const off = () => setTyping(false);
+    document.addEventListener('focusin', on);
+    document.addEventListener('focusout', off);
+    return () => {
+      document.removeEventListener('focusin', on);
+      document.removeEventListener('focusout', off);
+    };
+  }, []);
+
   return (
     <>
       {/* Keeps the end of every page clear of the bar. */}
       <div aria-hidden="true" className="h-[96px] flex-none md:hidden print:hidden" />
       <nav
         aria-label={label}
-        className="fixed inset-x-[14px] bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 flex items-stretch gap-1 rounded-[26px] bg-paper p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.38)] md:hidden print:hidden"
+        hidden={typing}
+        className="fixed inset-x-[14px] bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 flex items-stretch gap-1 rounded-[26px] [&[hidden]]:hidden bg-paper p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.38)] md:hidden print:hidden"
       >
         {items.map((item) => {
           const inside = (
