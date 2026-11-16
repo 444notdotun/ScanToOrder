@@ -53,7 +53,6 @@ export function useAuthHydrated(): boolean {
 export function homeFor(profile: Pick<WorkerProfile, 'role' | 'tenantType'>): string {
   if (profile.role === 'CHEF') return '/kitchen';
   if (profile.role === 'WAITER') return '/waiter';
-  // The platform owner's own screens arrive in a later pull request.
-  if (profile.role === 'PLATFORM_ADMIN') return '/';
+  if (profile.role === 'PLATFORM_ADMIN') return '/platform';
   return profile.tenantType === 'EVENT_PLANNER' ? '/planner' : '/manager';
 }
