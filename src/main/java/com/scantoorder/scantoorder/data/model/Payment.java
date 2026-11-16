@@ -36,6 +36,12 @@ public class Payment {
     private PaymentStatus status;
 
     private String gatewayResponse;
+    // Recorded when the payment is started and never recalculated.
+    private Long platelyChargeKobo;
+    private Long tenantAmountKobo;
+    private String subaccountCode;
+    // The address the payment was made with: where a refund link goes if one is ever due.
+    private String customerEmail;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

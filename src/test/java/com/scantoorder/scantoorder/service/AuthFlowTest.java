@@ -18,6 +18,8 @@ import com.scantoorder.scantoorder.service.Interface.WorkerService;
 import com.scantoorder.scantoorder.service.email.InMemoryEmailSender;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
+import com.scantoorder.scantoorder.service.Interface.PaystackClient;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +54,8 @@ class AuthFlowTest {
     private JwtFilter jwtFilter;
     @Autowired
     private TenantTestSupport tenants;
+    @MockitoBean
+    private PaystackClient paystackClient;
     @Autowired
     private InMemoryEmailSender emailSender;
 
@@ -61,6 +65,7 @@ class AuthFlowTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.when(paystackClient.createSubaccount(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any())).thenReturn("ACCT_approved001");
         SecurityContextHolder.clearContext();
         emailSender.clear();
         tenant = tenants.pendingTenant("Sign In");

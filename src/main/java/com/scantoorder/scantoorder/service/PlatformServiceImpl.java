@@ -2,6 +2,9 @@ package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.data.model.Tenant;
 import com.scantoorder.scantoorder.data.model.TenantStatus;
+import com.scantoorder.scantoorder.data.model.TenantType;
+import com.scantoorder.scantoorder.exception.PayoutAccountRejectedException;
+import com.scantoorder.scantoorder.service.Interface.PaystackClient;
 import com.scantoorder.scantoorder.data.model.Worker;
 import com.scantoorder.scantoorder.data.model.WorkerRole;
 import com.scantoorder.scantoorder.data.repository.TenantRepo;
@@ -42,6 +45,10 @@ public class PlatformServiceImpl implements PlatformService {
     private MenuService menuService;
     @Autowired
     private TransactionTemplate transactionTemplate;
+    @Autowired
+    private PaystackClient paystackClient;
+    @Autowired
+    private ChargeCalculator chargeCalculator;
 
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -60,9 +67,33 @@ public class PlatformServiceImpl implements PlatformService {
     // The account and its status are saved together; the email goes out only once they are safely saved.
     @Override
     public TenantActionResponse approve(String tenantId) {
-        record Approved(Tenant tenant, String username, String password) {
+        // The payout account is set up with Paystack first. If Paystack refuses it, nothing has changed.
+        Tenant waiting = find(tenantId);
+        if (waiting.getStatus() != TenantStatus.PENDING_APPROVAL) {
+            throw new ConflictException("Only an application that is waiting can be approved.");
         }
-        Approved approved = transactionTemplate.execute(status -> {
+        String subaccountCode = waiting.getType() == TenantType.RESTAURANT ? createSubaccount(waiting) : null;
+        Approved approved;
+        try {
+            approved = approveInTransaction(tenantId, subaccountCode);
+        } catch (RuntimeException e) {
+            if (subaccountCode != null) {
+                // Paystack already has the subaccount. The platform owner removes it by hand.
+                log.error("Approval of tenant {} failed after Paystack created subaccount {}. The subaccount can be removed.", tenantId, subaccountCode);
+            }
+            throw e;
+        }
+        boolean sent = sendSignIn(approved.tenant(), approved.username(), approved.password());
+        return action(approved.tenant(), approved.username(), sent,
+                sent ? approved.tenant().getName() + " is approved and its sign-in is on the way."
+                        : approved.tenant().getName() + " is approved, but the email could not be sent. Use resend sign-in to try again.");
+    }
+
+    private record Approved(Tenant tenant, String username, String password) {
+    }
+
+    private Approved approveInTransaction(String tenantId, String subaccountCode) {
+        return transactionTemplate.execute(status -> {
             Tenant tenant = find(tenantId);
             if (tenant.getStatus() != TenantStatus.PENDING_APPROVAL) {
                 throw new ConflictException("Only an application that is waiting can be approved.");
@@ -73,6 +104,7 @@ public class PlatformServiceImpl implements PlatformService {
             }
             tenant.setStatus(TenantStatus.ACTIVE);
             tenant.setApprovedAt(LocalDateTime.now());
+            tenant.setPaystackSubaccountCode(subaccountCode);
             tenantRepo.save(tenant);
             menuService.ensureActiveMenu(tenant);
             String password = TemporaryPassword.generate();
@@ -86,10 +118,6 @@ public class PlatformServiceImpl implements PlatformService {
             workerRepo.save(manager);
             return new Approved(tenant, username, password);
         });
-        boolean sent = sendSignIn(approved.tenant(), approved.username(), approved.password());
-        return action(approved.tenant(), approved.username(), sent,
-                sent ? approved.tenant().getName() + " is approved and its sign-in is on the way."
-                        : approved.tenant().getName() + " is approved, but the email could not be sent. Use resend sign-in to try again.");
     }
 
     @Override
@@ -163,6 +191,14 @@ public class PlatformServiceImpl implements PlatformService {
         boolean sent = sendSignIn(reissued.tenant(), reissued.username(), reissued.password());
         return action(reissued.tenant(), reissued.username(), sent,
                 sent ? "A new sign-in is on the way." : "The new sign-in was saved, but the email could not be sent. Try again.");
+    }
+
+    private String createSubaccount(Tenant tenant) {
+        if (tenant.getBankCode() == null || tenant.getAccountNumber() == null) {
+            throw new PayoutAccountRejectedException(PaystackClientImpl.PAYOUT_REJECTED);
+        }
+        return paystackClient.createSubaccount(tenant.getName(), tenant.getBankCode(), tenant.getAccountNumber(),
+                chargeCalculator.percent());
     }
 
     private boolean sendSignIn(Tenant tenant, String username, String password) {

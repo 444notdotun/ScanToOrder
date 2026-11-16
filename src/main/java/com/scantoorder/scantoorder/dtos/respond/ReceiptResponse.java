@@ -24,4 +24,7 @@ public class ReceiptResponse {
     private BigDecimal subtotal;
     private BigDecimal totalPaid;
     private PaymentStatus status;
+    // Set when the restaurant owes the guest money back, or has paid it.
+    private String refundMessage;
+    private String refundLink;
 }

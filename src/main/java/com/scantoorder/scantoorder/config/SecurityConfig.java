@@ -63,6 +63,8 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/seats/*/join").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/payments/webhook").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/refunds/*/guest").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/refunds/*/guest/*").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, e) -> {

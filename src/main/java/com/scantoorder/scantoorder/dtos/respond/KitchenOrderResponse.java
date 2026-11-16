@@ -18,5 +18,7 @@ public class KitchenOrderResponse {
     private LocalDateTime createdAt;
     private String status;
     private BigDecimal totalAmount;
+    private String unavailableReason;
+    private String note;
     private List<KitchenOrderItemResponse> items = new ArrayList<>();
 }

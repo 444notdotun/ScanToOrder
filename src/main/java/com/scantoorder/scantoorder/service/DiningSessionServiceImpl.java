@@ -325,8 +325,9 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     @Override
     public List<String> getSessionPaymentReferences(CustomerPrincipal caller) {
         SessionSeat me = requireSeated(caller);
-        List<Payment> payments = paymentRepo.findByOrderDinningSessionSessionIdAndStatus(
-                me.getSession().getSessionId(), PaymentStatus.SUCCESSFUL);
+        List<Payment> payments = paymentRepo.findByOrderDinningSessionSessionIdAndStatusIn(
+                me.getSession().getSessionId(),
+                List.of(PaymentStatus.SUCCESSFUL));
         return payments.stream()
                 .filter(payment -> {
                     SessionSeat owner = payment.getOrder().getSessionSeat();

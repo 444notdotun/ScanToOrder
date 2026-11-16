@@ -24,5 +24,7 @@ public class OrderItem {
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
     private String SpecialInstructions;
+    // True for plates the kitchen could not make and a waiter swapped out.
+    private boolean swappedOut;
 
 }

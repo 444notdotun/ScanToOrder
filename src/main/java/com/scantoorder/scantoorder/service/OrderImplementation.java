@@ -109,9 +109,13 @@ public class OrderImplementation implements OrderService {
     public List<KitchenOrderResponse> getKitchenOrders(String tenantId, String status) {
         List<OrderStatus> statuses;
         if (status != null && !status.trim().isEmpty()) {
-            statuses = List.of(OrderStatus.valueOf(status.toUpperCase()));
+            OrderStatus asked = OrderStatus.valueOf(status.toUpperCase());
+            // The waiter's list: orders the kitchen gave up on are waiting for a waiter too.
+            statuses = asked == OrderStatus.READY
+                    ? List.of(OrderStatus.READY, OrderStatus.UNAVAILABLE, OrderStatus.REFUND_DUE)
+                    : List.of(asked);
         } else {
-            statuses = List.of(OrderStatus.PAID, OrderStatus.PREPARING);
+            statuses = List.of(OrderStatus.PAID, OrderStatus.PREPARING, OrderStatus.UNAVAILABLE);
         }
 
         List<OrderItem> orderItems = orderItemRepo.findAllByOrderStatusesWithOrder(statuses, tenantId);
@@ -141,7 +145,13 @@ public class OrderImplementation implements OrderService {
 
         KitchenOrderResponse orderResponse = new KitchenOrderResponse();
         orderResponse.setOrderId(order.getOrderId());
-        orderResponse.setCreatedAt(order.getCreatedAt());
+        // A swapped order is a new ticket: it takes its place in the queue from the swap.
+        orderResponse.setCreatedAt(order.getSwappedAt() != null ? order.getSwappedAt() : order.getCreatedAt());
+        if (order.getUnavailableReason() != null && order.getOrderStatus() != null
+                && (order.getOrderStatus() == OrderStatus.UNAVAILABLE || order.getOrderStatus() == OrderStatus.REFUND_DUE)) {
+            orderResponse.setUnavailableReason(order.getUnavailableReason().name());
+        }
+        orderResponse.setNote(order.getNote());
         if (order.getOrderStatus() != null) {
             orderResponse.setStatus(order.getOrderStatus().name());
         }

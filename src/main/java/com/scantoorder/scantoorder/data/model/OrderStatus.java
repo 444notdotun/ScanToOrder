@@ -6,5 +6,8 @@ public enum OrderStatus {
     PREPARING,
     READY,
     DELIVERED,
-    CANCELED;
+    CANCELED,
+    UNAVAILABLE,
+    REFUND_DUE,
+    REFUNDED;
 }

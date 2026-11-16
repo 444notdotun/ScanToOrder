@@ -13,7 +13,10 @@ import com.scantoorder.scantoorder.data.repository.ItemRepo;
 import com.scantoorder.scantoorder.data.repository.MenuRepository;
 import com.scantoorder.scantoorder.data.repository.TenantRepo;
 import com.scantoorder.scantoorder.data.repository.WorkerRepo;
+import com.scantoorder.scantoorder.dtos.respond.SubaccountData;
+import com.scantoorder.scantoorder.service.ChargeCalculator;
 import com.scantoorder.scantoorder.service.Interface.MenuService;
+import com.scantoorder.scantoorder.service.Interface.PaystackClient;
 import com.scantoorder.scantoorder.service.Interface.RestaurantTableService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +28,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -36,6 +40,11 @@ public class DataSeeder implements CommandLineRunner {
     public static final String PENDING_SLUG = "sunsetgrill";
     public static final String MANAGER_USERNAME = CORNER_TABLE_SLUG + ".manager";
     public static final int[] TABLE_SIZES = {1, 2, 4, 6};
+    // Paystack's published test bank account, the same for both demo restaurants.
+    public static final String DEMO_BANK_CODE = "057";
+    public static final String DEMO_BANK_NAME = "Zenith Bank";
+    public static final String DEMO_ACCOUNT_NUMBER = "0000000000";
+    public static final String DEMO_SUFFIX = " (demo)";
 
     @Autowired
     private WorkerRepo workerRepo;
@@ -53,6 +62,10 @@ public class DataSeeder implements CommandLineRunner {
     private MenuRepository menuRepository;
     @Autowired
     private RestaurantTableService tableService;
+    @Autowired
+    private PaystackClient paystackClient;
+    @Autowired
+    private ChargeCalculator chargeCalculator;
 
     @Value("${app.seed.manager-password}")
     private String managerPassword;
@@ -64,17 +77,55 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         seedPlatformAdmin();
+        List<SubaccountData> existing = existingSubaccounts();
         Tenant cornerTable = seedTenant("The Corner Table", CORNER_TABLE_SLUG, "Ada Okafor", "ada@thecornertable.example", "08011110001");
+        ensureSubaccount(cornerTable, existing);
         seedTeam(cornerTable, true);
         seedCornerTableMenu(cornerTable);
         seedTables(cornerTable, TABLE_SIZES);
 
         Tenant mamaPut = seedTenant("Mama Put Express", MAMA_PUT_SLUG, "Ngozi Eze", "ngozi@mamaput.example", "08011110002");
+        ensureSubaccount(mamaPut, existing);
         seedTeam(mamaPut, false);
         seedMamaPutMenu(mamaPut);
         seedTables(mamaPut, new int[]{3});
 
         seedPendingApplication();
+    }
+
+    // Asked once. Null means Paystack could not be reached, and no demo restaurant gets a subaccount this start.
+    private List<SubaccountData> existingSubaccounts() {
+        try {
+            return paystackClient.listSubaccounts();
+        } catch (RuntimeException e) {
+            log.warn("Could not list Paystack subaccounts. The demo restaurants will start without payments: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    // The demo restaurants get their subaccounts from Paystack: reuse the one with the demo's business name,
+    // and create one only when there is none. Any trouble leaves the restaurant without one and the app starts anyway.
+    private void ensureSubaccount(Tenant tenant, List<SubaccountData> existing) {
+        if (tenant.getPaystackSubaccountCode() != null && !tenant.getPaystackSubaccountCode().isBlank()) return;
+        String businessName = tenant.getName() + DEMO_SUFFIX;
+        try {
+            String code = existing == null ? null : existing.stream()
+                    .filter(found -> businessName.equalsIgnoreCase(found.businessName()))
+                    .map(SubaccountData::code)
+                    .findFirst().orElse(null);
+            if (code == null && existing != null) {
+                code = paystackClient.createSubaccount(businessName, DEMO_BANK_CODE, DEMO_ACCOUNT_NUMBER, chargeCalculator.percent());
+                log.info("Created a Paystack subaccount for {}", businessName);
+            } else if (code != null) {
+                log.info("Reusing the Paystack subaccount for {}", businessName);
+            }
+            if (code != null) {
+                tenant.setPaystackSubaccountCode(code);
+                tenantRepo.save(tenant);
+            }
+        } catch (RuntimeException e) {
+            log.warn("{} starts without a Paystack subaccount, so paying there is refused: {}", businessName, e.getMessage());
+        }
     }
 
     private void seedPlatformAdmin() {
@@ -100,9 +151,9 @@ public class DataSeeder implements CommandLineRunner {
             tenant.setOwnerName(owner);
             tenant.setEmail(email);
             tenant.setPhone(phone);
-            tenant.setBankCode("058");
-            tenant.setBankName("Guaranty Trust Bank");
-            tenant.setAccountNumber("0123456789");
+            tenant.setBankCode(DEMO_BANK_CODE);
+            tenant.setBankName(DEMO_BANK_NAME);
+            tenant.setAccountNumber(DEMO_ACCOUNT_NUMBER);
             tenant.setAccountName(name.toUpperCase());
             tenant.setApprovedAt(LocalDateTime.now());
             tenant = tenantRepo.save(tenant);
