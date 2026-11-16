@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Caveat, Fraunces, Karla, Young_Serif } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
-import { Toaster } from "sonner";
 
 const youngSerif = Young_Serif({ weight: "400", subsets: ["latin"], variable: "--font-young-serif", display: "swap" });
 const karla = Karla({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-karla", display: "swap" });
@@ -27,8 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh flex flex-col bg-bottle text-stone-900 font-body">
         <Providers>
           <div className="flex-1 flex flex-col">{children}</div>
-          {/* Until the staff screens are rebuilt they still report with toasts; the Plately screens never do. */}
-          <Toaster richColors position="top-right" />
         </Providers>
       </body>
     </html>
