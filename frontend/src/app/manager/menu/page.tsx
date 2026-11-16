@@ -119,7 +119,7 @@ export default function MenuPage() {
           <PlateForm
             key={editing.itemId}
             categories={sections}
-            initial={{ itemName: editing.itemName, itemDescription: editing.itemDescription ?? '', categoryName: editing.categoryName ?? '', itemPrice: editing.itemPrice ?? 0 }}
+            initial={{ itemName: editing.itemName, itemDescription: editing.itemDescription ?? '', categoryName: editing.categoryName ?? '', itemPrice: editing.itemPrice ?? 0, imageUrl: editing.imageUrl ?? '' }}
             submitLabel="Save"
             busy={lost || act.busy !== null}
             onSubmit={async (plate, newSection) => {

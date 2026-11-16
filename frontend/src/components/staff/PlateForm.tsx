@@ -29,6 +29,7 @@ export default function PlateForm({
   const shown = section || categories[0]?.categoryName || NEW_SECTION;
   const [newSection, setNewSection] = useState('');
   const [price, setPrice] = useState(initial?.itemPrice != null ? String(initial.itemPrice) : '');
+  const [photo, setPhoto] = useState(initial?.imageUrl ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const submit = async (event: FormEvent) => {
@@ -39,6 +40,7 @@ export default function PlateForm({
     if (!price.trim() || !Number.isInteger(naira) || naira < 1) found.price = 'Price it in whole naira, for example 3500.';
     const creating = shown === NEW_SECTION;
     if (creating && !newSection.trim()) found.section = 'Name the new section.';
+    if (photo.trim() && !/^https?:\/\/\S+$/.test(photo.trim())) found.photo = 'That photo link doesn\'t look right. It should start with https://';
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     const worked = await onSubmit(
@@ -47,6 +49,7 @@ export default function PlateForm({
         itemDescription: description.trim(),
         categoryName: creating ? newSection.trim() : shown,
         itemPrice: naira,
+        imageUrl: photo.trim() || undefined,
       },
       creating ? newSection.trim() : null,
     );
@@ -55,6 +58,7 @@ export default function PlateForm({
       setName('');
       setDescription('');
       setPrice('');
+      setPhoto('');
       setNewSection('');
     }
   };
@@ -80,6 +84,7 @@ export default function PlateForm({
         <Field label="Name of the new section" value={newSection} onChange={(event) => setNewSection(event.target.value)} error={errors.section} />
       ) : null}
       <Field label="Price in naira" inputMode="numeric" value={price} onChange={(event) => setPrice(event.target.value)} error={errors.price} placeholder="3500" />
+      <Field label="Photo link (optional)" type="url" value={photo} onChange={(event) => setPhoto(event.target.value)} error={errors.photo} placeholder="https://" hint="Paste a link to a photo of the dish. With none, guests see the dish without a picture. Uploading photos comes later." />
       <div className="flex flex-col gap-2.5 sm:flex-row">
         <Button type="submit" tone="primary" disabled={busy}>
           {submitLabel}

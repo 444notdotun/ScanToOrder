@@ -108,6 +108,7 @@ export interface Plate {
   itemDescription: string;
   categoryName: string;
   itemPrice: number;
+  imageUrl?: string;
 }
 
 interface Done {
@@ -116,7 +117,7 @@ interface Done {
 
 // The backend names the section field with a capital C.
 function plateBody(plate: Plate) {
-  return { itemName: plate.itemName, itemDescription: plate.itemDescription, CategoryName: plate.categoryName, itemPrice: plate.itemPrice };
+  return { itemName: plate.itemName, itemDescription: plate.itemDescription, CategoryName: plate.categoryName, itemPrice: plate.itemPrice, imageUrl: plate.imageUrl || undefined };
 }
 
 export const managerApi = {
