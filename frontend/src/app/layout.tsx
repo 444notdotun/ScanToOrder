@@ -18,12 +18,13 @@ export const viewport: Viewport = {
   themeColor: "#183A2E",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`h-full antialiased ${youngSerif.variable} ${karla.variable} ${caveat.variable} ${fraunces.variable}`}>
-      <body className="min-h-full flex flex-col bg-customer-food text-stone-900 font-body">
+    <html lang="en" className={`min-h-full bg-bottle antialiased ${youngSerif.variable} ${karla.variable} ${caveat.variable} ${fraunces.variable}`}>
+      <body className="min-h-dvh flex flex-col bg-bottle text-stone-900 font-body">
         <Providers>
           <div className="flex-1 flex flex-col">{children}</div>
           {/* Until the staff screens are rebuilt they still report with toasts; the Plately screens never do. */}

@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 // on a 120px tile turned 12 degrees. One component, behind every Plately screen.
 export function EtchedPattern() {
   return (
-    <svg aria-hidden="true" className="pointer-events-none fixed inset-0 h-full w-full" focusable="false">
+    <svg aria-hidden="true" className="pointer-events-none fixed inset-0 h-lvh w-full" focusable="false">
       <defs>
         <pattern id="plately-etched" width="120" height="120" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">
           <g fill="none" stroke="#F4ECD8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" opacity="0.13">
@@ -29,7 +29,8 @@ export default function Ground({ children, className = '' }: { children: ReactNo
   return (
     <div className={`plately relative flex min-h-dvh w-full flex-col bg-bottle font-body text-cream ${className}`}>
       <EtchedPattern />
-      <div className="relative flex min-h-dvh w-full flex-1 flex-col">{children}</div>
+      {/* The green runs behind the status bar and the bottom bar; the content keeps clear of them. */}
+      <div className="relative flex min-h-dvh w-full flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">{children}</div>
     </div>
   );
 }
