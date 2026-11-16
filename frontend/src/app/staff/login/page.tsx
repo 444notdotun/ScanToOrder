@@ -42,10 +42,7 @@ function SignIn() {
         <Brand />
       </header>
       <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-5 px-5 pb-8 pt-8 md:max-w-xl">
-        <div>
-          <h1 className="font-heading text-[38px] font-normal leading-[1.1]">Welcome back.</h1>
-          <p className="mt-2 text-[17px] leading-snug text-soft">Sign in with the username and password your manager gave you.</p>
-        </div>
+        <h1 className="font-heading text-[38px] font-normal leading-[1.1]">Staff sign-in</h1>
 
         {ended ? (
           <p role="status" className="animate-fade text-[15px] leading-snug text-mustard">
@@ -62,7 +59,6 @@ function SignIn() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              hint="It looks like yourplace.yourname."
               value={username}
               onChange={(event) => setUsername(event.target.value)}
             />
@@ -81,17 +77,14 @@ function SignIn() {
           </form>
         </Card>
 
-        <p className="text-center text-sm text-soft">
-          Here to eat?{' '}
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-soft">
           <Link href="/" className="underline underline-offset-4">
             Find your table
           </Link>
-          . Run a place?{' '}
           <Link href="/signup" className="underline underline-offset-4">
-            Bring Plately to it
+            Bring Plately to your business
           </Link>
-          .
-        </p>
+        </div>
       </main>
     </Ground>
   );
