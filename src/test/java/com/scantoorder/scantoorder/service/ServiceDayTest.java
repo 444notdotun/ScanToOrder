@@ -321,6 +321,7 @@ class ServiceDayTest {
         List<StockItemResponse> list = stock.list(tenantId);
 
         assertTrue(list.stream().anyMatch(s -> s.getItemId().equals(plate.getItemId()) && s.isAvailable()));
+        assertTrue(list.stream().anyMatch(s -> s.getItemId().equals(plate.getItemId()) && s.getItemPrice() != null && s.getItemPrice().compareTo(plate.getItemPrice()) == 0));
         assertTrue(list.stream().anyMatch(s -> s.getItemId().equals(second.getItemId()) && !s.isAvailable()));
         assertTrue(list.stream().noneMatch(s -> s.getItemId().equals(theirs.getItemId())));
     }

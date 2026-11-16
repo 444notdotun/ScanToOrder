@@ -57,6 +57,8 @@ class RefundTrackingTest {
     @Autowired
     private PaymentTestSupport support;
     @Autowired
+    private SeatingTestSupport seating;
+    @Autowired
     private WebApplicationContext wac;
     @Autowired
     @org.springframework.beans.factory.annotation.Qualifier("springSecurityFilterChain")
@@ -310,6 +312,22 @@ class RefundTrackingTest {
     }
 
     @Test
+    void testThatTheManagersListSaysTableAndSeatTheWayAPersonReadsThem() {
+        Refund refund = due(OrderStatus.REFUND_DUE, RefundReason.KITCHEN_UNAVAILABLE);
+        RestaurantTable table = seating.newTable(tenantId, 2);
+        Seat seat = seating.seatsOf(table).get(1);
+        Order order = refund.getOrder();
+        order.setTable(table);
+        order.setSeat(seat);
+        orderRepo.save(order);
+
+        ManagerRefundResponse listed = service.list(tenantId, "open").stream().filter(r -> r.getRefundId().equals(refund.getId())).findFirst().orElseThrow();
+
+        assertEquals(table.getDisplayNumber(), listed.getTableDisplayNumber());
+        assertEquals(seat.getPosition(), listed.getSeatPosition());
+    }
+
+    @Test
     void testThatARefundReportedMissingIsOpenAgainOnTheManagersListAndOnThePlatformListUntilTheGuestConfirms() {
         Refund refund = due(OrderStatus.REFUND_DUE, RefundReason.KITCHEN_UNAVAILABLE);
         service.settle(tenantId, "w", refund.getId(), settleWith(RefundMethod.TRANSFER, "TRF-2"));
@@ -321,6 +339,9 @@ class RefundTrackingTest {
         ManagerRefundResponse open = service.list(tenantId, "open").stream().filter(r -> r.getRefundId().equals(refund.getId())).findFirst().orElseThrow();
         assertTrue(open.isReportedMissing());
         assertEquals("SETTLED", open.getStatus());
+        // An order with no table is still listed: the table and seat are simply empty.
+        assertNull(open.getTableDisplayNumber());
+        assertNull(open.getSeatPosition());
         assertTrue(service.list(tenantId, "closed").stream().noneMatch(r -> r.getRefundId().equals(refund.getId())));
         PlatformRefundResponse problem = service.platformProblems().stream().filter(r -> r.getRefundId().equals(refund.getId())).findFirst().orElseThrow();
         assertTrue(problem.isReportedMissing());

@@ -14,6 +14,9 @@ public class ManagerRefundResponse {
     private String guestPhone;
     private String tableNumber;
     private String seatNumber;
+    // What a person reads: "Table 3, Seat 2".
+    private Integer tableDisplayNumber;
+    private Integer seatPosition;
     private String orderNumber;
     private List<String> items;
     private BigDecimal amount;
