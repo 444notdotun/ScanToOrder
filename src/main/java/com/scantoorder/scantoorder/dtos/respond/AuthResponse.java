@@ -11,4 +11,7 @@ public class AuthResponse {
     private String username;
     private WorkerRole role;
     private Boolean mustChangePassword;
+    // For the staff header: who is signed in and at which business.
+    private String fullName;
+    private String businessName;
 }

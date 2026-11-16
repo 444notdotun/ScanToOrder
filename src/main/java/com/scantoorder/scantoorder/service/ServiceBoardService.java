@@ -119,11 +119,15 @@ public class ServiceBoardService {
         if (order.getTable() != null) response.setTableNumber(order.getTable().getDisplayNumber());
         if (order.getSeat() != null) response.setSeatPosition(order.getSeat().getPosition());
         if (order.getSessionSeat() != null) response.setGuestName(order.getSessionSeat().getGuestName());
-        for (OrderItem line : orderItemRepo.findByOrder_OrderId(order.getOrderId())) {
-            if (line.isSwappedOut()) continue;
+        List<OrderItem> lines = orderItemRepo.findByOrder_OrderId(order.getOrderId()).stream().filter(line -> !line.isSwappedOut()).toList();
+        for (OrderItem line : lines) {
             String name = line.getItem() != null ? line.getItem().getItemName()
                     : line.getPlate() != null ? line.getPlate().getName() : "Item";
             response.getItems().add(line.getPlate() != null ? name : line.getQuantity() + " x " + name);
+            String asked = line.getSpecialInstructions();
+            if (asked != null && !asked.isBlank()) {
+                response.getInstructions().add(lines.size() > 1 ? name + ": " + asked.trim() : asked.trim());
+            }
         }
         response.setNote(order.getNote());
         response.setStep(order.getOrderStatus().name());

@@ -67,6 +67,8 @@ class ServiceDayTest {
     @Autowired
     private ItemRepo itemRepo;
     @Autowired
+    private OrderItemRepo orderItemRepo;
+    @Autowired
     private SessionSeatRepo sessionSeatRepo;
     @Autowired
     private DinningSessionRepo sessionRepo;
@@ -231,6 +233,25 @@ class ServiceDayTest {
     }
 
     @Test
+    void testThatATicketCarriesWhatTheGuestAskedForOnThePlate() {
+        Order order = paid(OrderStatus.PAID);
+        OrderItem line = orderItemRepo.findByOrder_OrderId(order.getOrderId()).get(0);
+        line.setSpecialInstructions("No onions, please.");
+        orderItemRepo.save(line);
+
+        ServiceOrderResponse ticket = board.kitchen(tenantId).stream().filter(o -> o.getOrderId().equals(order.getOrderId())).findFirst().orElseThrow();
+
+        assertEquals(List.of("No onions, please."), ticket.getInstructions());
+    }
+
+    @Test
+    void testThatATicketWithNothingAskedForHasNoInstructions() {
+        Order order = paid(OrderStatus.PAID);
+        ServiceOrderResponse ticket = board.kitchen(tenantId).stream().filter(o -> o.getOrderId().equals(order.getOrderId())).findFirst().orElseThrow();
+        assertTrue(ticket.getInstructions().isEmpty());
+    }
+
+    @Test
     void testThatASwappedOrderIsATicketOfItsOwnAndSaysSo() {
         Order order = paid(OrderStatus.PAID);
         order.setSwappedAt(LocalDateTime.now().minusMinutes(1));
@@ -289,6 +310,19 @@ class ServiceDayTest {
         ToggleItemResponse back = stock.backInStock(tenantId, plate.getItemId());
         assertEquals("Service plate is back on the menu.", back.getMessage());
         assertEquals(plate.getItemName(), orderItemService.createOrderItem(tenantId, order.getOrderId(), request).getItem().getItemName());
+    }
+
+    @Test
+    void testThatTheStockListShowsEveryPlateOfThisBusinessWithItsIdAndWhetherItIsInStock() {
+        Item second = pay.item(tenant, "Another plate", 900, true);
+        stock.soldOut(tenantId, second.getItemId());
+        Item theirs = pay.item(tenants.other(), "Not ours at all", 100, true);
+
+        List<StockItemResponse> list = stock.list(tenantId);
+
+        assertTrue(list.stream().anyMatch(s -> s.getItemId().equals(plate.getItemId()) && s.isAvailable()));
+        assertTrue(list.stream().anyMatch(s -> s.getItemId().equals(second.getItemId()) && !s.isAvailable()));
+        assertTrue(list.stream().noneMatch(s -> s.getItemId().equals(theirs.getItemId())));
     }
 
     @Test

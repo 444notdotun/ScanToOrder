@@ -243,7 +243,7 @@ function ManagerDashboardContent() {
               </p>
             </div>
             <Link 
-              href="/kitchen/kds"
+              href="/kitchen"
               className="w-full bg-stone-950 hover:bg-stone-850 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-1.5 transition"
             >
               Open Kitchen Monitor

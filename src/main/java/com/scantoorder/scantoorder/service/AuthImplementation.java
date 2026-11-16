@@ -87,6 +87,8 @@ public class AuthImplementation implements Auth {
         authResponse.setUsername(worker.getUsername());
         authResponse.setRole(worker.getRole());
         authResponse.setMustChangePassword(worker.isMustChangePassword());
+        authResponse.setFullName(worker.getFullName());
+        if (worker.getTenant() != null) authResponse.setBusinessName(worker.getTenant().getName());
         authResponse.setToken(jwtService.generateToken(worker));
         return authResponse;
     }
