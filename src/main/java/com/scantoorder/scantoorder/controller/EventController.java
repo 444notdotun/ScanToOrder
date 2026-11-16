@@ -9,7 +9,11 @@ import com.scantoorder.scantoorder.dtos.request.EventPlateRequest;
 import com.scantoorder.scantoorder.dtos.respond.EventGuestResponse;
 import com.scantoorder.scantoorder.dtos.respond.EventPlateResponse;
 import com.scantoorder.scantoorder.dtos.respond.EventTableResponse;
+import com.scantoorder.scantoorder.dtos.respond.EventCoverageResponse;
+import com.scantoorder.scantoorder.dtos.respond.ReleaseSeatResponse;
+import com.scantoorder.scantoorder.service.EventCoverageService;
 import com.scantoorder.scantoorder.service.EventGuestService;
+import com.scantoorder.scantoorder.service.EventSeatingService;
 import com.scantoorder.scantoorder.service.EventPlateService;
 import com.scantoorder.scantoorder.service.EventTableService;
 import org.springframework.http.HttpHeaders;
@@ -47,6 +51,10 @@ public class EventController {
     private EventTableService tableService;
     @Autowired
     private EventGuestService guestService;
+    @Autowired
+    private EventSeatingService seatingService;
+    @Autowired
+    private EventCoverageService coverageService;
 
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping
@@ -186,5 +194,21 @@ public class EventController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"guests.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(guestService.exportCsv(CurrentTenant.id(), id));
+    }
+
+    // ---- the day
+
+    // An usher frees the guest's seat so their code works again on a new phone.
+    @PreAuthorize("hasAnyRole('MANAGER', 'WAITER')")
+    @PostMapping("/{id}/guests/{guestId}/release")
+    public ResponseEntity<ApiResponse<ReleaseSeatResponse>> release(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+                                                                    @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String guestId) {
+        return ResponseEntity.ok(new ApiResponse<>(seatingService.release(CurrentTenant.id(), id, guestId)));
+    }
+
+    @PreAuthorize("hasAnyRole('MANAGER', 'WAITER', 'CHEF')")
+    @GetMapping("/{id}/coverage")
+    public ResponseEntity<ApiResponse<EventCoverageResponse>> coverage(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+        return ResponseEntity.ok(new ApiResponse<>(coverageService.coverage(CurrentTenant.id(), id)));
     }
 }

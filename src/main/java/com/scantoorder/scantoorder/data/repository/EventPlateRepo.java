@@ -11,5 +11,7 @@ import java.util.Optional;
 public interface EventPlateRepo extends JpaRepository<EventPlate, String> {
     List<EventPlate> findByEvent_IdOrderByNameAsc(String eventId);
 
+    Optional<EventPlate> findByEvent_IdAndNameIgnoreCase(String eventId, String name);
+
     Optional<EventPlate> findByIdAndEvent_Id(String id, String eventId);
 }

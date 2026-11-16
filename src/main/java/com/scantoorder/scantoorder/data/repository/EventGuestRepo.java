@@ -34,4 +34,6 @@ public interface EventGuestRepo extends JpaRepository<EventGuest, String> {
     Optional<EventGuest> findForUpdateBySessionSeat(@Param("sessionSeatId") String sessionSeatId);
 
     List<EventGuest> findByAssignedSeat_SeatId(String seatId);
+
+    Optional<EventGuest> findBySessionSeat_Id(String sessionSeatId);
 }
