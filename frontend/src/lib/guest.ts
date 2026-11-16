@@ -136,3 +136,67 @@ export function useSession() {
 export function useSessionOrders() {
   return useQuery({ queryKey: ['orders'], queryFn: guestApi.orders, retry: false });
 }
+
+export interface EventPreview {
+  eventName: string;
+  venue?: string;
+  tableNumber: number;
+  startsAt?: string;
+  endsAt?: string;
+  open: boolean;
+  over: boolean;
+}
+
+export interface EventPlate {
+  id: string;
+  name: string;
+  description?: string;
+  available: boolean;
+}
+
+export interface MyEvent {
+  eventName: string;
+  venue?: string;
+  endsAt?: string;
+  guestName: string;
+  platesUsed: number;
+  plateLimit?: number | null;
+  // The plate this guest is still waiting for, if there is one.
+  platePending?: string | null;
+  note: string;
+  plates: EventPlate[];
+}
+
+export const eventGuestApi = {
+  preview: async (slug: string, eventCode: string, n: string) =>
+    dataOf<EventPreview>(await http.get(`/api/v1/t/${slug}/e/${eventCode}/tables/${n}`)),
+  mine: async () => dataOf<MyEvent>(await http.get('/api/v1/me/event')),
+};
+
+export function useMyEvent(enabled = true) {
+  return useQuery({ queryKey: ['my-event'], queryFn: eventGuestApi.mine, retry: false, enabled });
+}
+
+export interface GuestRefund {
+  refundId: string;
+  restaurant: string;
+  orderNumber: string;
+  items: string[];
+  amount: number;
+  status: 'DUE' | 'SETTLED' | 'CONFIRMED';
+  whatToDo: string;
+  bankName?: string;
+  accountName?: string;
+  accountLast4?: string;
+  needsEmail: boolean;
+  guestEmail?: string;
+  canAddBankDetails: boolean;
+  canConfirmReceived: boolean;
+  canReportMissing: boolean;
+  reportedMissing: boolean;
+}
+
+export interface Bank {
+  name: string;
+  code: string;
+}
