@@ -63,7 +63,7 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
         {...rest}
-        className="h-[50px] w-full rounded-xl border-[1.5px] border-rule2 bg-paperlight px-3.5 text-[17px] text-ink placeholder:text-quiet/70 focus:border-bottle"
+        className="h-[50px] w-full rounded-xl border-[1.5px] border-rule2 bg-paperlight px-3.5 text-[17px] text-ink placeholder:text-quiet/70 focus:border-bottle aria-invalid:border-hand aria-invalid:border-2"
       />
       {error ? (
         <span id={`${id}-error`} className="text-sm font-bold text-hand">
