@@ -130,8 +130,15 @@ export function FailureCard({ title, message, className = '' }: { title?: string
   // A card that arrives below the fold is brought into view, with 7rem kept clear of the bottom edge so a hosting
   // badge in the corner cannot cover it.
   useEffect(() => {
-    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    card.current?.scrollIntoView({ block: 'nearest', behavior: calm ? 'auto' : 'smooth' });
+    // After the card has taken its place, so what is measured is where it really is.
+    const bring = () => card.current?.scrollIntoView({ block: 'nearest' });
+    const frame = requestAnimationFrame(bring);
+    // Once more when the page has settled: a form that was still re-drawing can move the card a little.
+    const settled = setTimeout(bring, 300);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(settled);
+    };
   }, [title, message]);
   return (
     <div ref={card} role="alert" className={`flex scroll-mb-28 scroll-mt-4 animate-shake gap-3 rounded-2xl border-[1.5px] border-errborder bg-errbg p-3.5 text-errtext ${className}`}>
