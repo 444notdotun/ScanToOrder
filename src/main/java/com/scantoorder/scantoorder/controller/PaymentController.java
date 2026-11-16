@@ -45,8 +45,8 @@ public class PaymentController {
 
     @PostMapping("/webhook")
     public ResponseEntity<Void> handleWebhook(
-            @NotNull(message = "Payload cannot be null") 
-            @RequestParam (required = false)String payload,
+            // The raw body exactly as Paystack sent it: the signature is calculated over these bytes.
+            @RequestBody(required = false) String payload,
             @NotNull(message = "Signature header cannot be null" )
             @RequestHeader(value = "x-paystack-signature",required = false) String signatureHeader) {
         paymentService.handleWebhook(payload, signatureHeader);
