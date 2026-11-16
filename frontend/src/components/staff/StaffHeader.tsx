@@ -62,7 +62,7 @@ export default function StaffHeader({
         Sign out
       </button>
 
-      <div className="order-3 flex basis-full items-center gap-3 rounded-2xl bg-cream/10 py-2 pl-2 pr-4 xl:ml-auto xl:max-w-[250px] xl:flex-none xl:basis-auto">
+      <div className="order-3 flex basis-full items-center gap-3 rounded-2xl bg-cream/10 py-2 pl-2 pr-4 xl:ml-auto xl:max-w-[340px] xl:flex-none xl:basis-auto">
         <span aria-hidden="true" className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-mustard font-heading text-lg text-bottle">
           {initialsOf(name)}
         </span>

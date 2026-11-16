@@ -172,7 +172,7 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 animate-fade sm:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 animate-fade sm:items-center" onClick={onClose}>
       <div
         ref={panel}
         role="dialog"
