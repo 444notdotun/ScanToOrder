@@ -2,14 +2,18 @@ package com.scantoorder.scantoorder.service;
 
 import com.scantoorder.scantoorder.data.model.DinningSession;
 import com.scantoorder.scantoorder.data.model.ServiceCall;
+import com.scantoorder.scantoorder.data.model.ServiceStatus;
 import com.scantoorder.scantoorder.data.repository.DinningSessionRepo;
 import com.scantoorder.scantoorder.data.repository.ServiceCallRepo;
 import com.scantoorder.scantoorder.dtos.request.CreateServiceCallRequest;
+import com.scantoorder.scantoorder.exception.ResourceNotFoundException;
+import com.scantoorder.scantoorder.exception.SessionNotFoundException;
 import com.scantoorder.scantoorder.service.Interface.ServiceCallService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class ServiceCallServiceImpl implements ServiceCallService {
@@ -21,12 +25,13 @@ public class ServiceCallServiceImpl implements ServiceCallService {
     private DinningSessionRepo dinningSessionRepo;
 
     @Override
-    public ServiceCall createServiceCall(CreateServiceCallRequest request, String sessionId) {
-        Optional<DinningSession> sessionOpt = dinningSessionRepo.findDinningSessionBySessionId(sessionId);
-
+    public ServiceCall createServiceCall(CreateServiceCallRequest request, String tenantId, String sessionId) {
+        DinningSession session = dinningSessionRepo.findBySessionIdAndTenant_TenantId(sessionId, tenantId)
+                .orElseThrow(() -> new SessionNotFoundException("We cannot find your session"));
         ServiceCall serviceCall = new ServiceCall();
-        sessionOpt.ifPresent(serviceCall::setSessionId);
-        
+        serviceCall.setTenant(session.getTenant());
+        serviceCall.setSessionId(session);
+
         String description = request.getRequestType();
         if (request.getNote() != null && !request.getNote().isEmpty()) {
             description += " - " + request.getNote();
@@ -37,21 +42,19 @@ public class ServiceCallServiceImpl implements ServiceCallService {
     }
 
     @Override
-    public java.util.List<ServiceCall> getAllServiceCalls() {
-        return serviceCallRepo.findAll();
+    public List<ServiceCall> getAllServiceCalls(String tenantId) {
+        return serviceCallRepo.findAllByTenant_TenantId(tenantId);
     }
 
     @Override
-    public ServiceCall updateServiceCallStatus(String id, String status, String waiterName) {
-        ServiceCall call = serviceCallRepo.findById(id).orElseThrow(() -> new RuntimeException("Service call not found"));
-        
-        com.scantoorder.scantoorder.data.model.ServiceStatus newStatus = com.scantoorder.scantoorder.data.model.ServiceStatus.valueOf(status);
+    public ServiceCall updateServiceCallStatus(String tenantId, String id, String status, String waiterName) {
+        ServiceCall call = serviceCallRepo.findByServiceCallIdAndTenant_TenantId(id, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("We cannot find that request"));
+        ServiceStatus newStatus = ServiceStatus.valueOf(status);
         call.setServiceStatus(newStatus);
-        
-        if (newStatus == com.scantoorder.scantoorder.data.model.ServiceStatus.RESOLVED) {
-            call.setResolvedAt(java.time.LocalDateTime.now());
+        if (newStatus == ServiceStatus.RESOLVED) {
+            call.setResolvedAt(LocalDateTime.now());
         }
-        
         return serviceCallRepo.save(call);
     }
 }

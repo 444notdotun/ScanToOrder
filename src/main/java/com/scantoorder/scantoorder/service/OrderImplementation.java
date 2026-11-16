@@ -43,6 +43,7 @@ public class OrderImplementation implements OrderService {
         }
         SessionSeat target = diningSessionService.seatToOrderFor(caller, createOrderRequest.getSeatId());
         Order order = new Order();
+        order.setTenant(target.getTenant());
         order.setSeat(target.getSeat());
         order.setTable(target.getSeat().getTableId());
         order.setDinningSession(target.getSession());
@@ -51,7 +52,7 @@ public class OrderImplementation implements OrderService {
         BigDecimal totalAmount = BigDecimal.ZERO;
         CreateOrderResponse response = new CreateOrderResponse();
        for(CreateOrderItemRequest request:createOrderRequest.getOrderItems()){
-          OrderItem orderItem= orderItemService.createOrderItem(order.getOrderId(),request);
+          OrderItem orderItem= orderItemService.createOrderItem(order.getTenant().getTenantId(), order.getOrderId(), request);
           totalAmount=totalAmount.add(orderItem.getTotalPrice());
            OrderItemResponse orderItemResponse =  new OrderItemResponse();
            orderItemResponse.setItemName(request.getItemName());
@@ -64,23 +65,23 @@ public class OrderImplementation implements OrderService {
     }
 
     @Override
-    public Order updateOrder(String newState, String orderId) {
-        Order order = orderRepo.findById(orderId).orElseThrow(() -> new OrderNotFoundException("Order not found"));
+    public Order updateOrder(String tenantId, String newState, String orderId) {
+        Order order = orderRepo.findByOrderIdAndTenant_TenantId(orderId, tenantId).orElseThrow(() -> new OrderNotFoundException("Order not found"));
         if(!isStateAvailable(newState,order.getOrderStatus().toString())) throw  new OrderStatusException("orderStatus is not allowed");
         order.setOrderStatus(OrderStatus.valueOf(newState));
         return orderRepo.save(order);
     }
 
     @Override
-    public String checkOrderStatus(String orderId) {
-        Order order = orderRepo.findById(orderId).orElseThrow(() -> new OrderNotFoundException("Order not found"));
+    public String checkOrderStatus(String tenantId, String orderId) {
+        Order order = orderRepo.findByOrderIdAndTenant_TenantId(orderId, tenantId).orElseThrow(() -> new OrderNotFoundException("Order not found"));
         return order.getOrderStatus().toString();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<KitchenOrderResponse> getAllPaidOrders() {
-        List<OrderItem> orderItems = orderItemRepo.findAllByOrderStatusWithOrder(OrderStatus.PAID);
+    public List<KitchenOrderResponse> getAllPaidOrders(String tenantId) {
+        List<OrderItem> orderItems = orderItemRepo.findAllByOrderStatusWithOrder(OrderStatus.PAID, tenantId);
         if (orderItems.isEmpty()) {
             return Collections.emptyList();
         }
@@ -105,7 +106,7 @@ public class OrderImplementation implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<KitchenOrderResponse> getKitchenOrders(String status) {
+    public List<KitchenOrderResponse> getKitchenOrders(String tenantId, String status) {
         List<OrderStatus> statuses;
         if (status != null && !status.trim().isEmpty()) {
             statuses = List.of(OrderStatus.valueOf(status.toUpperCase()));
@@ -113,7 +114,7 @@ public class OrderImplementation implements OrderService {
             statuses = List.of(OrderStatus.PAID, OrderStatus.PREPARING);
         }
 
-        List<OrderItem> orderItems = orderItemRepo.findAllByOrderStatusesWithOrder(statuses);
+        List<OrderItem> orderItems = orderItemRepo.findAllByOrderStatusesWithOrder(statuses, tenantId);
         if (orderItems.isEmpty()) {
             return Collections.emptyList();
         }

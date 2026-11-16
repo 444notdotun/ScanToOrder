@@ -54,9 +54,11 @@ public class PaymentImplementation implements PaymentService {
     private String paystackSecretKey;
 
     @Override
-    public InitializePaymentResponse initializePayment(InitializePaymentRequest request) {
-        Order order = orderRepo.findById(request.getOrderId())
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + request.getOrderId()));
+    public InitializePaymentResponse initializePayment(String tenantId, String sessionId, InitializePaymentRequest request) {
+        Order order = orderRepo.findByOrderIdAndTenant_TenantId(request.getOrderId(), tenantId)
+                .filter(found -> sessionId == null
+                        || (found.getDinningSession() != null && sessionId.equals(found.getDinningSession().getSessionId())))
+                .orElseThrow(() -> new ResourceNotFoundException("We cannot find that order"));
 
         if (order.getOrderStatus() == OrderStatus.CANCELED) {
             throw new PaymentValidationException("This order was cancelled. Place a new order to pay.");
@@ -77,6 +79,7 @@ public class PaymentImplementation implements PaymentService {
 
         // Only upon successful gateway response, instantiate and save Payment
         Payment payment = new Payment();
+        payment.setTenant(order.getTenant());
         payment.setOrder(order);
         payment.setAmount(order.getTotalAmount());
         payment.setStatus(PaymentStatus.PENDING);
@@ -94,9 +97,9 @@ public class PaymentImplementation implements PaymentService {
 
     @Transactional
     @Override
-    public PaymentStatusResponse verifyAndSyncPayment(String reference) {
-        Payment payment = paymentRepo.findByReference(reference)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with reference: " + reference));
+    public PaymentStatusResponse verifyAndSyncPayment(String tenantId, String reference) {
+        Payment payment = paymentRepo.findByReferenceAndTenant_TenantId(reference, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("We cannot find that payment"));
 
         if (payment.getStatus() == PaymentStatus.SUCCESSFUL) {
             return new PaymentStatusResponse(

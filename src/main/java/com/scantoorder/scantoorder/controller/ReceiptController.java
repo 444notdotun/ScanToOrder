@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.dtos.respond.ReceiptResponse;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.service.Interface.ReceiptService;
@@ -26,7 +27,7 @@ public class ReceiptController {
             @NotNull(message = "Reference cannot be null") 
             @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "Invalid payment reference format")
             @PathVariable String reference) {
-        ReceiptResponse response = receiptService.getReceiptData(reference);
+        ReceiptResponse response = receiptService.getReceiptData(CurrentTenant.id(), reference);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 
@@ -35,7 +36,7 @@ public class ReceiptController {
             @NotNull(message = "Reference cannot be null") 
             @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "Invalid payment reference format")
             @PathVariable String reference) {
-        byte[] csvBytes = receiptService.generateReceiptCsv(reference);
+        byte[] csvBytes = receiptService.generateReceiptCsv(CurrentTenant.id(), reference);
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("text/csv; charset=UTF-8"));

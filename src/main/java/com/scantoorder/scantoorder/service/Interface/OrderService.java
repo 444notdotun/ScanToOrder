@@ -10,8 +10,8 @@ import java.util.List;
 
 public interface OrderService {
     CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest, CustomerPrincipal caller);
-    Order updateOrder(String newState, String orderId);
-    String checkOrderStatus(String orderId);
-    List<KitchenOrderResponse> getAllPaidOrders();
-    List<KitchenOrderResponse> getKitchenOrders(String status);
+    Order updateOrder(String tenantId, String newState, String orderId);
+    String checkOrderStatus(String tenantId, String orderId);
+    List<KitchenOrderResponse> getAllPaidOrders(String tenantId);
+    List<KitchenOrderResponse> getKitchenOrders(String tenantId, String status);
 }

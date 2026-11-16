@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.data.model.Order;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.dtos.respond.KitchenOrderResponse;
@@ -19,10 +20,11 @@ public class KitchenController {
     @Autowired
     private OrderService orderService;
 
+    @PreAuthorize("hasAnyRole('CHEF', 'WAITER', 'MANAGER')")
     @GetMapping("/orders")
     public ResponseEntity<ApiResponse<List<KitchenOrderResponse>>> getOrders(
             @RequestParam(required = false) String status) {
-        List<KitchenOrderResponse> response = orderService.getKitchenOrders(status);
+        List<KitchenOrderResponse> response = orderService.getKitchenOrders(CurrentTenant.id(), status);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 
@@ -31,7 +33,7 @@ public class KitchenController {
     public ResponseEntity<ApiResponse<Order>> updateOrderStatus(
             @PathVariable String id,
             @RequestParam String status) {
-        Order response = orderService.updateOrder(status, id);
+        Order response = orderService.updateOrder(CurrentTenant.id(), status, id);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
 }

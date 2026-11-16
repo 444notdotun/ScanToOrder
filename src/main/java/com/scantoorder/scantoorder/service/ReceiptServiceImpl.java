@@ -29,9 +29,9 @@ public class ReceiptServiceImpl implements ReceiptService {
     private OrderItemRepo orderItemRepo;
 
     @Override
-    public ReceiptResponse getReceiptData(String paymentReference) {
-        Payment payment = paymentRepo.findByReference(paymentReference)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with reference: " + paymentReference));
+    public ReceiptResponse getReceiptData(String tenantId, String paymentReference) {
+        Payment payment = paymentRepo.findByReferenceAndTenant_TenantId(paymentReference, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("We cannot find that receipt"));
 
         if (payment.getStatus() != PaymentStatus.SUCCESSFUL) {
             throw new PaymentValidationException("Payment status is not successful for reference: " + paymentReference);
@@ -41,9 +41,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         String orderId = order.getOrderId();
 
         // Fetch OrderItems by orderId using JPA default method + Java stream filtering
-        List<OrderItem> orderItems = orderItemRepo.findAll().stream()
-                .filter(oi -> oi.getOrder() != null && orderId.equals(oi.getOrder().getOrderId()))
-                .collect(Collectors.toList());
+        List<OrderItem> orderItems = orderItemRepo.findByOrder_OrderId(orderId);
 
         List<ReceiptItemDto> items = orderItems.stream().map(oi -> new ReceiptItemDto(
                 oi.getItem() != null ? oi.getItem().getItemName() : "Unknown Item",
@@ -76,8 +74,8 @@ public class ReceiptServiceImpl implements ReceiptService {
     }
 
     @Override
-    public byte[] generateReceiptCsv(String paymentReference) {
-        ReceiptResponse data = getReceiptData(paymentReference);
+    public byte[] generateReceiptCsv(String tenantId, String paymentReference) {
+        ReceiptResponse data = getReceiptData(tenantId, paymentReference);
 
         StringBuilder sb = new StringBuilder();
         sb.append("--- Receipt Metadata ---\n");

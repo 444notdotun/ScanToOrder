@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.dtos.respond.MenuResponse;
 import com.scantoorder.scantoorder.service.Interface.MenuService;
@@ -18,10 +19,10 @@ public class MenuController {
     @Autowired
     private MenuService menuService;
 
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'MANAGER', 'WAITER', 'CHEF')")
     @GetMapping
     public ResponseEntity<ApiResponse<MenuResponse>> generateMenu() {
-        MenuResponse response = menuService.generateMenu();
+        MenuResponse response = menuService.generateMenu(CurrentTenant.id());
 
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
