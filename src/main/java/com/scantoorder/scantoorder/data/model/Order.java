@@ -33,6 +33,13 @@ public class Order {
     // Settled at the table: records a swap's price difference. No money moves in the app.
     private String note;
     private LocalDateTime swappedAt;
+    // Set for an event order: it was placed with a guest's code and nothing was paid.
+    @ManyToOne
+    @JoinColumn(name = "event_id")
+    private Event event;
+    @ManyToOne
+    @JoinColumn(name = "event_guest_id")
+    private EventGuest eventGuest;
     private String OrderNumber;
     @ManyToOne
     @JoinColumn(name = "session_id")

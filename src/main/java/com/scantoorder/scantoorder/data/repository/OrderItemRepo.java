@@ -28,4 +28,6 @@ public interface OrderItemRepo extends JpaRepository<OrderItem, String> {
     List<OrderItem> findAllByOrderStatusesWithOrder(@Param("statuses") List<OrderStatus> statuses, @Param("tenantId") String tenantId);
 
     List<OrderItem> findByOrder_OrderId(String orderId);
+
+    boolean existsByPlate_Id(String plateId);
 }

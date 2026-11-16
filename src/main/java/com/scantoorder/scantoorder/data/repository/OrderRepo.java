@@ -23,6 +23,12 @@ public interface OrderRepo extends JpaRepository<Order, String> {
     List<Order> findByTenant_TenantIdAndOrderStatusOrderByUpdatedAtAsc(String tenantId, OrderStatus status);
     java.util.Optional<Order> findByOrderIdAndTenant_TenantId(String orderId, String tenantId);
     List<Order> findByOrderStatus(OrderStatus status);
+
+    List<Order> findByEventGuest_IdAndOrderStatusIn(String guestId, java.util.Collection<OrderStatus> statuses);
+
+    boolean existsByEventGuest_IdAndOrderStatus(String guestId, OrderStatus status);
+
+    long countByEventGuest_IdAndOrderStatus(String guestId, OrderStatus status);
     List<Order> findByOrderStatusAndUpdatedAtBefore(OrderStatus status, java.time.LocalDateTime time);
     List<Order> findByDinningSessionSessionId(String sessionId);
     List<Order> findByDinningSessionSessionIdAndOrderStatus(String sessionId, OrderStatus status);

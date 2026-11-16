@@ -1,7 +1,19 @@
 package com.scantoorder.scantoorder.controller;
 
 import com.scantoorder.scantoorder.config.CurrentTenant;
+import com.scantoorder.scantoorder.dtos.request.CreateTableRequest;
+import com.scantoorder.scantoorder.dtos.request.EventGuestLimitRequest;
+import com.scantoorder.scantoorder.dtos.request.EventGuestRequest;
 import com.scantoorder.scantoorder.dtos.request.EventPayRequest;
+import com.scantoorder.scantoorder.dtos.request.EventPlateRequest;
+import com.scantoorder.scantoorder.dtos.respond.EventGuestResponse;
+import com.scantoorder.scantoorder.dtos.respond.EventPlateResponse;
+import com.scantoorder.scantoorder.dtos.respond.EventTableResponse;
+import com.scantoorder.scantoorder.service.EventGuestService;
+import com.scantoorder.scantoorder.service.EventPlateService;
+import com.scantoorder.scantoorder.service.EventTableService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import com.scantoorder.scantoorder.dtos.request.EventRequest;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
 import com.scantoorder.scantoorder.dtos.respond.EventPriceResponse;
@@ -29,6 +41,12 @@ public class EventController {
 
     @Autowired
     private EventService eventService;
+    @Autowired
+    private EventPlateService plateService;
+    @Autowired
+    private EventTableService tableService;
+    @Autowired
+    private EventGuestService guestService;
 
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping
@@ -73,5 +91,100 @@ public class EventController {
     public ResponseEntity<ApiResponse<InitializePaymentResponse>> pay(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
                                                                       @Valid @RequestBody EventPayRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(eventService.startPayment(CurrentTenant.id(), id, request.getGuests())));
+    }
+
+    // ---- plates
+
+    @PreAuthorize("hasAnyRole('MANAGER', 'WAITER', 'CHEF')")
+    @GetMapping("/{id}/plates")
+    public ResponseEntity<ApiResponse<List<EventPlateResponse>>> plates(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+        return ResponseEntity.ok(new ApiResponse<>(plateService.list(CurrentTenant.id(), id)));
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    @PostMapping("/{id}/plates")
+    public ResponseEntity<ApiResponse<EventPlateResponse>> addPlate(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+                                                                    @Valid @RequestBody EventPlateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(plateService.create(CurrentTenant.id(), id, request)));
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    @PutMapping("/{id}/plates/{plateId}")
+    public ResponseEntity<ApiResponse<EventPlateResponse>> updatePlate(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+                                                                       @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String plateId,
+                                                                       @Valid @RequestBody EventPlateRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(plateService.update(CurrentTenant.id(), id, plateId, request)));
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    @DeleteMapping("/{id}/plates/{plateId}")
+    public ResponseEntity<Void> deletePlate(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+                                            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String plateId) {
+        plateService.delete(CurrentTenant.id(), id, plateId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ---- tables
+
+    @PreAuthorize("hasAnyRole('MANAGER', 'WAITER')")
+    @GetMapping("/{id}/tables")
+    public ResponseEntity<ApiResponse<List<EventTableResponse>>> tables(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+        return ResponseEntity.ok(new ApiResponse<>(tableService.list(CurrentTenant.id(), id)));
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    @PostMapping("/{id}/tables")
+    public ResponseEntity<ApiResponse<EventTableResponse>> addTable(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+                                                                    @Valid @RequestBody CreateTableRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(tableService.create(CurrentTenant.id(), id, request)));
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    @DeleteMapping("/{id}/tables/{tableId}")
+    public ResponseEntity<Void> deleteTable(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+                                            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String tableId) {
+        tableService.delete(CurrentTenant.id(), id, tableId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ---- guests
+
+    @PreAuthorize("hasAnyRole('MANAGER', 'WAITER')")
+    @GetMapping("/{id}/guests")
+    public ResponseEntity<ApiResponse<List<EventGuestResponse>>> guests(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+        return ResponseEntity.ok(new ApiResponse<>(guestService.list(CurrentTenant.id(), id)));
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    @PostMapping("/{id}/guests")
+    public ResponseEntity<ApiResponse<EventGuestResponse>> addGuest(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+                                                                    @Valid @RequestBody EventGuestRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(guestService.add(CurrentTenant.id(), id, request)));
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    @DeleteMapping("/{id}/guests/{guestId}")
+    public ResponseEntity<Void> removeGuest(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+                                            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String guestId) {
+        guestService.remove(CurrentTenant.id(), id, guestId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    @PatchMapping("/{id}/guests/{guestId}/limit")
+    public ResponseEntity<ApiResponse<EventGuestResponse>> raiseLimit(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+                                                                      @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String guestId,
+                                                                      @Valid @RequestBody EventGuestLimitRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(guestService.raiseLimit(CurrentTenant.id(), id, guestId, request)));
+    }
+
+    // The planner shares the codes themselves: emailing them is coming later.
+    @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/{id}/guests/export")
+    public ResponseEntity<byte[]> export(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"guests.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(guestService.exportCsv(CurrentTenant.id(), id));
     }
 }
