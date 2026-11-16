@@ -5,6 +5,7 @@ import com.scantoorder.scantoorder.data.model.Category;
 import com.scantoorder.scantoorder.data.model.Item;
 import com.scantoorder.scantoorder.data.repository.CategoryRepository;
 import com.scantoorder.scantoorder.data.repository.ItemRepo;
+import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
 import com.scantoorder.scantoorder.data.repository.TenantRepo;
 import com.scantoorder.scantoorder.dtos.request.CreateItemRequest;
 import com.scantoorder.scantoorder.dtos.respond.CreateItemResponse;
@@ -33,6 +34,8 @@ public class ItemImplementation implements ItemService {
     private ModelMapper modelMapper;
     @Autowired
     private MenuService menuService;
+    @Autowired
+    private OrderItemRepo orderItemRepo;
 
     @Transactional
     @Override
@@ -82,6 +85,10 @@ public class ItemImplementation implements ItemService {
     public void deleteItem(String itemId) {
         String tenantId = CurrentTenant.id();
         Item item = find(tenantId, itemId);
+        // An item that has been ordered is part of the record: it can be switched off, never deleted.
+        if (orderItemRepo.existsByItem_ItemId(item.getItemId())) {
+            throw new ConflictException(EventPlateService.ORDERED_BEFORE);
+        }
         itemRepo.delete(item);
         menuService.clearCache(tenantId);
     }

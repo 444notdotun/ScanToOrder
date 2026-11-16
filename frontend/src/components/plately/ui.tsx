@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
 
 type Tone = 'primary' | 'bottle' | 'outline' | 'light' | 'ghost';
 
@@ -126,8 +126,15 @@ export function Switch({ checked, onChange, labelledBy, disabled }: { checked: b
 
 // A title, a plain sentence on what to do next, and a small shake on arrival.
 export function FailureCard({ title, message, className = '' }: { title?: string; message: string; className?: string }) {
+  const card = useRef<HTMLDivElement>(null);
+  // A card that arrives below the fold is brought into view, with 7rem kept clear of the bottom edge so a hosting
+  // badge in the corner cannot cover it.
+  useEffect(() => {
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    card.current?.scrollIntoView({ block: 'nearest', behavior: calm ? 'auto' : 'smooth' });
+  }, [title, message]);
   return (
-    <div role="alert" className={`flex animate-shake gap-3 rounded-2xl border-[1.5px] border-errborder bg-errbg p-3.5 text-errtext ${className}`}>
+    <div ref={card} role="alert" className={`flex scroll-mb-28 scroll-mt-4 animate-shake gap-3 rounded-2xl border-[1.5px] border-errborder bg-errbg p-3.5 text-errtext ${className}`}>
       <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-none">
         <circle cx="12" cy="12" r="10" />
         <path d="M12 7v6M12 17h.01" />
@@ -176,4 +183,58 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
 
 export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`text-[13px] font-bold uppercase tracking-[0.12em] text-soft ${className}`}>{children}</div>;
+}
+
+// A "…" button with a short list under it, for the things that should not sit next to everyday buttons.
+export function MoreMenu({ label, items }: { label: string; items: Array<{ label: string; onSelect: () => void; danger?: boolean }> }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (event: MouseEvent) => {
+      if (!box.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('mousedown', away);
+      document.removeEventListener('keydown', key);
+    };
+  }, [open]);
+
+  return (
+    <div ref={box} className="relative">
+      <button
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex h-11 w-11 items-center justify-center rounded-full border-[1.5px] border-bottle text-xl font-bold leading-none text-bottle hover:bg-bottle/5"
+      >
+        <span aria-hidden="true">…</span>
+      </button>
+      {open ? (
+        <div role="menu" className="absolute right-0 top-full z-30 mt-1.5 min-w-[200px] rounded-2xl bg-paper p-1.5 shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                item.onSelect();
+              }}
+              className={`flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[15px] font-bold hover:bg-bottle/5 ${item.danger ? 'text-hand' : 'text-bottle'}`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
