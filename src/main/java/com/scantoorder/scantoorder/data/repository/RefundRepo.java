@@ -20,6 +20,8 @@ public interface RefundRepo extends JpaRepository<Refund, String> {
 
     List<Refund> findByTenant_TenantIdOrderByCreatedAtDesc(String tenantId);
 
+    List<Refund> findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(LocalDateTime from, LocalDateTime to);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Refund r WHERE r.id = :id AND r.tenant.tenantId = :tenantId")
     Optional<Refund> findForUpdate(@Param("id") String id, @Param("tenantId") String tenantId);

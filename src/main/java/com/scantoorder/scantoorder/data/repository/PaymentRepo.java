@@ -1,9 +1,12 @@
 package com.scantoorder.scantoorder.data.repository;
 
 import com.scantoorder.scantoorder.data.model.Payment;
+import com.scantoorder.scantoorder.data.model.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -24,6 +27,10 @@ public interface PaymentRepo extends JpaRepository<Payment, String> {
 
     java.util.List<Payment> findByTenant_TenantIdAndStatusOrderByUpdatedAtAsc(String tenantId, com.scantoorder.scantoorder.data.model.PaymentStatus status);
     java.util.List<Payment> findByTenant_TenantIdAndStatusAndPaidAtGreaterThanEqualAndPaidAtLessThan(String tenantId, com.scantoorder.scantoorder.data.model.PaymentStatus status, java.time.LocalDateTime from, java.time.LocalDateTime to);
+
+    List<Payment> findByStatusAndPaidAtGreaterThanEqualAndPaidAtLessThan(PaymentStatus status, LocalDateTime from, LocalDateTime to);
+
+    long countByStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(PaymentStatus status, LocalDateTime from, LocalDateTime to);
 
     Optional<Payment> findByReferenceAndTenant_TenantId(String reference, String tenantId);
     Optional<Payment> findByOrderOrderId(String orderId);
