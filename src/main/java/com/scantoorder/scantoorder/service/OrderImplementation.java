@@ -34,6 +34,8 @@ public class OrderImplementation implements OrderService {
     @Autowired
     private OrderRepo orderRepo;
     @Autowired
+    private SessionSeatRepo sessionSeatRepo;
+    @Autowired
     private OrderItemRepo orderItemRepo;
     @Autowired
     private DiningSessionService diningSessionService;
@@ -50,6 +52,7 @@ public class OrderImplementation implements OrderService {
         order.setTable(target.getSeat().getTableId());
         order.setDinningSession(target.getSession());
         order.setSessionSeat(target);
+        order.setPlacedBy(sessionSeatRepo.getReferenceById(caller.getSessionSeatId()));
         orderRepo.save(order);
         BigDecimal totalAmount = BigDecimal.ZERO;
         CreateOrderResponse response = new CreateOrderResponse();
