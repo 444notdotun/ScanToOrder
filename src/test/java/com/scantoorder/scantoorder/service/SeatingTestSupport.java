@@ -21,6 +21,14 @@ public class SeatingTestSupport {
     @Autowired
     private PaymentRepo paymentRepo;
     @Autowired
+    private EventGuestRepo eventGuestRepo;
+    @Autowired
+    private EventPlateRepo eventPlateRepo;
+    @Autowired
+    private EventPaymentRepo eventPaymentRepo;
+    @Autowired
+    private EventRepo eventRepo;
+    @Autowired
     private OrderItemRepo orderItemRepo;
     @Autowired
     private OrderRepo orderRepo;
@@ -66,10 +74,15 @@ public class SeatingTestSupport {
         orderItemRepo.deleteAll();
         orderRepo.deleteAll();
         serviceCallRepo.deleteAll();
+        // Event guests point at seats and seat memberships, so they go first.
+        eventGuestRepo.deleteAll();
         sessionSeatRepo.deleteAll();
         dinningSessionRepo.deleteAll();
         seatRepo.deleteAll();
         tableRepo.deleteAll();
+        eventPlateRepo.deleteAll();
+        eventPaymentRepo.deleteAll();
+        eventRepo.deleteAll();
         itemRepo.deleteAll();
         categoryRepository.deleteAll();
         tenants.resetMain();

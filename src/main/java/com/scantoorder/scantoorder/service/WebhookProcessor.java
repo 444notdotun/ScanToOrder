@@ -23,6 +23,8 @@ public class WebhookProcessor {
     private PaymentRepo paymentRepo;
     @Autowired
     private PaymentSettlement settlement;
+    @Autowired
+    private EventPaymentService eventPayments;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -43,6 +45,12 @@ public class WebhookProcessor {
     }
 
     private void chargeSucceeded(JsonNode data, String payload) {
+        if (EventPaymentService.isEventReference(data.path("reference").asText())) {
+            if (!eventPayments.success(data.path("reference").asText(), data.hasNonNull("amount") ? data.path("amount").asLong() : null)) {
+                log.info("Event payment was already settled or not ours. Nothing to do.");
+            }
+            return;
+        }
         Payment payment = lock(data.path("reference").asText());
         if (payment == null) return;
         if (data.hasNonNull("amount")) {
@@ -58,6 +66,10 @@ public class WebhookProcessor {
     }
 
     private void chargeFailed(JsonNode data, String payload) {
+        if (EventPaymentService.isEventReference(data.path("reference").asText())) {
+            eventPayments.failure(data.path("reference").asText());
+            return;
+        }
         Payment payment = lock(data.path("reference").asText());
         if (payment != null) {
             settlement.failure(payment, payload);

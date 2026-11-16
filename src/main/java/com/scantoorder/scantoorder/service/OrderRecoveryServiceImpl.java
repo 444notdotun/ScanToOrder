@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.data.model.EventPlate;
 import com.scantoorder.scantoorder.data.model.Item;
 import com.scantoorder.scantoorder.data.model.Order;
 import com.scantoorder.scantoorder.data.model.OrderItem;
@@ -8,6 +9,8 @@ import com.scantoorder.scantoorder.data.model.Payment;
 import com.scantoorder.scantoorder.data.model.PaymentStatus;
 import com.scantoorder.scantoorder.data.model.RefundReason;
 import com.scantoorder.scantoorder.data.model.UnavailableReason;
+import com.scantoorder.scantoorder.data.repository.EventGuestRepo;
+import com.scantoorder.scantoorder.data.repository.EventPlateRepo;
 import com.scantoorder.scantoorder.data.repository.ItemRepo;
 import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
 import com.scantoorder.scantoorder.data.repository.OrderRepo;
@@ -51,6 +54,10 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
     private RefundService refundService;
     @Autowired
     private RefundRepo refundRepo;
+    @Autowired
+    private EventPlateRepo plateRepo;
+    @Autowired
+    private EventGuestRepo guestRepo;
 
     @Transactional
     @Override
@@ -62,8 +69,17 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
         order.setOrderStatus(OrderStatus.UNAVAILABLE);
         order.setUnavailableReason(reason);
         orderRepo.save(order);
+        if (order.getEvent() != null) {
+            // A plate nobody could make is not a plate the guest has had.
+            countPlate(order, -1);
+        }
         if (reason == UnavailableReason.RAN_OUT) {
             for (OrderItem line : activeLines(orderId)) {
+                EventPlate plate = line.getPlate();
+                if (plate != null && plate.isAvailable()) {
+                    plate.setAvailable(false);
+                    plateRepo.save(plate);
+                }
                 Item item = line.getItem();
                 if (item != null && item.isAvailable()) {
                     item.setAvailable(false);
@@ -84,6 +100,9 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
         }
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new InvalidRequestException("Choose what the guest will have instead.");
+        }
+        if (order.getEvent() != null) {
+            return swapPlate(order, request);
         }
         // Everything is checked before anything changes.
         for (CreateOrderItemRequest wanted : request.getItems()) {
@@ -122,6 +141,9 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
     @Override
     public OrderActionResponse requestRefund(String tenantId, String orderId) {
         Order order = lock(tenantId, orderId);
+        if (order.getEvent() != null) {
+            throw new OrderStatusException("Nothing was paid for this order, so there is nothing to refund. Swap it for another plate, or the guest can order again.");
+        }
         if (order.getOrderStatus() != OrderStatus.UNAVAILABLE) {
             throw new OrderStatusException("A refund can only be asked for on an order the kitchen could not make.");
         }
@@ -136,6 +158,49 @@ public class OrderRecoveryServiceImpl implements OrderRecoveryService {
         order.setOrderStatus(OrderStatus.REFUND_DUE);
         orderRepo.save(order);
         return action(order, "The restaurant owes the guest a refund. The manager will settle it.");
+    }
+
+    // An event order is exactly one plate, so a swap names one plate and no price is involved.
+    private OrderActionResponse swapPlate(Order order, SwapRequest request) {
+        if (request.getItems().size() != 1 || request.getItems().get(0).getQuantity() != 1) {
+            throw new InvalidRequestException("An event order is one plate. Choose one.");
+        }
+        String wanted = request.getItems().get(0).getItemName();
+        EventPlate plate = plateRepo.findByEvent_IdAndNameIgnoreCase(order.getEvent().getId(), wanted == null ? "" : wanted.trim())
+                .orElseThrow(() -> new ConflictException("We cannot find " + wanted + " on this event's plates."));
+        if (!plate.isAvailable()) {
+            throw new ConflictException(plate.getName() + " has run out. Choose another plate.");
+        }
+        String was = "";
+        for (OrderItem line : activeLines(order.getOrderId())) {
+            was = line.getPlate() == null ? was : line.getPlate().getName();
+            line.setSwappedOut(true);
+            orderItemRepo.save(line);
+        }
+        OrderItem line = new OrderItem();
+        line.setTenant(order.getTenant());
+        line.setOrder(order);
+        line.setPlate(plate);
+        line.setQuantity(1);
+        line.setUnitPrice(BigDecimal.ZERO);
+        line.setTotalPrice(BigDecimal.ZERO);
+        orderItemRepo.save(line);
+        String note = "Swapped at the table: was " + was + ", now " + plate.getName() + ".";
+        order.setNote(order.getNote() == null ? note : order.getNote() + " " + note);
+        order.setOrderStatus(OrderStatus.PAID);
+        order.setSwappedAt(LocalDateTime.now());
+        orderRepo.save(order);
+        // The guest has this plate now, so it counts again.
+        countPlate(order, 1);
+        return action(order, "The kitchen has a new ticket for this order.");
+    }
+
+    private void countPlate(Order order, int change) {
+        if (order.getEventGuest() == null) return;
+        guestRepo.findForUpdate(order.getEventGuest().getId(), order.getEvent().getId()).ifPresent(guest -> {
+            guest.setPlatesUsed(Math.max(0, guest.getPlatesUsed() + change));
+            guestRepo.save(guest);
+        });
     }
 
     private Order lock(String tenantId, String orderId) {

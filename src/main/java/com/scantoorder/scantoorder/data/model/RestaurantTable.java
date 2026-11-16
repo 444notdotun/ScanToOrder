@@ -25,6 +25,10 @@ public class RestaurantTable {
     private Integer displayNumber;
     private  int Capacity;
     private boolean isActive;
+    // Set for a table made for one event. Such a table is never part of a restaurant.
+    @ManyToOne
+    @JoinColumn(name = "event_id")
+    private Event event;
 
     @PrePersist
     public void prePersist(){

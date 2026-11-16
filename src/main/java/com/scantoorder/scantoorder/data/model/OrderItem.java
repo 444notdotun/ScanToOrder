@@ -20,6 +20,10 @@ public class OrderItem {
     @ManyToOne
     @JoinColumn(name = "itemId")
     private Item item;
+    // An event order is one plate and has no menu item.
+    @ManyToOne
+    @JoinColumn(name = "plateId")
+    private EventPlate plate;
     private int quantity;
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;

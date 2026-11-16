@@ -172,6 +172,8 @@ public class OrderImplementation implements OrderService {
             itemDto.setSpecialInstructions(item.getSpecialInstructions());
             if (item.getItem() != null) {
                 itemDto.setItemName(item.getItem().getItemName());
+            } else if (item.getPlate() != null) {
+                itemDto.setItemName(item.getPlate().getName());
             }
             itemResponses.add(itemDto);
         }
