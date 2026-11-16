@@ -4,6 +4,7 @@ import { Card, FailureCard } from '@/components/plately/ui';
 import PageHead, { Empty } from '@/components/staff/PageHead';
 import { failureOf } from '@/lib/http';
 import { naira } from '@/lib/money';
+import { happened } from '@/lib/time';
 import { useProblemRefunds } from '@/lib/platform';
 
 const REASONS: Record<string, string> = {
@@ -11,12 +12,6 @@ const REASONS: Record<string, string> = {
   LATE_PAYMENT: 'Paid after the guest had left',
   DOUBLE_PAYMENT: 'Paid twice',
 };
-
-function since(iso?: string): string {
-  if (!iso) return '';
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
-}
 
 // Refunds a restaurant has left too long, or that a guest says never arrived. No account numbers or emails appear here.
 export default function ProblemRefundsPage() {
@@ -38,7 +33,7 @@ export default function ProblemRefundsPage() {
               <div className="text-[15px] text-quiet">
                 {refund.orderNumber} · {REASONS[refund.reason ?? ''] ?? refund.reason}
               </div>
-              <div className="text-sm text-quiet">Waiting since {since(refund.dueSince)}</div>
+              <div className="text-sm text-quiet">Waiting since {happened(refund.dueSince)}</div>
               {refund.overdue ? <div className="text-[15px] font-bold text-tomato">More than 48 hours.</div> : null}
               {refund.reportedMissing ? <div className="text-[15px] font-bold text-tomato">The guest says it has not reached them.</div> : null}
             </Card>

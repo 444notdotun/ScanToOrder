@@ -296,6 +296,7 @@ class TenantWorkspaceTest {
         assertEquals("6789", mine.getAccountLast4());
         assertEquals("Guaranty Trust Bank", mine.getBankName());
         assertEquals(tenant.getSlug(), mine.getSlug());
+        assertEquals(tenant.getEmail(), mine.getEmail());
         assertTrue(java.util.Arrays.stream(MyTenantResponse.class.getDeclaredFields()).noneMatch(f -> f.getName().equals("accountNumber")));
     }
 

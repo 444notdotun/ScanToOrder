@@ -6,6 +6,7 @@ import BackLink from '@/components/guest/BackLink';
 import { Loader } from '@/components/plately/Logo';
 import { Card, Dashes } from '@/components/plately/ui';
 import { useSession, useSessionOrders } from '@/lib/guest';
+import { clock } from '@/lib/time';
 import { naira } from '@/lib/money';
 import { orderStatusLabel } from '@/lib/labels';
 
@@ -75,7 +76,7 @@ export default function VisitPage() {
                 <div>
                   <div className="text-sm text-quiet">
                     {order.orderNumber}
-                    {order.createdAt ? ` · ${new Date(order.createdAt).toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' })}` : ''}
+                    {order.createdAt ? ` · ${clock(order.createdAt)}` : ''}
                   </div>
                   <div className="text-base font-bold">{order.items.join(', ')}</div>
                   <div className="text-sm text-quiet">

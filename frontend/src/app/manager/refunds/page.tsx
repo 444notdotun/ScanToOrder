@@ -8,6 +8,7 @@ import { FAILURE_ID, useAction } from '@/hooks/useAction';
 import { failureOf } from '@/lib/http';
 import { managerApi, useRefunds, type ManagerRefund, type RefundState } from '@/lib/manager';
 import { naira } from '@/lib/money';
+import { happened } from '@/lib/time';
 
 const REASONS: Record<string, string> = {
   KITCHEN_UNAVAILABLE: 'The kitchen could not make it and the guest did not want a swap.',
@@ -22,12 +23,6 @@ const STATUS: Record<string, string> = {
 };
 
 const CLOSED_BY: Record<string, string> = { MANAGER: 'you', GUEST: 'the guest', SYSTEM: 'Plately' };
-
-function when(iso?: string): string {
-  if (!iso) return '';
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
-}
 
 function Line({ name, children }: { name: string; children: React.ReactNode }) {
   return (
@@ -56,7 +51,7 @@ function RefundCard({ refund, disabled, onSettle }: { refund: ManagerRefund; dis
         <h3 className="font-heading text-[22px] font-normal text-bottle">
           {refund.orderNumber} · {naira(refund.amount)}
         </h3>
-        <span className="text-sm font-bold text-quiet">{when(refund.date)}</span>
+        <span className="text-sm font-bold text-quiet">{happened(refund.date)}</span>
       </div>
       {refund.items && refund.items.length > 0 ? <div className="font-bold leading-snug">{refund.items.join(', ')}</div> : null}
       <p className="text-[15px] leading-snug text-quiet">{REASONS[refund.reason ?? ''] ?? refund.reason}</p>
@@ -83,7 +78,7 @@ function RefundCard({ refund, disabled, onSettle }: { refund: ManagerRefund; dis
           <Line name="Paid back by">
             {refund.method === 'CASH' ? 'Cash' : 'Transfer'}
             {refund.transferReference ? `, reference ${refund.transferReference}` : ''}
-            {refund.settledAt ? `, ${when(refund.settledAt)}` : ''}
+            {refund.settledAt ? `, ${happened(refund.settledAt)}` : ''}
             {refund.closedBy ? `, closed by ${CLOSED_BY[refund.closedBy] ?? refund.closedBy.toLowerCase()}` : ''}
           </Line>
         ) : null}

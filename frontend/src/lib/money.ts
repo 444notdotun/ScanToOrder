@@ -10,13 +10,6 @@ export function kobo(value: number): string {
   return naira(value / 100);
 }
 
-export function clock(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' });
-}
-
 export function firstName(name: string | null | undefined): string {
   return (name ?? '').trim().split(/\s+/)[0] || 'friend';
 }

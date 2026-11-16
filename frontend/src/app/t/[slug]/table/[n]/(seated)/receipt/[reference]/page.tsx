@@ -9,6 +9,7 @@ import { Dashes, FailureCard } from '@/components/plately/ui';
 import { useSession } from '@/lib/guest';
 import { apiUrl, dataOf, failureOf, http } from '@/lib/http';
 import { naira } from '@/lib/money';
+import { happened } from '@/lib/time';
 
 interface Receipt {
   receiptNumber: string;
@@ -61,7 +62,7 @@ export default function ReceiptPage() {
   const seatName = seat ? `Seat ${seat.position}` : r.seatLabel;
   const rows: Array<[string, string]> = [
     ['Receipt', r.receiptNumber],
-    ['Date', r.paymentDate ? new Date(r.paymentDate).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : ''],
+    ['Date', happened(r.paymentDate)],
     ['Table', session.displayNumber ? String(session.displayNumber) : r.tableNumber],
     ['Seat', seatName],
   ];

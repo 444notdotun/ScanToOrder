@@ -8,6 +8,8 @@ import lombok.Data;
 public class MyTenantResponse {
     private String name;
     private String slug;
+    // The business's own email: where a receipt goes unless the manager types another.
+    private String email;
     private String type;
     private String status;
     private boolean openForOrders;
@@ -19,6 +21,7 @@ public class MyTenantResponse {
         MyTenantResponse response = new MyTenantResponse();
         response.setName(tenant.getName());
         response.setSlug(tenant.getSlug());
+        response.setEmail(tenant.getEmail());
         response.setType(tenant.getType().name());
         response.setStatus(tenant.getStatus().name());
         response.setOpenForOrders(tenant.isOpenForOrders());

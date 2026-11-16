@@ -8,7 +8,7 @@ import { Brand, Loader, Watermark } from '@/components/plately/Logo';
 import { Button, Eyebrow, FailureCard, Field } from '@/components/plately/ui';
 import { eventGuestApi, rememberTable, useSession } from '@/lib/guest';
 import { failureOf, http, type ApiFailure } from '@/lib/http';
-import { clock } from '@/lib/money';
+import { clock } from '@/lib/time';
 
 // At an event the code is the seat and the supper: scan the table, type the code.
 export default function EventCodePage() {
