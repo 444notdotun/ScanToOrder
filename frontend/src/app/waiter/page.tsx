@@ -34,7 +34,7 @@ function Section({ title, count, empty, children }: { title: string; count: numb
         <h2 className="font-heading text-[26px] font-normal">{title}</h2>
         <span className="rounded-full bg-cream/15 px-2.5 py-0.5 text-sm font-bold text-cream">{count}</span>
       </div>
-      {count === 0 ? <p className="rounded-lg border border-dashed border-cream/30 p-4 text-[15px] text-soft">{empty}</p> : children}
+      {count === 0 ? <p className="rounded-[20px] bg-paper p-4 text-[15px] text-quiet">{empty}</p> : children}
     </section>
   );
 }
@@ -128,7 +128,7 @@ function Calls({ act }: { act: Act }) {
     );
   }
   if (calls.data.length === 0) {
-    return <p className="rounded-lg border border-dashed border-cream/30 p-4 text-[15px] text-soft">Nobody is calling. When a guest taps for help it lands here.</p>;
+    return <p className="rounded-[20px] bg-paper p-4 text-[15px] text-quiet">Nobody is calling. When a guest taps for help it lands here.</p>;
   }
 
   const stateOf = (call: WaiterCall) => {
@@ -193,7 +193,7 @@ function Tables({ act, onClose }: { act: Act; onClose: (table: FloorTable) => vo
     );
   }
   if (tables.data.length === 0) {
-    return <p className="rounded-lg border border-dashed border-cream/30 p-4 text-[15px] text-soft">No tables are set up yet. The manager adds them.</p>;
+    return <p className="rounded-[20px] bg-paper p-4 text-[15px] text-quiet">No tables are set up yet. The manager adds them.</p>;
   }
 
   return (

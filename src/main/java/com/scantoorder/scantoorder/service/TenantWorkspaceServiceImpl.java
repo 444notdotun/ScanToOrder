@@ -53,10 +53,18 @@ public class TenantWorkspaceServiceImpl implements TenantWorkspaceService {
     private PaystackClient paystackClient;
     @Autowired
     private EmailSender emailSender;
+    @Autowired
+    private UnsplitPayments unsplitPayments;
+
+    private MyTenantResponse view(Tenant tenant) {
+        MyTenantResponse response = MyTenantResponse.of(tenant);
+        response.setTestPaymentsUnsplit(unsplitPayments.appliesTo(tenant));
+        return response;
+    }
 
     @Override
     public MyTenantResponse getMyTenant(String tenantId) {
-        return MyTenantResponse.of(find(tenantId));
+        return view(find(tenantId));
     }
 
     // Switching off is always allowed and only stops new guests. Switching on needs something to serve and somewhere to sit.
@@ -81,12 +89,12 @@ public class TenantWorkspaceServiceImpl implements TenantWorkspaceService {
             if (!missing.isEmpty()) {
                 throw new ConflictException("You can open once you have " + String.join(" and ", missing) + ".");
             }
-            if (tenant.getPaystackSubaccountCode() == null || tenant.getPaystackSubaccountCode().isBlank()) {
+            if ((tenant.getPaystackSubaccountCode() == null || tenant.getPaystackSubaccountCode().isBlank()) && !unsplitPayments.active()) {
                 throw new ConflictException(PAYOUT_NOT_READY);
             }
         }
         tenant.setOpenForOrders(open);
-        return MyTenantResponse.of(tenantRepo.save(tenant));
+        return view(tenantRepo.save(tenant));
     }
 
     @Transactional
@@ -97,7 +105,7 @@ public class TenantWorkspaceServiceImpl implements TenantWorkspaceService {
             throw new InvalidRequestException("Holding seats isn't available for events yet.");
         }
         tenant.setHoldsEnabled(enabled);
-        return MyTenantResponse.of(tenantRepo.save(tenant));
+        return view(tenantRepo.save(tenant));
     }
 
     // Paystack is told first and the new details are kept only once it accepts them, so the two never disagree.
@@ -128,7 +136,7 @@ public class TenantWorkspaceServiceImpl implements TenantWorkspaceService {
             throw e;
         }
         tellTheOwner(tenant);
-        return MyTenantResponse.of(tenant);
+        return view(tenant);
     }
 
     private void tellTheOwner(Tenant tenant) {

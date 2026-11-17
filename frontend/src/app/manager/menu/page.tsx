@@ -92,13 +92,13 @@ export default function MenuPage() {
           {lonely.length > 0 ? (
             <section aria-label="Empty sections" className="flex flex-col gap-2.5">
               <h2 className="font-heading text-[24px] font-normal">Sections with nothing in them</h2>
-              <ul className="flex flex-wrap gap-2.5">
+              <ul className="divide-y divide-rule overflow-hidden rounded-[20px] bg-paper text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
                 {lonely.map((section) => (
-                  <li key={section.categoryId} className="flex items-center gap-2 rounded-full border-[1.5px] border-cream/45 py-1 pl-4 pr-1 text-cream">
-                    <span className="font-bold">{section.categoryName}</span>
+                  <li key={section.categoryId} className="flex min-h-[56px] items-center gap-3 px-4 py-2.5">
+                    <span className="min-w-0 flex-1 break-words font-bold">{section.categoryName}</span>
                     <Button
                       full={false}
-                      tone="ghost"
+                      tone="outline"
                       aria-label={`Remove the section ${section.categoryName}`}
                       disabled={lost || act.busy !== null}
                       onClick={() => setRemovingSection({ id: section.categoryId, name: section.categoryName })}

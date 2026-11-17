@@ -2,9 +2,9 @@ import type { ReactNode } from 'react';
 
 // The etched eating pattern: fork, glass, spoon, knife and wheat in fine cream lines, 13% opacity,
 // on a 120px tile turned 12 degrees. One component, behind every Plately screen.
-export function EtchedPattern({ className = 'fixed inset-0 h-lvh w-full' }: { className?: string }) {
+export function EtchedPattern({ className = 'fixed inset-0 h-lvh w-full', faint = false }: { className?: string; faint?: boolean }) {
   return (
-    <svg aria-hidden="true" className={`pointer-events-none ${className}`} focusable="false">
+    <svg aria-hidden="true" className={`pointer-events-none ${className}`} style={faint ? { opacity: 0.4 } : undefined} focusable="false">
       <defs>
         <pattern id="plately-etched" width="120" height="120" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">
           <g fill="none" stroke="#F4ECD8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" opacity="0.13">
@@ -25,10 +25,11 @@ export function EtchedPattern({ className = 'fixed inset-0 h-lvh w-full' }: { cl
 }
 
 // Every Plately screen sits on this: bottle green, the pattern, and room for content above it.
-export default function Ground({ children, className = '' }: { children: ReactNode; className?: string }) {
+// Staff screens are read closely all shift, so their pattern is fainter than a guest's.
+export default function Ground({ children, className = '', faint = false }: { children: ReactNode; className?: string; faint?: boolean }) {
   return (
     <div className={`plately relative flex min-h-dvh w-full flex-col overflow-clip bg-bottle font-body text-cream ${className}`}>
-      <EtchedPattern />
+      <EtchedPattern faint={faint} />
       {/* The green runs behind the status bar and the bottom bar; the content keeps clear of them. */}
       <div className="relative flex min-h-dvh w-full flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">{children}</div>
     </div>

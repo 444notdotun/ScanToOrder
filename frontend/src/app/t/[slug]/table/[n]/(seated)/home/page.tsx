@@ -5,13 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import OrderTracker from '@/components/guest/OrderTracker';
+import SavedChair from '@/components/guest/SavedChair';
 import { Brand } from '@/components/plately/Logo';
 import { useConnection } from '@/components/plately/Connection';
-import { Button, Card, FailureCard, Handwriting, Sheet, Switch } from '@/components/plately/ui';
+import { Button, Card, FailureCard, Sheet, Switch } from '@/components/plately/ui';
 import { forgetTable, guestApi, useSession, useSessionOrders, type SessionSeat } from '@/lib/guest';
 import { failureOf, http, type ApiFailure } from '@/lib/http';
 import { naira, firstName } from '@/lib/money';
-import { orderStatusLabel, spacedCode } from '@/lib/labels';
+import { orderStatusLabel } from '@/lib/labels';
 import { useNow } from '@/hooks/useNow';
 
 // Your table: who is here, who is being waited for, what has been ordered.
@@ -32,7 +33,6 @@ export default function HomePage() {
   const [leaving, setLeaving] = useState(false);
 
   const mine = session.seats.find((seat) => seat.mine);
-  const held = session.seats.filter((seat) => seat.status === 'HELD');
   const map = useQuery({ queryKey: ['seatmap', slug, n], queryFn: () => guestApi.seatMap(slug, n), enabled: saving });
   const freeSeats = (map.data?.seats ?? []).filter((seat) => seat.status === 'VACANT');
 
@@ -61,6 +61,10 @@ export default function HomePage() {
     }, 'We saved none of them');
   };
 
+  // The guest will order and pay for this friend: seat them now, on this phone's session.
+  const seatThem = (seat: SessionSeat, guestName: string) =>
+    run(async () => void (await http.post('/api/v1/sessions/me/guests', { seatId: seat.seatId, guestName })), 'We could not seat them');
+
   const letGo = (seat: SessionSeat) => run(async () => void (await http.delete(`/api/v1/sessions/me/holds/${seat.seatId}`)));
 
   const leave = async () => {
@@ -78,14 +82,14 @@ export default function HomePage() {
     }
   };
 
-  const title = (seat: SessionSeat) => (seat.status === 'HELD' ? 'Saved for a friend' : seat.mine ? `${seat.guestName ?? 'You'} (you)` : (seat.guestName ?? 'Guest'));
+  const title = (seat: SessionSeat) => (seat.status === 'HELD' ? 'Saved for a friend' : seat.mine ? `${seat.guestName ?? 'You'} (you)` : seat.hasDevice === false ? `${seat.guestName ?? 'Guest'} · you're paying for them` : (seat.guestName ?? 'Guest'));
   const note = (seat: SessionSeat) => {
     if (seat.status === 'HELD') {
       const left = seat.heldUntil ? Math.max(0, Math.round((new Date(seat.heldUntil).getTime() - now) / 60000)) : 0;
       return `${left} minute${left === 1 ? '' : 's'} left on the hold`;
     }
     if (seat.mine) return 'This is your phone';
-    return seat.hasDevice === false ? 'No phone. You can order for them' : 'On their own phone';
+    return seat.hasDevice === false ? 'No phone. Order for them from the menu' : 'On their own phone';
   };
 
   return (
@@ -117,14 +121,12 @@ export default function HomePage() {
                   </div>
                 </div>
                 {seat.status === 'HELD' ? (
-                  <div className="mt-2.5 flex gap-2">
-                    <Link href={`/t/${slug}/table/${n}/guest/${seat.seatId}`} className="flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-bottle px-4 text-center text-[15px] font-bold text-cream">
-                      My guest is here
-                    </Link>
-                    <Button tone="outline" full={false} className="flex-1" disabled={busy || lost} onClick={() => void letGo(seat)}>
-                      Let it go
-                    </Button>
-                  </div>
+                  <SavedChair
+                    joinCode={session.joinCode}
+                    disabled={busy || lost}
+                    onLetGo={() => void letGo(seat)}
+                    onSeat={(guestName) => seatThem(seat, guestName)}
+                  />
                 ) : null}
               </li>
             ))}
@@ -180,15 +182,6 @@ export default function HomePage() {
                   ) : (
                     <p className="text-sm text-quiet">There are no free chairs left at this table to save.</p>
                   )}
-                </div>
-              ) : null}
-              {held.length > 0 ? (
-                <div className="mt-4 animate-pop rounded-2xl border-[1.5px] border-dashed border-hand/50 bg-paperlight p-4 text-center">
-                  <div className="text-sm font-bold text-quiet">Give your friends this code.</div>
-                  <div className="my-1 font-heading text-[40px] tracking-[0.08em] text-bottle">{spacedCode(session.joinCode)}</div>
-                  <Handwriting onPaper className="!text-[20px]">
-                    They scan the table, tap a saved chair and type it in.
-                  </Handwriting>
                 </div>
               ) : null}
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useConnection } from '@/components/plately/Connection';
-import { FailureCard } from '@/components/plately/ui';
+import { FailureCard, Switch } from '@/components/plately/ui';
 import type { useAction } from '@/hooks/useAction';
 import { failureOf } from '@/lib/http';
 import { staffApi, useStock } from '@/lib/staff';
@@ -13,6 +13,7 @@ export default function StockSection({ act }: { act: Act }) {
   const { lost } = useConnection();
   const stock = useStock();
   const { busy, run } = act;
+  const items = [...(stock.data ?? [])].sort((a, b) => Number(a.available) - Number(b.available));
 
   return (
       <section aria-label="What we have left" className="flex flex-col gap-3 pt-2">
@@ -21,22 +22,24 @@ export default function StockSection({ act }: { act: Act }) {
           <p className="text-[15px] text-soft">Sold out plates disappear from guests&apos; menus straight away.</p>
         </div>
         {stock.isError ? <FailureCard title="We couldn't load the stock" message={failureOf(stock.error).message} /> : null}
-        <div className="flex flex-wrap gap-2.5">
-          {(stock.data ?? []).map((item) => (
-            <button
-              key={item.itemId}
-              type="button"
-              aria-pressed={!item.available}
-              disabled={lost || busy !== null}
-              onClick={() => void run(item.itemId, () => (item.available ? staffApi.soldOut(item.itemId) : staffApi.backInStock(item.itemId)))}
-              className={`min-h-[52px] rounded-full border-[1.5px] px-5 text-base font-bold ${
-                item.available ? 'border-cream/45 bg-transparent text-cream hover:bg-cream/10' : 'border-cream bg-cream text-bottle'
-              } disabled:opacity-60`}
-            >
-              {item.itemName} · {item.available ? 'in stock' : 'sold out'}
-            </button>
+        {/* One paper card, a plain list: sold-out plates first, then the rest. */}
+        <ul className="divide-y divide-rule overflow-hidden rounded-[20px] bg-paper text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
+          {items.map((item) => (
+            <li key={item.itemId} className="flex min-h-[56px] items-center gap-3 px-4 py-2.5">
+              <span id={`stock-${item.itemId}`} className="min-w-0 flex-1 break-words text-base font-bold leading-snug">
+                {item.itemName}
+                {item.available ? null : <span className="ml-2 rounded-full bg-errbg px-2.5 py-0.5 align-middle text-xs font-bold text-errtext">Sold out</span>}
+              </span>
+              <Switch
+                checked={item.available}
+                labelledBy={`stock-${item.itemId}`}
+                disabled={lost || busy !== null}
+                onChange={(next) => void run(item.itemId, () => (next ? staffApi.backInStock(item.itemId) : staffApi.soldOut(item.itemId)))}
+              />
+            </li>
           ))}
-        </div>
+          {items.length === 0 && !stock.isError ? <li className="px-4 py-4 text-[15px] text-quiet">No plates on the menu yet.</li> : null}
+        </ul>
       </section>
   );
 }

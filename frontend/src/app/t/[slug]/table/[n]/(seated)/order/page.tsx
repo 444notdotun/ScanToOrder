@@ -128,7 +128,7 @@ function OrderScreen() {
         <>
           {withoutPhone.length > 0 ? (
             <div className="flex flex-col gap-2">
-              <Eyebrow>Who is this order for?</Eyebrow>
+              <Eyebrow>Ordering for</Eyebrow>
               <div className="flex flex-wrap gap-2">
                 {[{ seatId: null as string | null, label: 'Me' }, ...withoutPhone.map((seat) => ({ seatId: seat.seatId as string | null, label: seat.guestName ?? `Seat ${seat.position}` }))].map((choice) => {
                   const on = (target ?? null) === choice.seatId;
@@ -229,7 +229,8 @@ function OrderScreen() {
         </div>
 
       <section id="basket" aria-label="Your basket" className="mt-2 scroll-mt-[calc(var(--you-h)+1rem)] rounded-[20px] bg-paper p-5 text-ink xl:sticky xl:top-[calc(var(--you-h)+1rem)]">
-        <h2 className="mb-3 font-heading text-[22px] font-normal text-bottle">Your basket</h2>
+        <h2 className="mb-1 font-heading text-[22px] font-normal text-bottle">Your basket</h2>
+        {!pending && target ? <p className="mb-3 text-[15px] font-bold text-hand">For {withoutPhone.find((seat) => seat.seatId === target)?.guestName ?? 'your friend'}. You pay for them.</p> : <div className="mb-2" />}
         {!pending && priced.length === 0 ? <p className="mb-3 text-[15px] text-quiet">Nothing yet. Tap Add on a plate.</p> : null}
         {!pending && priced.length > 0 ? (
           <>

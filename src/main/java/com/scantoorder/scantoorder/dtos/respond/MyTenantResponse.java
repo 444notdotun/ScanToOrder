@@ -16,6 +16,8 @@ public class MyTenantResponse {
     private boolean holdsEnabled;
     private String bankName;
     private String accountLast4;
+    // True while payments are taken the test way, with no split, because Paystack has no subaccount for this business.
+    private boolean testPaymentsUnsplit;
 
     public static MyTenantResponse of(Tenant tenant) {
         MyTenantResponse response = new MyTenantResponse();
