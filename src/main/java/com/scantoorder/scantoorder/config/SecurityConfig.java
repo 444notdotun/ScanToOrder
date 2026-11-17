@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .frameOptions(frame -> frame.deny())
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/health").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/t/*/tables/*/seatMap", "/api/v1/t/*/menu").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/signup/banks", "/api/v1/signup/name-available").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/signup", "/api/v1/signup/verify-account").permitAll()
@@ -67,7 +68,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/payments/webhook").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/refunds/*/guest").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/refunds/*/guest/*").permitAll()
-                        // A stream finishes with an async dispatch, which carries no sign-in of its own.
+
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC, jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .anyRequest().authenticated()
                 )
