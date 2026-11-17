@@ -176,6 +176,11 @@ export default function SettingsPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 animate-rise flex-col gap-5 px-5 pb-6 pt-4">
       <PageHead title="Settings" line={tenant.data ? `${tenant.data.name} · /t/${tenant.data.slug}` : 'Your place on Plately.'} />
+      {tenant.data?.testPaymentsUnsplit ? (
+        <p role="status" className="rounded-[20px] bg-paper p-4 text-[16px] font-bold leading-snug text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
+          Test payments: split is off until Paystack sets up your account.
+        </p>
+      ) : null}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Switches />
         <Payout />

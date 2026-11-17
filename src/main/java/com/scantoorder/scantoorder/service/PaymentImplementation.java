@@ -48,6 +48,8 @@ public class PaymentImplementation implements PaymentService {
     @Autowired
     private ChargeCalculator chargeCalculator;
     @Autowired
+    private UnsplitPayments unsplitPayments;
+    @Autowired
     private PaymentSettlement settlement;
     @Autowired
     private AsyncPaymentService asyncPaymentService;
@@ -72,7 +74,8 @@ public class PaymentImplementation implements PaymentService {
         }
         Tenant tenant = order.getTenant();
         String subaccount = tenant.getPaystackSubaccountCode();
-        if (subaccount == null || subaccount.isBlank()) {
+        boolean unsplit = unsplitPayments.appliesTo(tenant);
+        if ((subaccount == null || subaccount.isBlank()) && !unsplit) {
             throw new ConflictException(CANNOT_TAKE_PAYMENTS);
         }
 
@@ -89,7 +92,8 @@ public class PaymentImplementation implements PaymentService {
                 guestEmail != null ? guestEmail : tenant.getEmail(),
                 amountKobo,
                 reference,
-                new PaystackSplit(subaccount, split.platelyChargeKobo(), chargeCalculator.feeBearer())
+                // A real subaccount always wins. Without one (test mode only) no split is sent and Plately's test account gets it all.
+                unsplit ? null : new PaystackSplit(subaccount, split.platelyChargeKobo(), chargeCalculator.feeBearer())
         );
 
         Payment payment = new Payment();
@@ -98,7 +102,7 @@ public class PaymentImplementation implements PaymentService {
         payment.setAmount(order.getTotalAmount());
         payment.setPlatelyChargeKobo(split.platelyChargeKobo());
         payment.setTenantAmountKobo(split.tenantAmountKobo());
-        payment.setSubaccountCode(subaccount);
+        payment.setSubaccountCode(unsplit ? null : subaccount);
         // Only what the guest gave: the restaurant's stand-in must never receive a refund email.
         payment.setCustomerEmail(guestEmail);
         payment = paymentRepo.save(payment);

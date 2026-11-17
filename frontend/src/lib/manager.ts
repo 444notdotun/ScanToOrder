@@ -12,6 +12,8 @@ export interface MyTenant {
   holdsEnabled: boolean;
   bankName?: string;
   accountLast4?: string;
+  // True while payments are taken the test way, with no split.
+  testPaymentsUnsplit?: boolean;
 }
 
 export interface Category {
