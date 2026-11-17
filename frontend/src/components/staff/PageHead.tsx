@@ -24,5 +24,5 @@ export function Tile({ label, value, sub, large = false }: { label: string; valu
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="rounded-lg border border-dashed border-cream/30 p-4 text-[15px] leading-snug text-soft">{children}</p>;
+  return <p className="rounded-[20px] bg-paper p-4 text-[15px] leading-snug text-quiet">{children}</p>;
 }

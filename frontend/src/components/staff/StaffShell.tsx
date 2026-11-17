@@ -67,7 +67,7 @@ export default function StaffShell({
 
   if (!hydrated || !allowed || expired) {
     return (
-      <Ground>
+      <Ground faint>
         <Loader message="Setting the pass…" />
       </Ground>
     );
@@ -75,7 +75,7 @@ export default function StaffShell({
 
   return (
     <ConnectionContext.Provider value={connection}>
-      <Ground>
+      <Ground faint>
         <ConnectionBanner lost={stream.lost} caughtUp={stream.caughtUp} />
         <StaffHeader
           profile={profile}

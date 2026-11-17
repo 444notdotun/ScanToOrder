@@ -116,7 +116,7 @@ export function Switch({ checked, onChange, labelledBy, disabled }: { checked: b
       aria-labelledby={labelledBy}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-8 w-14 flex-none rounded-full ${checked ? 'bg-bottle' : 'bg-[#A99E84]'}`}
+      className={`relative h-8 w-14 flex-none rounded-full before:absolute before:-inset-x-2 before:-inset-y-3 before:content-[''] ${checked ? 'bg-bottle' : 'bg-[#A99E84]'}`}
     >
       <span className={`absolute top-1 h-6 w-6 rounded-full bg-paperlight shadow transition-all ${checked ? 'left-[28px]' : 'left-1'}`} />
       <span className="sr-only">{checked ? 'On' : 'Off'}</span>

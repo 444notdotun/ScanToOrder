@@ -18,7 +18,7 @@ function Column({ title, count, empty, children }: { title: string; count: numbe
         <h2 className="font-heading text-[26px] font-normal">{title}</h2>
         <span className="rounded-full bg-cream/15 px-2.5 py-0.5 text-sm font-bold text-cream">{count}</span>
       </div>
-      {count === 0 ? <p className="rounded-lg border border-dashed border-cream/30 p-4 text-[15px] text-soft">{empty}</p> : children}
+      {count === 0 ? <p className="rounded-[20px] bg-paper p-4 text-[15px] text-quiet">{empty}</p> : children}
     </section>
   );
 }
