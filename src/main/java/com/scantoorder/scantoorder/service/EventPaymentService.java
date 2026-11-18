@@ -49,7 +49,7 @@ public class EventPaymentService {
             log.warn("A Paystack notice named an event payment we do not know");
             return false;
         }
-        if (amountKobo != null && amountKobo != payment.getAmountKobo()) {
+        if (amountKobo == null || amountKobo != payment.getAmountKobo()) {
             log.warn("Notice for event payment {} carries a different amount. Ignored.", payment.getReference());
             return false;
         }

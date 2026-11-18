@@ -11,6 +11,7 @@ const REASONS: Record<string, string> = {
   KITCHEN_UNAVAILABLE: 'The kitchen could not make it',
   LATE_PAYMENT: 'Paid after the guest had left',
   DOUBLE_PAYMENT: 'Paid twice',
+  AMOUNT_CHANGED: 'Paid an amount that no longer matches the order',
 };
 
 // Refunds a restaurant has left too long, or that a guest says never arrived. No account numbers or emails appear here.

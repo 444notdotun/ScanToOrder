@@ -128,6 +128,31 @@ class PaymentWebhookTest {
     }
 
     @Test
+    void testThatASuccessNoticeWithoutAnAmountIsIgnored() {
+        Payment payment = pending();
+        webhooks.process("{\"event\":\"charge.success\",\"data\":{\"reference\":\"" + payment.getReference() + "\"}}");
+        assertEquals(PaymentStatus.PENDING, reload(payment).getStatus());
+        assertEquals(OrderStatus.PENDING_PAYMENT, orderStatus(payment));
+        assertTrue(refundRepo.findByPayment_Id(payment.getId()).isEmpty());
+    }
+
+    @Test
+    void testThatPayingAnOutdatedTotalDoesNotReachTheKitchenAndIsOwedBack() {
+        Payment payment = pending();
+        Order order = orderRepo.findOrderByOrderId(payment.getOrder().getOrderId());
+        order.setTotalAmount(order.getTotalAmount().add(new java.math.BigDecimal("500.00")));
+        orderRepo.saveAndFlush(order);
+
+        webhooks.process(charge("charge.success", payment));
+
+        assertEquals(PaymentStatus.SUCCESSFUL, reload(payment).getStatus());
+        assertEquals(OrderStatus.PENDING_PAYMENT, orderStatus(payment));
+        Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
+        assertEquals(RefundReason.AMOUNT_CHANGED, refund.getReason());
+        assertEquals(payment.getAmount().movePointRight(2).longValueExact(), refund.getAmountKobo());
+    }
+
+    @Test
     void testThatANoticeWithTheWrongAmountIsIgnored() {
         Payment payment = pending();
         webhooks.process("{\"event\":\"charge.success\",\"data\":{\"reference\":\"" + payment.getReference() + "\",\"amount\":100}}");
