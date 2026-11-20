@@ -51,10 +51,7 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .headers(headers -> headers
-                        .contentTypeOptions(contentTypeOptions -> contentTypeOptions.disable())
-                        .frameOptions(frame -> frame.deny())
-                )
+                .headers(headers -> headers.frameOptions(frame -> frame.deny()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/health").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/t/*/tables/*/seatMap", "/api/v1/t/*/menu").permitAll()

@@ -45,20 +45,22 @@ public class WebhookProcessor {
     }
 
     private void chargeSucceeded(JsonNode data, String payload) {
+        if (!data.hasNonNull("amount")) {
+            log.warn("Notice for {} carries no amount. Ignored.", data.path("reference").asText());
+            return;
+        }
         if (EventPaymentService.isEventReference(data.path("reference").asText())) {
-            if (!eventPayments.success(data.path("reference").asText(), data.hasNonNull("amount") ? data.path("amount").asLong() : null)) {
+            if (!eventPayments.success(data.path("reference").asText(), data.path("amount").asLong())) {
                 log.info("Event payment was already settled or not ours. Nothing to do.");
             }
             return;
         }
         Payment payment = lock(data.path("reference").asText());
         if (payment == null) return;
-        if (data.hasNonNull("amount")) {
-            long expected = payment.getAmount().multiply(BigDecimal.valueOf(100)).longValue();
-            if (data.path("amount").asLong() != expected) {
-                log.warn("Notice for payment {} carries a different amount. Ignored.", payment.getReference());
-                return;
-            }
+        long expected = payment.getAmount().multiply(BigDecimal.valueOf(100)).longValue();
+        if (data.path("amount").asLong() != expected) {
+            log.warn("Notice for payment {} carries a different amount. Ignored.", payment.getReference());
+            return;
         }
         if (!settlement.success(payment, payload)) {
             log.info("Payment {} was already settled. Nothing to do.", payment.getReference());
