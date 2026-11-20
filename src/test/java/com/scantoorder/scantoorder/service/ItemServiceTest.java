@@ -3,6 +3,7 @@ package com.scantoorder.scantoorder.service;
 import com.scantoorder.scantoorder.data.model.Category;
 import com.scantoorder.scantoorder.data.repository.CategoryRepository;
 import com.scantoorder.scantoorder.data.repository.ItemRepo;
+import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
 import com.scantoorder.scantoorder.dtos.request.CreateCategoryRequest;
 import com.scantoorder.scantoorder.dtos.request.CreateItemRequest;
 import com.scantoorder.scantoorder.dtos.respond.CreateItemResponse;
@@ -27,6 +28,8 @@ class ItemServiceTest {
     @Autowired
     private ItemRepo itemRepo;
     @Autowired
+    private OrderItemRepo orderItemRepo;
+    @Autowired
     private TenantTestSupport tenants;
     private CreateItemRequest createitemRequest;
 
@@ -35,6 +38,10 @@ class ItemServiceTest {
     @BeforeEach
     void setUp() {
         tenants.signInAsManager();
+        // Earlier tests leave categories and line items behind. Line items point at dishes, so they go first.
+        orderItemRepo.deleteAll();
+        itemRepo.deleteAll();
+        categoryRepository.deleteAll();
         category = new Category();
         category.setTenant(tenants.main());
         category.setMenu(tenants.menuOf(tenants.main()));
@@ -49,6 +56,7 @@ class ItemServiceTest {
     @AfterEach
     void tearDown() {
         tenants.signOut();
+        orderItemRepo.deleteAll();
         itemRepo.deleteAll();
         categoryRepository.deleteAll();
     }

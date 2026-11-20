@@ -14,6 +14,7 @@ const REASONS: Record<string, string> = {
   KITCHEN_UNAVAILABLE: 'The kitchen could not make it and the guest did not want a swap.',
   LATE_PAYMENT: 'The payment arrived after the guest had left.',
   DOUBLE_PAYMENT: 'The guest paid twice for the same order.',
+  AMOUNT_CHANGED: 'The guest paid an amount that no longer matches the order.',
 };
 
 const STATUS: Record<string, string> = {

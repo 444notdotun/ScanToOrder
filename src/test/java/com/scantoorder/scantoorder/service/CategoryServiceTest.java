@@ -4,6 +4,7 @@ import com.scantoorder.scantoorder.data.model.Menu;
 import com.scantoorder.scantoorder.data.repository.CategoryRepository;
 import com.scantoorder.scantoorder.data.repository.ItemRepo;
 import com.scantoorder.scantoorder.data.repository.MenuRepository;
+import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
 import com.scantoorder.scantoorder.dtos.request.CreateCategoryRequest;
 import com.scantoorder.scantoorder.service.Interface.CategoryService;
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +26,8 @@ class CategoryServiceTest {
     @Autowired
     private ItemRepo itemRepo;
     @Autowired
+    private OrderItemRepo orderItemRepo;
+    @Autowired
     private TenantTestSupport tenants;
 
 
@@ -33,6 +36,8 @@ class CategoryServiceTest {
     @BeforeEach
     public void setUp() {
         tenants.signInAsManager();
+        // Earlier tests leave line items. Those rows point at dishes, so they go first.
+        orderItemRepo.deleteAll();
         itemRepo.deleteAll();
         categoryRepository.deleteAll();
         createCategoryRequest = new CreateCategoryRequest();

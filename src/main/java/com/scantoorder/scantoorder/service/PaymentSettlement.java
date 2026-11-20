@@ -40,7 +40,14 @@ public class PaymentSettlement {
         }
         paymentRepo.save(payment);
         Order order = payment.getOrder();
-        if (order.getOrderStatus() == OrderStatus.PENDING_PAYMENT) {
+        if (order.getOrderStatus() == OrderStatus.PENDING_PAYMENT
+                && order.getTotalAmount() != null
+                && payment.getAmount().compareTo(order.getTotalAmount()) != 0) {
+            // The checkout was priced before the order changed. The money came in, but it is not this
+            // order's total, so the kitchen does not see it and the restaurant owes it back.
+            log.warn("Payment {} does not match the current order total. The order stays unpaid.", payment.getReference());
+            refundService.createDue(payment, RefundReason.AMOUNT_CHANGED);
+        } else if (order.getOrderStatus() == OrderStatus.PENDING_PAYMENT) {
             order.setOrderStatus(OrderStatus.PAID);
             order.setPaidAt(java.time.LocalDateTime.now());
             orderRepo.save(order);

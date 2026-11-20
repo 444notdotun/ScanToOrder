@@ -81,6 +81,15 @@ public class OrderImplementation implements OrderService {
     @Override
     public String checkOrderStatus(String tenantId, String orderId) {
         Order order = orderRepo.findByOrderIdAndTenant_TenantId(orderId, tenantId).orElseThrow(() -> new OrderNotFoundException("Order not found"));
+        // A guest may follow an order from their own table. Another table's order id is not theirs.
+        Object principal = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() == null
+                ? null : org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof CustomerPrincipal customer) {
+            String sessionId = order.getDinningSession() == null ? null : order.getDinningSession().getSessionId();
+            if (sessionId == null || !sessionId.equals(customer.getSessionId())) {
+                throw new OrderNotFoundException("Order not found");
+            }
+        }
         return order.getOrderStatus().toString();
     }
 

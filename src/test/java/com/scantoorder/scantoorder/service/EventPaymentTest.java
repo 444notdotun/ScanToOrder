@@ -212,8 +212,10 @@ class EventPaymentTest {
         EventPayment payment = pay(id, 10);
 
         webhooks.process(charge("charge.success", payment, 100));
+        webhooks.process("{\"event\":\"charge.success\",\"data\":{\"reference\":\"" + payment.getReference() + "\"}}");
         assertEquals(0, reload(id).getPaidGuests());
         assertEquals(EventStatus.DRAFT, reload(id).getStatus());
+        assertEquals(PaymentStatus.PENDING, paymentRepo.findForUpdateByReference(payment.getReference()).orElseThrow().getStatus());
 
         webhooks.process(charge("charge.failed", payment, payment.getAmountKobo()));
         assertEquals(PaymentStatus.FAILED, paymentRepo.findForUpdateByReference(payment.getReference()).orElseThrow().getStatus());
