@@ -2,9 +2,9 @@ import type { ReactNode } from 'react';
 
 // The etched eating pattern: fork, glass, spoon, knife and wheat in fine cream lines, 13% opacity,
 // on a 120px tile turned 12 degrees. One component, behind every Plately screen.
-export function EtchedPattern({ className = 'fixed inset-0 h-lvh w-full', faint = false }: { className?: string; faint?: boolean }) {
+export function EtchedPattern({ className = 'fixed inset-0 h-lvh w-full', faint = false, opacity }: { className?: string; faint?: boolean; opacity?: number }) {
   return (
-    <svg aria-hidden="true" className={`pointer-events-none ${className}`} style={faint ? { opacity: 0.4 } : undefined} focusable="false">
+    <svg aria-hidden="true" className={`pointer-events-none ${className}`} style={opacity !== undefined ? { opacity } : faint ? { opacity: 0.4 } : undefined} focusable="false">
       <defs>
         <pattern id="plately-etched" width="120" height="120" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">
           <g fill="none" stroke="#F4ECD8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" opacity="0.13">

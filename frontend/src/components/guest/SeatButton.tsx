@@ -24,7 +24,7 @@ export function SeatLegend() {
   );
 }
 
-export default function SeatButton({ seat, picked = false, onTap }: { seat: SeatOnMap; picked?: boolean; onTap: () => void }) {
+export default function SeatButton({ seat, picked = false, compact = false, onTap }: { seat: SeatOnMap; picked?: boolean; compact?: boolean; onTap: () => void }) {
   const free = seat.status === 'VACANT';
   const held = seat.status === 'HELD';
   const label = free ? 'Free' : held ? 'Saved' : 'Taken';
@@ -40,11 +40,11 @@ export default function SeatButton({ seat, picked = false, onTap }: { seat: Seat
       type="button"
       onClick={onTap}
       aria-label={aria}
-      className={`flex min-h-[116px] w-full flex-col items-center justify-center gap-1 rounded-2xl px-2 py-3 text-center ${look}`}
+      className={`flex ${compact ? 'min-h-[60px]' : 'min-h-[116px]'} w-full flex-col items-center justify-center gap-1 rounded-2xl px-2 py-3 text-center ${look}`}
     >
       <span className="text-[13px] font-bold tracking-[0.14em]">SEAT {seat.position}</span>
-      <span className="text-[20px] font-bold leading-tight">{label}</span>
-      <span className="text-[13px] leading-tight opacity-90">{sub}</span>
+      <span className={`${compact ? 'text-[14px]' : 'text-[20px]'} font-bold leading-tight`}>{label}</span>
+      {compact ? null : <span className="text-[13px] leading-tight opacity-90">{sub}</span>}
     </button>
   );
 }

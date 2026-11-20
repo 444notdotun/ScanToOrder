@@ -10,6 +10,7 @@ const LINKS = [
   { href: '#events', label: 'Events' },
 ];
 
+const STAFF = 'flex min-h-[44px] items-center justify-center rounded-full border-[1.5px] border-cream/45 px-5 text-sm font-bold text-cream hover:bg-cream/10';
 const CTA = 'flex min-h-[44px] items-center justify-center rounded-full bg-tomato px-5 text-sm font-bold text-white hover:bg-[#a23420]';
 
 // The top bar. On a phone the three links fold into a menu.
@@ -37,6 +38,9 @@ export default function TopBar() {
               {link.label}
             </a>
           ))}
+          <Link href="/staff/login" className={STAFF}>
+            Staff sign in
+          </Link>
           <Link href="/signup" className={CTA}>
             Get Plately for your place
           </Link>
@@ -61,6 +65,9 @@ export default function TopBar() {
               {link.label}
             </a>
           ))}
+          <Link href="/staff/login" className="flex min-h-[48px] items-center rounded-xl px-3 text-base font-bold hover:bg-rule">
+            Staff sign in
+          </Link>
           <Link href="/signup" className={`${CTA} mt-1`}>
             Get Plately for your place
           </Link>
