@@ -45,7 +45,7 @@ public class SeatController {
     @PostMapping("/{seatId}/join")
     public ResponseEntity<ApiResponse<SeatClaimedResponse>> joinSeat(
             @AuthenticationPrincipal Object principal,
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String seatId,
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String seatId,
             @Valid @RequestBody JoinSeatRequest joinSeatRequest) {
         SeatClaimedResponse response = seatService.joinSeat(seatId, joinSeatRequest, asCustomer(principal));
         return seatedResponse(response);
@@ -68,7 +68,7 @@ public class SeatController {
     @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @PostMapping("/{id}/release")
     public ResponseEntity<ApiResponse<ReleaseSeatResponse>> releaseSeat(
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String id) {
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String id) {
         ReleaseSeatResponse response = seatService.releaseSeat(CurrentTenant.id(), id);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }

@@ -6,10 +6,15 @@ interface CartState {
   lines: Record<string, number>;
   change: (name: string, by: number) => void;
   clear: () => void;
+  // The basket sheet on the order page. The Basket tab in the bottom bar opens it from any page.
+  basketOpen: boolean;
+  setBasketOpen: (open: boolean) => void;
 }
 
 export const useCart = create<CartState>()((set) => ({
   lines: {},
+  basketOpen: false,
+  setBasketOpen: (basketOpen) => set({ basketOpen }),
   change: (name, by) =>
     set((state) => {
       const next = Math.max(0, Math.min(20, (state.lines[name] ?? 0) + by));

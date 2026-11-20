@@ -8,22 +8,22 @@ import lombok.Data;
 
 @Data
 public class ClaimSeatRequest {
-    @NotBlank(message = "table id cannot be blank")
-    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format")
+    @NotBlank(message = "Scan the card on your table again")
+    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.")
     private String tableId;
 
-    @NotBlank(message = "seat id cannot be blank")
-    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format")
+    @NotBlank(message = "Choose a seat")
+    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.")
     private String seatId;
 
-    @NotBlank(message = "customer name cannot be blank")
-    @Size(max = 80, message = "customer name is too long")
+    @NotBlank(message = "Enter your name")
+    @Size(max = 80, message = "That name is too long. Keep it under 80 letters.")
     private String customerName;
 
-    @Email(message = "Invalid email format")
+    @Email(message = "That email doesn't look right")
     private String customerEmail;
 
-    @NotBlank(message = "customer phoneNumber cannot be blank")
-    @Size(min = 11, max = 11, message = "phone number must be exactly 11 characters")
+    @NotBlank(message = "Enter your 11-digit phone number")
+    @Size(min = 11, max = 11, message = "Enter your 11-digit phone number")
     private String customerPhoneNumber;
 }

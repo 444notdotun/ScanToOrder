@@ -38,7 +38,7 @@ export default function TopBar() {
             </a>
           ))}
           <Link href="/signup" className={CTA}>
-            Bring Plately to your business
+            Get Plately for your place
           </Link>
         </nav>
         <button
@@ -62,7 +62,7 @@ export default function TopBar() {
             </a>
           ))}
           <Link href="/signup" className={`${CTA} mt-1`}>
-            Bring Plately to your business
+            Get Plately for your place
           </Link>
         </nav>
       ) : null}

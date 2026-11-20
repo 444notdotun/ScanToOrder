@@ -9,13 +9,13 @@ import lombok.Data;
 
 @Data
 public class CreateItemRequest {
-    @NotBlank(message = "Item name cannot be blank")
+    @NotBlank(message = "Enter the item's name")
     private String itemName;
-    @NotNull(message = "Item description cannot be null")
+    @NotNull(message = "Add a short description for the item")
     private String itemDescription;
-    @NotBlank(message = "Item category cannot be blank")
+    @NotBlank(message = "Choose a category for the item")
     private String CategoryName;
-    @NotNull(message = "Item price cannot be null")
+    @NotNull(message = "Enter the item's price")
     private int itemPrice;
     // Optional: a link to a photo. Leave it out for a dish with no picture.
     @Size(max = 500, message = "That photo link is too long")

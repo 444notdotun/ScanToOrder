@@ -24,7 +24,13 @@ export function lineFor(order: SessionOrder): string {
 // A step bar for each open order. It moves by itself: the guest's live stream refetches the orders on every notice.
 export default function OrderTracker({ className = '' }: { className?: string }) {
   const orders = useSessionOrders();
-  const open = (orders.data?.orders ?? []).filter((order) => order.status in STEP_OF);
+  return <OrderTrackerView orders={orders.data?.orders ?? []} className={className} />;
+}
+
+// The tracker itself, from the orders it is given: the real one gets them from the live session, and the landing page's demo phone
+// gets made-up ones.
+export function OrderTrackerView({ orders, className = '' }: { orders: SessionOrder[]; className?: string }) {
+  const open = orders.filter((order) => order.status in STEP_OF);
   if (open.length === 0) return null;
 
   return (

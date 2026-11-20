@@ -25,10 +25,10 @@
   --font-hand: var(--font-caveat), "Segoe Script", cursive;
   --font-wordmark: var(--font-fraunces), Georgia, serif;
 
-  --animate-rise: rise 380ms cubic-bezier(.2, .7, .2, 1) both;
-  --animate-sheet: sheet 320ms cubic-bezier(.2, .7, .2, 1) both;
-  --animate-fade: fade 240ms both;
-  --animate-pop: pop 520ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-rise: rise 180ms cubic-bezier(.2, .7, .2, 1) both;
+  --animate-sheet: sheet 180ms cubic-bezier(.2, .7, .2, 1) both;
+  --animate-fade: fade 180ms both;
+  --animate-pop: pop 180ms cubic-bezier(.2, .8, .2, 1) both;
   --animate-breathe: breathe 3.2s ease-in-out infinite;
   --animate-sway: sway 3.6s ease-in-out infinite;
   --animate-spin-slow: spin 1.1s linear infinite;
@@ -36,10 +36,11 @@
   --animate-pulse-ring: pulse-ring 1.6s ease-in-out infinite;
 }
 
-@keyframes rise { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: none } }
+/* Every enter animation starts at 0.85 opacity or more and runs under 200ms, so text always keeps its 4.5:1 contrast while a page arrives. */
+@keyframes rise { from { opacity: .85; transform: translateY(10px) } to { opacity: 1; transform: none } }
 @keyframes sheet { from { transform: translateY(100%) } to { transform: none } }
-@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
-@keyframes pop { 0% { opacity: 0; transform: scale(.86) } 60% { opacity: 1; transform: scale(1.05) } 100% { transform: scale(1) } }
+@keyframes fade { from { opacity: .85 } to { opacity: 1 } }
+@keyframes pop { 0% { opacity: .85; transform: scale(.94) } 100% { opacity: 1; transform: scale(1) } }
 @keyframes breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.045) } }
 @keyframes sway { 0%, 100% { transform: rotate(-2.5deg) } 50% { transform: rotate(2.5deg) } }
 @keyframes pulse-ring { 0%, 100% { box-shadow: 0 0 0 0 rgba(240, 185, 74, 0.55) } 50% { box-shadow: 0 0 0 8px rgba(240, 185, 74, 0) } }
@@ -62,6 +63,9 @@
 :root {
   /* The height of the guest's pinned title bar, so the menu's category chips can sit just under it. The bar sets the real value. */
   --you-h: calc(3.6rem + env(safe-area-inset-top));
+  /* The floating tab bar: its own height (64px) and the 18px it floats above the screen edge. Pages and sheets keep this plus 16px clear at the bottom. */
+  --bar-h: 82px;
+  --bar-clear: calc(var(--bar-h) + 16px + env(safe-area-inset-bottom));
 }
 
 html {
@@ -79,16 +83,16 @@ body {
 /* ---------- The scan screen ---------- */
 
 @theme {
-  --animate-drop: drop 640ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-drop: drop 180ms cubic-bezier(.2, .8, .2, 1) both;
   --animate-sweep: sweep 1.9s ease-in-out infinite;
   --animate-flash: flash 520ms ease-out both;
-  --animate-tick: tick 420ms cubic-bezier(.2, .8, .2, 1) 120ms both;
+  --animate-tick: tick 180ms cubic-bezier(.2, .8, .2, 1) both;
 }
 
-@keyframes drop { 0% { opacity: 0; transform: translateY(-46px) rotate(-9deg) } 70% { opacity: 1; transform: translateY(5px) rotate(-2deg) } 100% { opacity: 1; transform: translateY(0) rotate(-3deg) } }
+@keyframes drop { 0% { opacity: .85; transform: translateY(-24px) rotate(-6deg) } 100% { opacity: 1; transform: translateY(0) rotate(-3deg) } }
 @keyframes sweep { 0% { top: 6% } 50% { top: 92% } 100% { top: 6% } }
 @keyframes flash { 0% { opacity: .85 } 100% { opacity: 0 } }
-@keyframes tick { from { stroke-dashoffset: 30; opacity: 0 } to { stroke-dashoffset: 0; opacity: 1 } }
+@keyframes tick { from { stroke-dashoffset: 30; opacity: .85 } to { stroke-dashoffset: 0; opacity: 1 } }
 
 /* ---------- The marketing page: a calm moving background, only when motion is welcome ---------- */
 
@@ -101,8 +105,8 @@ body {
   .mk-turn-back { animation: mk-turn 220s linear infinite reverse; }
   .mk-float { animation: mk-float 26s ease-in infinite; opacity: 0; }
   .mk-glint { animation: mk-glint 17s ease-in-out infinite; }
-  [data-armed]:not(.mk-in) { opacity: 0; transform: translateY(26px); }
-  [data-armed] { transition: opacity 700ms cubic-bezier(.2, .7, .2, 1), transform 700ms cubic-bezier(.2, .7, .2, 1); }
+  [data-armed]:not(.mk-in) { opacity: .85; transform: translateY(14px); }
+  [data-armed] { transition: opacity 180ms cubic-bezier(.2, .7, .2, 1), transform 180ms cubic-bezier(.2, .7, .2, 1); }
   .mk-paused * { animation-play-state: paused !important; }
 }
 

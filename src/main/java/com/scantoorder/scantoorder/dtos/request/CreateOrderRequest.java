@@ -10,11 +10,11 @@ import java.util.List;
 
 @Data
 public class CreateOrderRequest {
- @NotNull(message = "orderItems can not be null")
+ @NotNull(message = "Add at least one plate to your basket")
    private List<CreateOrderItemRequest> orderItems;
 
  // Optional: the seat this order is for. Defaults to the caller's own seat.
- @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format")
+ @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.")
    private String seatId;
  public CreateOrderRequest(){
      orderItems=new ArrayList<>();

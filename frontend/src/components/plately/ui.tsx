@@ -1,5 +1,6 @@
 'use client';
 
+import { createPortal } from 'react-dom';
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
 
 type Tone = 'primary' | 'bottle' | 'outline' | 'light' | 'ghost';
@@ -45,23 +46,27 @@ export function Handwriting({ children, className = '', onPaper = false }: { chi
   return <p className={`font-hand text-[25px] font-bold leading-[1.15] ${onPaper ? 'text-hand' : 'text-mustard'} ${className}`}>{children}</p>;
 }
 
+// "needed" and "optional" sit beside the label, so nobody has to guess which boxes they may skip.
 export function Field({
   label,
   error,
   hint,
+  need,
   className = '',
   ...rest
-}: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; hint?: string }) {
+}: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; hint?: string; need?: 'needed' | 'optional' }) {
   const id = useId();
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={id} className="text-sm font-bold text-bottle">
-        {label}
+      <label htmlFor={id} className="flex items-baseline justify-between gap-3 text-sm font-bold text-bottle">
+        <span>{label}</span>
+        {need ? <span className="flex-none text-[13px] font-normal text-quiet">{need}</span> : null}
       </label>
       <input
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
+        required={need === 'needed' ? true : undefined}
         {...rest}
         className="h-[50px] w-full rounded-xl border-[1.5px] border-rule2 bg-paperlight px-3.5 text-[17px] text-ink placeholder:text-quiet/70 focus:border-bottle aria-invalid:border-hand aria-invalid:border-2"
       />
@@ -106,21 +111,25 @@ export function SelectField({
   );
 }
 
-// "Saving a chair for a friend?", stock, and "Open for orders".
+// "Saving a chair for a friend?", stock, and "Open for orders". ON or OFF is written beside it, so the state never rests on colour alone.
 export function Switch({ checked, onChange, labelledBy, disabled }: { checked: boolean; onChange: (next: boolean) => void; labelledBy: string; disabled?: boolean }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-labelledby={labelledBy}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative h-8 w-14 flex-none rounded-full before:absolute before:-inset-x-2 before:-inset-y-3 before:content-[''] ${checked ? 'bg-bottle' : 'bg-[#A99E84]'}`}
-    >
-      <span className={`absolute top-1 h-6 w-6 rounded-full bg-paperlight shadow transition-all ${checked ? 'left-[28px]' : 'left-1'}`} />
-      <span className="sr-only">{checked ? 'On' : 'Off'}</span>
-    </button>
+    <span className="inline-flex flex-none items-center gap-2.5">
+      <span aria-hidden="true" className={`w-7 text-right text-[13px] font-bold tracking-[0.06em] ${checked ? 'text-bottle' : 'text-quiet'}`}>
+        {checked ? 'ON' : 'OFF'}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-labelledby={labelledBy}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className={`relative h-8 w-14 flex-none rounded-full before:absolute before:-inset-x-2 before:-inset-y-3 before:content-[''] ${checked ? 'bg-bottle' : 'bg-[#A99E84]'}`}
+      >
+        <span className={`absolute top-1 h-6 w-6 rounded-full bg-paperlight shadow transition-all ${checked ? 'left-[28px]' : 'left-1'}`} />
+      </button>
+    </span>
   );
 }
 
@@ -169,9 +178,10 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
       previous?.focus?.();
     };
   }, [open, onClose]);
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 animate-fade sm:items-center" onClick={onClose}>
+  if (!open || typeof document === 'undefined') return null;
+  // Drawn at the top of the page, outside whatever it was opened from, so nothing (not even the floating tab bar) can sit over it.
+  return createPortal(
+    <div className="plately fixed inset-0 z-50 flex items-end justify-center bg-black/55 animate-fade sm:items-center" onClick={onClose}>
       <div
         ref={panel}
         role="dialog"
@@ -179,11 +189,12 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
         aria-label={label}
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
-        className="max-h-[92dvh] w-full max-w-md animate-sheet outline-none overflow-y-auto rounded-t-[28px] bg-paper p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-ink shadow-2xl sm:rounded-[28px] sm:pb-6"
+        className="max-h-[92dvh] w-full max-w-md animate-sheet outline-none overflow-y-auto rounded-t-[28px] bg-paper p-6 pb-[var(--bar-clear)] text-ink shadow-2xl sm:rounded-[28px] sm:pb-6"
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

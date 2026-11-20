@@ -67,7 +67,7 @@ public class SessionController {
     @DeleteMapping("/me/holds/{seatId}")
     public ResponseEntity<ApiResponse<SessionViewResponse>> releaseHold(
             @AuthenticationPrincipal CustomerPrincipal principal,
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String seatId) {
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String seatId) {
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(diningSessionService.releaseHold(principal, seatId)));
     }
 
@@ -107,7 +107,7 @@ public class SessionController {
     @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @PostMapping("/{id}/close")
     public ResponseEntity<ApiResponse<CloseSessionResponse>> closeSession(
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String id) {
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String id) {
         CloseSessionResponse response = diningSessionService.closeSession(CurrentTenant.id(), id);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }

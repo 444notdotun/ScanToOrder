@@ -35,7 +35,7 @@ public class PublicScanController {
 
     @GetMapping("/tables/{displayNumber}/seatMap")
     public ResponseEntity<ApiResponse<ViewTableAndSeatAvailabilityResponse>> seatMap(
-            @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "Invalid identifier format") String slug,
+            @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "That link doesn't look right. Go back and try again.") String slug,
             @PathVariable @Min(1) int displayNumber) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(new ApiResponse<>(tableService.publicSeatMap(slug, displayNumber)));
@@ -43,7 +43,7 @@ public class PublicScanController {
 
     @GetMapping("/menu")
     public ResponseEntity<ApiResponse<MenuResponse>> menu(
-            @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "Invalid identifier format") String slug) {
+            @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "That link doesn't look right. Go back and try again.") String slug) {
         Tenant tenant = tenantAccess.openTenantBySlug(slug);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(new ApiResponse<>(menuService.generateMenu(tenant.getTenantId())));

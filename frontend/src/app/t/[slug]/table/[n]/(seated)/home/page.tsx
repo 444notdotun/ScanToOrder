@@ -6,6 +6,7 @@ import { useId, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import OrderTracker from '@/components/guest/OrderTracker';
 import SavedChair from '@/components/guest/SavedChair';
+import SeatRow from '@/components/guest/SeatRow';
 import { Brand } from '@/components/plately/Logo';
 import { useConnection } from '@/components/plately/Connection';
 import { Button, Card, FailureCard, Sheet, Switch } from '@/components/plately/ui';
@@ -110,25 +111,17 @@ export default function HomePage() {
           <h2 className="mb-3 font-heading text-[22px] font-normal text-bottle">Your table</h2>
           <ul className="flex flex-col divide-y divide-rule">
             {session.seats.map((seat) => (
-              <li key={seat.seatId} className="py-3 first:pt-0">
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-base font-bold ${seat.status === 'HELD' ? 'border-2 border-mustard bg-mustard/20 text-bottle' : 'bg-bottle text-cream'}`}>
-                    {seat.position}
-                  </div>
-                  <div>
-                    <div className="text-base font-bold text-ink">{title(seat)}</div>
-                    <div className="text-sm text-quiet">{note(seat)}</div>
-                  </div>
-                </div>
+              <SeatRow key={seat.seatId} position={seat.position} held={seat.status === 'HELD'} title={title(seat)} note={note(seat)}>
                 {seat.status === 'HELD' ? (
                   <SavedChair
                     joinCode={session.joinCode}
+                    link={typeof window === 'undefined' ? undefined : `${window.location.origin}/t/${slug}/table/${n}`}
                     disabled={busy || lost}
                     onLetGo={() => void letGo(seat)}
                     onSeat={(guestName) => seatThem(seat, guestName)}
                   />
                 ) : null}
-              </li>
+              </SeatRow>
             ))}
           </ul>
 

@@ -21,6 +21,7 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { slug, n, eventCode } = useParams<{ slug: string; n: string; eventCode?: string }>();
   const basket = cartCount(useCart((state) => state.lines));
+  const setBasketOpen = useCart((state) => state.setBasketOpen);
   const [calling, setCalling] = useState(false);
   const session = useSession();
   const stream = useLiveStream('guest', Boolean(session.data));
@@ -64,7 +65,19 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
         {children}
         <BottomBar
           label="Your table"
-          items={guestItems({ slug, n, eventCode, path, basket, call: () => setCalling(true) })}
+          items={guestItems({
+            slug,
+            n,
+            eventCode,
+            path,
+            basket,
+            call: () => setCalling(true),
+            // The basket is a sheet on the order page: from another page, go there and it opens.
+            openBasket: () => {
+              setBasketOpen(true);
+              if (!path.endsWith('/order')) router.push(`/t/${slug}/table/${n}/order`);
+            },
+          })}
         />
         <CallWaiterSheet open={calling} onClose={() => setCalling(false)} session={session.data} />
       </Ground>
@@ -74,7 +87,7 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
 
 // A restaurant guest moves between the menu, their table, their basket and a waiter. An event guest has no basket:
 // one plate at a time, straight to the kitchen.
-function guestItems({ slug, n, eventCode, path, basket, call }: { slug: string; n: string; eventCode?: string; path: string; basket: number; call: () => void }): BarItem[] {
+function guestItems({ slug, n, eventCode, path, basket, call, openBasket }: { slug: string; n: string; eventCode?: string; path: string; basket: number; call: () => void; openBasket: () => void }): BarItem[] {
   const callItem: BarItem = { key: 'call', label: 'Call waiter', icon: icons.bell, onSelect: call };
   if (eventCode) {
     const base = `/t/${slug}/e/${eventCode}/table/${n}`;
@@ -88,7 +101,7 @@ function guestItems({ slug, n, eventCode, path, basket, call }: { slug: string; 
   return [
     { key: 'menu', label: 'Menu', icon: icons.menu, href: `${base}/order`, current: path.endsWith('/order') },
     { key: 'table', label: 'My table', icon: icons.table, href: `${base}/home`, current: !path.endsWith('/order') },
-    { key: 'basket', label: 'Basket', icon: icons.basket, href: `${base}/order#basket`, count: basket },
+    { key: 'basket', label: 'Basket', icon: icons.basket, onSelect: openBasket, count: basket },
     callItem,
   ];
 }

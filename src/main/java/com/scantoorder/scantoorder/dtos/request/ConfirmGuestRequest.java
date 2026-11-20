@@ -7,11 +7,11 @@ import lombok.Data;
 
 @Data
 public class ConfirmGuestRequest {
-    @NotBlank(message = "seat id cannot be blank")
-    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format")
+    @NotBlank(message = "Choose a seat")
+    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.")
     private String seatId;
 
-    @NotBlank(message = "guest name cannot be blank")
-    @Size(max = 80, message = "guest name is too long")
+    @NotBlank(message = "Enter the guest's name")
+    @Size(max = 80, message = "That name is too long. Keep it under 80 letters.")
     private String guestName;
 }

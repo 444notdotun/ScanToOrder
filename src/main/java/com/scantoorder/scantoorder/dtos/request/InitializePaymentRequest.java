@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InitializePaymentRequest {
-    @NotBlank(message = "Order ID is required")
-    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format")
+    @NotBlank(message = "We can't find that order. Go back and try again.")
+    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.")
     private String orderId;
     // Optional: checked as an email only when the guest gave one.
-    @Email(message = "Invalid email format")
+    @Email(message = "That email doesn't look right")
     private String customerEmail;
 }

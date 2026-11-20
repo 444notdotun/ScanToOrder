@@ -36,7 +36,7 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('CHEF', 'WAITER', 'MANAGER')")
     @PatchMapping("/{orderId}")
     public ResponseEntity<ApiResponse<Order>> updateOrder(
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String orderId,
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String orderId,
             @RequestParam String status) {
         Order response = orderService.updateOrder(CurrentTenant.id(), status, orderId);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
@@ -45,7 +45,7 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('CUSTOMER', 'WAITER', 'CHEF', 'MANAGER')")
     @GetMapping("/{orderId}/status")
     public ResponseEntity<ApiResponse<String>> checkOrderStatus(
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String orderId) {
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String orderId) {
         String response = orderService.checkOrderStatus(CurrentTenant.id(), orderId);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
     }
