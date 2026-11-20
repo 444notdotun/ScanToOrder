@@ -77,7 +77,8 @@ export default function Backdrop() {
     <div ref={root} aria-hidden="true" className="mk-layer">
       <div ref={slow} className="mk-parallax">
         <div className="mk-drift absolute -top-[120px] left-0 h-[calc(100%+120px)] w-[calc(100%+120px)]">
-          <EtchedPattern className="absolute inset-0 h-full w-full" />
+          {/* About 7% in all (13% pattern x 0.55), so text over it keeps its contrast. */}
+          <EtchedPattern className="absolute inset-0 h-full w-full" opacity={0.55} />
         </div>
       </div>
       <div ref={mid} className="mk-parallax">
