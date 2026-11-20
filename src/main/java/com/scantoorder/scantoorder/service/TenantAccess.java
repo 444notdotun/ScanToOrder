@@ -19,7 +19,7 @@ public class TenantAccess {
 
     public void requireTakingOrders(Tenant tenant) {
         if (tenant == null || !tenant.isTakingOrders()) {
-            throw new PlaceClosedException(PLACE_CLOSED);
+            throw new PlaceClosedException(PLACE_CLOSED, tenant == null ? null : tenant.getName());
         }
     }
 

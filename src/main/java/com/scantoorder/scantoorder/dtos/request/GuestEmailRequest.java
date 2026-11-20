@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class GuestEmailRequest {
     @NotBlank(message = "Enter your email")
-    @Email(message = "Invalid email format")
+    @Email(message = "That email doesn't look right")
     @Size(max = 254, message = "That email is too long")
     private String email;
 }

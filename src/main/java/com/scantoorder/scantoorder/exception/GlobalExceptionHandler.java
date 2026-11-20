@@ -12,12 +12,21 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    // What a guest or staff member reads when the server gives us nothing they could act on. The real error is in the log.
+    static final String SOMETHING_WENT_WRONG = "Something went wrong on our side. Try again in a moment.";
+    static final String BAD_REQUEST_PLAIN = "Something in that didn't look right. Check it and try again.";
 
     @ExceptionHandler(PaymentGatewayTimeoutException.class)
     public ResponseEntity<Object> handlePaymentGatewayTimeoutException(PaymentGatewayTimeoutException ex) {
@@ -50,18 +59,23 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             ResourceNotFoundException.class,
-            EntityNotFoundException.class,
             CategoryCanNotBeFoundException.class,
             ItemNotFound.class,
             MenuNotFoundException.class,
             OrderNotFoundException.class,
             SeatNotFoundException.class,
             SessionNotFoundException.class,
-            TableNotFoundException.class,
-            org.springframework.web.servlet.resource.NoResourceFoundException.class
+            TableNotFoundException.class
     })
     public ResponseEntity<Object> handleNotFoundExceptions(Exception ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    // These come from the framework or the database layer, so their own text is for the log only.
+    @ExceptionHandler({EntityNotFoundException.class, org.springframework.web.servlet.resource.NoResourceFoundException.class})
+    public ResponseEntity<Object> handleFrameworkNotFound(Exception ex) {
+        log.info("Not found: {}", ex.getMessage());
+        return buildResponse(HttpStatus.NOT_FOUND, "We can't find that.");
     }
 
     @ExceptionHandler(OrderStatusException.class)
@@ -91,7 +105,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(PlaceClosedException.class)
     public ResponseEntity<Object> handlePlaceClosedException(PlaceClosedException ex) {
-        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+        Map<String, Object> body = body(HttpStatus.CONFLICT, ex.getMessage());
+        // A closed place the guest scanned is named, so the screen can say who is closed. An unknown link has no name.
+        if (ex.getBusinessName() != null) body.put("businessName", ex.getBusinessName());
+        return new ResponseEntity<>(body, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(BadSignInException.class)
@@ -146,63 +163,98 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "You are not allowed to do that");
     }
 
+    // A form's mistakes come back as plain sentences, one per field, so a screen can put each under its own field.
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
-        StringBuilder message = new StringBuilder("Validation failed: ");
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error ->
-                message.append(error.getField()).append(" - ").append(error.getDefaultMessage()).append("; ")
-        );
-        return buildResponse(HttpStatus.BAD_REQUEST, message.toString().trim());
+                fieldErrors.putIfAbsent(error.getField(), plainSentence(error.getDefaultMessage())));
+        log.info("Request rejected by validation: {}", ex.getMessage());
+        String first = fieldErrors.values().stream().findFirst().orElse(BAD_REQUEST_PLAIN);
+        Map<String, Object> body = body(HttpStatus.BAD_REQUEST, first);
+        body.put("fieldErrors", fieldErrors);
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
+    // A link or query value that is the wrong shape. The field path is for the log, never for a person.
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Object> handleConstraintViolationException(ConstraintViolationException ex) {
-        StringBuilder message = new StringBuilder("Validation failed: ");
-        ex.getConstraintViolations().forEach(violation ->
-                message.append(violation.getPropertyPath()).append(" - ").append(violation.getMessage()).append("; ")
-        );
-        return buildResponse(HttpStatus.BAD_REQUEST, message.toString().trim());
+        log.info("Request rejected by validation: {}", ex.getMessage());
+        String first = ex.getConstraintViolations().stream()
+                .map(violation -> plainSentence(violation.getMessage()))
+                .findFirst().orElse(BAD_REQUEST_PLAIN);
+        return buildResponse(HttpStatus.BAD_REQUEST, first);
     }
 
     @ExceptionHandler(org.springframework.web.method.annotation.HandlerMethodValidationException.class)
     public ResponseEntity<Object> handleHandlerMethodValidationException(org.springframework.web.method.annotation.HandlerMethodValidationException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "Validation failed: " + ex.getMessage());
+        log.info("Request rejected by validation: {}", ex.getMessage());
+        String first = ex.getAllErrors().stream()
+                .map(error -> plainSentence(error.getDefaultMessage()))
+                .findFirst().orElse(BAD_REQUEST_PLAIN);
+        return buildResponse(HttpStatus.BAD_REQUEST, first);
+    }
+
+    // A link with letters where a number belongs, for example /tables/abc.
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Object> handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        log.info("Link value of the wrong type: {}", ex.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, "That link doesn't look right. Go back and try again.");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Object> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        log.info("Unreadable request body: {}", ex.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, BAD_REQUEST_PLAIN);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<Object> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
-        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage());
+        log.info("Wrong method: {}", ex.getMessage());
+        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, "That isn't something this page can do.");
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<Object> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException ex) {
-        return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage());
+        log.info("Unsupported media type: {}", ex.getMessage());
+        return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, BAD_REQUEST_PLAIN);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
-        String message = "A database constraint was violated (e.g., duplicate entry or invalid reference).";
-        ex.getMostSpecificCause();
-        message = "Data constraint violation: " + ex.getMostSpecificCause().getMessage();
-        return buildResponse(HttpStatus.CONFLICT, message);
+        log.warn("Database constraint violated: {}", ex.getMostSpecificCause().getMessage());
+        return buildResponse(HttpStatus.CONFLICT, "That clashes with something that already exists. Check it and try again.");
     }
+
+    // Anything we did not plan for: the person gets a calm sentence, the log gets the stack trace.
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Object> handleRuntimeException(RuntimeException ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        log.error("Unhandled error", ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, SOMETHING_WENT_WRONG);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleCatchAllException(Exception ex) {
-        ex.printStackTrace();
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        log.error("Unhandled error", ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, SOMETHING_WENT_WRONG);
     }
 
-    private ResponseEntity<Object> buildResponse(HttpStatus status, String message) {
+    // A validation message written for a person is kept as it is. A leftover technical one is replaced.
+    private static String plainSentence(String message) {
+        if (message == null || message.isBlank()) return BAD_REQUEST_PLAIN;
+        return message;
+    }
+
+    private Map<String, Object> body(HttpStatus status, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now().toString());
         body.put("status", status.value());
         body.put("error", status.getReasonPhrase());
         body.put("message", message);
-        return new ResponseEntity<>(body, status);
+        return body;
+    }
+
+    private ResponseEntity<Object> buildResponse(HttpStatus status, String message) {
+        return new ResponseEntity<>(body(status, message), status);
     }
 }

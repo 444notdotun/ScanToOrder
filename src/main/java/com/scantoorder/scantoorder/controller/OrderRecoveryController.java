@@ -27,7 +27,7 @@ public class OrderRecoveryController {
     @PreAuthorize("hasAnyRole('CHEF', 'MANAGER')")
     @PostMapping("/orders/{id}/unavailable")
     public ResponseEntity<ApiResponse<OrderActionResponse>> unavailable(
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
             @Valid @RequestBody UnavailableRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(recoveryService.markUnavailable(CurrentTenant.id(), id, request.getReason())));
     }
@@ -35,7 +35,7 @@ public class OrderRecoveryController {
     @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @PostMapping("/orders/{id}/swap")
     public ResponseEntity<ApiResponse<OrderActionResponse>> swap(
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
             @Valid @RequestBody SwapRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(recoveryService.swap(CurrentTenant.id(), id, request)));
     }
@@ -43,7 +43,7 @@ public class OrderRecoveryController {
     @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @PostMapping("/orders/{id}/refund-request")
     public ResponseEntity<ApiResponse<OrderActionResponse>> refundRequest(
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(recoveryService.requestRefund(CurrentTenant.id(), id)));
     }
 }

@@ -70,33 +70,33 @@ public class EventController {
 
     @PreAuthorize("hasAnyRole('MANAGER', 'WAITER', 'CHEF')")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<EventResponse>> get(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+    public ResponseEntity<ApiResponse<EventResponse>> get(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(eventService.get(CurrentTenant.id(), id)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<EventResponse>> update(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+    public ResponseEntity<ApiResponse<EventResponse>> update(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
                                                              @Valid @RequestBody EventRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(eventService.update(CurrentTenant.id(), id, request)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping("/{id}/end")
-    public ResponseEntity<ApiResponse<EventResponse>> end(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+    public ResponseEntity<ApiResponse<EventResponse>> end(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(eventService.end(CurrentTenant.id(), id)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/{id}/price")
-    public ResponseEntity<ApiResponse<EventPriceResponse>> price(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+    public ResponseEntity<ApiResponse<EventPriceResponse>> price(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
                                                                  @RequestParam @Min(value = 1, message = "Pay for at least one guest") int guests) {
         return ResponseEntity.ok(new ApiResponse<>(eventService.price(CurrentTenant.id(), id, guests)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping("/{id}/pay")
-    public ResponseEntity<ApiResponse<InitializePaymentResponse>> pay(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+    public ResponseEntity<ApiResponse<InitializePaymentResponse>> pay(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
                                                                       @Valid @RequestBody EventPayRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(eventService.startPayment(CurrentTenant.id(), id, request.getGuests(), request.getReceiptEmail())));
     }
@@ -105,29 +105,29 @@ public class EventController {
 
     @PreAuthorize("hasAnyRole('MANAGER', 'WAITER', 'CHEF')")
     @GetMapping("/{id}/plates")
-    public ResponseEntity<ApiResponse<List<EventPlateResponse>>> plates(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+    public ResponseEntity<ApiResponse<List<EventPlateResponse>>> plates(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(plateService.list(CurrentTenant.id(), id)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping("/{id}/plates")
-    public ResponseEntity<ApiResponse<EventPlateResponse>> addPlate(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+    public ResponseEntity<ApiResponse<EventPlateResponse>> addPlate(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
                                                                     @Valid @RequestBody EventPlateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(plateService.create(CurrentTenant.id(), id, request)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PutMapping("/{id}/plates/{plateId}")
-    public ResponseEntity<ApiResponse<EventPlateResponse>> updatePlate(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
-                                                                       @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String plateId,
+    public ResponseEntity<ApiResponse<EventPlateResponse>> updatePlate(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
+                                                                       @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String plateId,
                                                                        @Valid @RequestBody EventPlateRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(plateService.update(CurrentTenant.id(), id, plateId, request)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @DeleteMapping("/{id}/plates/{plateId}")
-    public ResponseEntity<Void> deletePlate(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
-                                            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String plateId) {
+    public ResponseEntity<Void> deletePlate(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
+                                            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String plateId) {
         plateService.delete(CurrentTenant.id(), id, plateId);
         return ResponseEntity.noContent().build();
     }
@@ -136,21 +136,21 @@ public class EventController {
 
     @PreAuthorize("hasAnyRole('MANAGER', 'WAITER')")
     @GetMapping("/{id}/tables")
-    public ResponseEntity<ApiResponse<List<EventTableResponse>>> tables(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+    public ResponseEntity<ApiResponse<List<EventTableResponse>>> tables(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(tableService.list(CurrentTenant.id(), id)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping("/{id}/tables")
-    public ResponseEntity<ApiResponse<EventTableResponse>> addTable(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+    public ResponseEntity<ApiResponse<EventTableResponse>> addTable(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
                                                                     @Valid @RequestBody CreateTableRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(tableService.create(CurrentTenant.id(), id, request)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @DeleteMapping("/{id}/tables/{tableId}")
-    public ResponseEntity<Void> deleteTable(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
-                                            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String tableId) {
+    public ResponseEntity<Void> deleteTable(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
+                                            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String tableId) {
         tableService.delete(CurrentTenant.id(), id, tableId);
         return ResponseEntity.noContent().build();
     }
@@ -159,29 +159,29 @@ public class EventController {
 
     @PreAuthorize("hasAnyRole('MANAGER', 'WAITER')")
     @GetMapping("/{id}/guests")
-    public ResponseEntity<ApiResponse<List<EventGuestResponse>>> guests(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+    public ResponseEntity<ApiResponse<List<EventGuestResponse>>> guests(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(guestService.list(CurrentTenant.id(), id)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping("/{id}/guests")
-    public ResponseEntity<ApiResponse<EventGuestResponse>> addGuest(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+    public ResponseEntity<ApiResponse<EventGuestResponse>> addGuest(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
                                                                     @Valid @RequestBody EventGuestRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(guestService.add(CurrentTenant.id(), id, request)));
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @DeleteMapping("/{id}/guests/{guestId}")
-    public ResponseEntity<Void> removeGuest(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
-                                            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String guestId) {
+    public ResponseEntity<Void> removeGuest(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
+                                            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String guestId) {
         guestService.remove(CurrentTenant.id(), id, guestId);
         return ResponseEntity.noContent().build();
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PatchMapping("/{id}/guests/{guestId}/limit")
-    public ResponseEntity<ApiResponse<EventGuestResponse>> raiseLimit(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
-                                                                      @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String guestId,
+    public ResponseEntity<ApiResponse<EventGuestResponse>> raiseLimit(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
+                                                                      @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String guestId,
                                                                       @Valid @RequestBody EventGuestLimitRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(guestService.raiseLimit(CurrentTenant.id(), id, guestId, request)));
     }
@@ -189,7 +189,7 @@ public class EventController {
     // The planner shares the codes themselves: emailing them is coming later.
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/{id}/guests/export")
-    public ResponseEntity<byte[]> export(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+    public ResponseEntity<byte[]> export(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"guests.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
@@ -201,14 +201,14 @@ public class EventController {
     // An usher frees the guest's seat so their code works again on a new phone.
     @PreAuthorize("hasAnyRole('MANAGER', 'WAITER')")
     @PostMapping("/{id}/guests/{guestId}/release")
-    public ResponseEntity<ApiResponse<ReleaseSeatResponse>> release(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
-                                                                    @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String guestId) {
+    public ResponseEntity<ApiResponse<ReleaseSeatResponse>> release(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
+                                                                    @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String guestId) {
         return ResponseEntity.ok(new ApiResponse<>(seatingService.release(CurrentTenant.id(), id, guestId)));
     }
 
     @PreAuthorize("hasAnyRole('MANAGER', 'WAITER', 'CHEF')")
     @GetMapping("/{id}/coverage")
-    public ResponseEntity<ApiResponse<EventCoverageResponse>> coverage(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+    public ResponseEntity<ApiResponse<EventCoverageResponse>> coverage(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(coverageService.coverage(CurrentTenant.id(), id)));
     }
 }

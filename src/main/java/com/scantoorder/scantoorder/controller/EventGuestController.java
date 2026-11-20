@@ -41,8 +41,8 @@ public class EventGuestController {
     // Public: what the event is called, so the guest sees it before typing a code.
     @GetMapping("/t/{slug}/e/{eventCode}/tables/{displayNumber}")
     public ResponseEntity<ApiResponse<EventTablePreviewResponse>> preview(
-            @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "Invalid identifier format") String slug,
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9]{6}$", message = "Invalid identifier format") String eventCode,
+            @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "That link doesn't look right. Go back and try again.") String slug,
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9]{6}$", message = "That link doesn't look right. Go back and try again.") String eventCode,
             @PathVariable @Min(1) int displayNumber) {
         return ResponseEntity.ok(new ApiResponse<>(seatingService.preview(slug, eventCode, displayNumber)));
     }
@@ -51,8 +51,8 @@ public class EventGuestController {
     @PostMapping("/t/{slug}/e/{eventCode}/tables/{displayNumber}/code")
     public ResponseEntity<ApiResponse<SeatClaimedResponse>> redeem(
             @AuthenticationPrincipal Object principal,
-            @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "Invalid identifier format") String slug,
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9]{6}$", message = "Invalid identifier format") String eventCode,
+            @PathVariable @Pattern(regexp = "^[a-z0-9]+$", message = "That link doesn't look right. Go back and try again.") String slug,
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9]{6}$", message = "That link doesn't look right. Go back and try again.") String eventCode,
             @PathVariable @Min(1) int displayNumber,
             @Valid @RequestBody EventCodeRequest request) {
         SeatClaimedResponse response = seatingService.redeem(slug, eventCode, displayNumber, request.getCode(),

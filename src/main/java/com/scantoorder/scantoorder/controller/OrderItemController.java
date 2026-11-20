@@ -27,7 +27,7 @@ public class OrderItemController {
     @PostMapping
     public ResponseEntity<ApiResponse<OrderItem>> createOrderItem(
             @AuthenticationPrincipal CustomerPrincipal caller,
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String orderId,
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String orderId,
             @Valid @RequestBody CreateOrderItemRequest request) {
         OrderItem response = orderItemService.addItemToMyOrder(caller, orderId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(response));

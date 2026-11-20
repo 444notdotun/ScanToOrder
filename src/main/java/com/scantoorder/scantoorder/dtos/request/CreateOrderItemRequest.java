@@ -6,12 +6,10 @@ import lombok.Data;
 
 @Data
 public class CreateOrderItemRequest {
-    @NotNull(message = "itemId can not be null")
+    @NotNull(message = "Choose a plate")
     private String itemName;
-    @NotNull(message = "itemPrice can not be null")
-
+    @NotNull(message = "Choose how many of that plate you want")
     private int quantity;
-    @NotNull(message = "unitPrice can not be null")
-
+    @NotNull(message = "Something went wrong with that plate. Refresh the menu and try again.")
     private String specialInstructions;
 }

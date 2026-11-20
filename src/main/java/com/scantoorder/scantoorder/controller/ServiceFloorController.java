@@ -41,21 +41,21 @@ public class ServiceFloorController {
     @PreAuthorize("hasAnyRole('CHEF', 'MANAGER')")
     @PostMapping("/orders/{id}/start")
     public ResponseEntity<ApiResponse<OrderActionResponse>> start(@AuthenticationPrincipal WorkerPrincipal caller,
-                                                                  @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+                                                                  @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(steps.start(CurrentTenant.id(), caller.getWorkerId(), id)));
     }
 
     @PreAuthorize("hasAnyRole('CHEF', 'MANAGER')")
     @PostMapping("/orders/{id}/ready")
     public ResponseEntity<ApiResponse<OrderActionResponse>> ready(@AuthenticationPrincipal WorkerPrincipal caller,
-                                                                  @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+                                                                  @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(steps.ready(CurrentTenant.id(), caller.getWorkerId(), id)));
     }
 
     @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @PostMapping("/orders/{id}/deliver")
     public ResponseEntity<ApiResponse<OrderActionResponse>> deliver(@AuthenticationPrincipal WorkerPrincipal caller,
-                                                                    @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+                                                                    @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(steps.deliver(CurrentTenant.id(), caller.getWorkerId(), id)));
     }
 
@@ -83,14 +83,14 @@ public class ServiceFloorController {
     @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @PostMapping("/calls/{id}/take")
     public ResponseEntity<ApiResponse<WaiterCallResponse>> take(@AuthenticationPrincipal WorkerPrincipal caller,
-                                                                @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+                                                                @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(board.take(CurrentTenant.id(), caller.getWorkerId(), id)));
     }
 
     @PreAuthorize("hasAnyRole('WAITER', 'MANAGER')")
     @PostMapping("/calls/{id}/done")
     public ResponseEntity<ApiResponse<WaiterCallResponse>> done(@AuthenticationPrincipal WorkerPrincipal caller,
-                                                                @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+                                                                @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(board.done(CurrentTenant.id(), caller.getWorkerId(), id)));
     }
 

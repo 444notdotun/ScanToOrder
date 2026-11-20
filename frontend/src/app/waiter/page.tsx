@@ -112,7 +112,7 @@ function Orders({ act, part, onSwap }: { act: Act; part: 'carry' | 'visits'; onS
   );
 }
 
-function Calls({ act }: { act: Act }) {
+function Calls({ act, columns = true }: { act: Act; columns?: boolean }) {
   const { lost } = useConnection();
   const calls = useCalls();
   const now = useNow();
@@ -137,7 +137,7 @@ function Calls({ act }: { act: Act }) {
   };
 
   return (
-    <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <ul className={`grid grid-cols-1 gap-3 ${columns ? 'md:grid-cols-2' : ''}`}>
       {calls.data.map((call) => {
         const mine = call.state === 'TAKEN' && call.takenBy === myFirstName;
         return (
@@ -152,7 +152,7 @@ function Calls({ act }: { act: Act }) {
             </div>
             {call.state === 'OPEN' ? (
               <Button full={false} big disabled={lost || act.busy !== null} onClick={() => void act.run(call.callId, () => staffApi.take(call.callId))}>
-                I&apos;ll take it
+                I&apos;ll go
               </Button>
             ) : mine ? (
               <Button full={false} big tone="primary" disabled={lost || act.busy !== null} onClick={() => void act.run(call.callId, () => staffApi.done(call.callId))}>
@@ -196,60 +196,85 @@ function Tables({ act, onClose }: { act: Act; onClose: (table: FloorTable) => vo
     return <p className="rounded-[20px] bg-paper p-4 text-[15px] text-quiet">No tables are set up yet. The manager adds them.</p>;
   }
 
+  const used = (table: FloorTable) => table.seats.filter((seat) => seat.status !== 'VACANT').length;
+  const active = tables.data.filter((table) => used(table) > 0);
+  const empty = tables.data.filter((table) => used(table) === 0);
+
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {tables.data.map((table) => {
-        const label = `Table ${table.displayNumber ?? table.tableNumber}`;
-        const inUse = table.seats.filter((seat) => seat.status !== 'VACANT').length;
-        return (
-          <section key={table.tableId} aria-label={label} className="flex flex-col gap-2 rounded-[20px] bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-heading text-[26px] font-normal text-bottle">{label}</h2>
-              <span className="text-sm font-bold text-quiet">{inUse === 0 ? 'empty' : `${inUse} of ${table.seats.length} in use`}</span>
-            </div>
-            <ul className="flex flex-col">
-              {table.seats.map((seat) => {
-                const line = seatLine(seat);
-                return (
-                  <li key={seat.seatId} className="flex items-center gap-3 border-t border-dashed border-rule2 py-2">
-                    <span
-                      aria-hidden="true"
-                      className={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-sm font-bold ${
-                        seat.status === 'OCCUPIED' ? 'bg-bottle text-cream' : seat.status === 'HELD' ? 'bg-mustard text-ink' : 'border-[1.5px] border-dashed border-quiet text-ink'
-                      }`}
-                    >
-                      {seat.position}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold leading-tight">{line.title}</div>
-                      <div className="text-sm text-quiet">{line.note}</div>
-                    </div>
-                    {seat.status === 'OCCUPIED' ? (
-                      <Button
-                        full={false}
-                        tone="outline"
-                        big
-                        aria-label={`Free seat ${seat.position} at ${label.toLowerCase()}`}
-                        disabled={lost || act.busy !== null}
-                        onClick={() => void act.run(seat.seatId, () => staffApi.release(seat.seatId))}
+    <div className="flex flex-col gap-5">
+      {active.length === 0 ? <p className="rounded-[20px] bg-paper p-4 text-[15px] text-quiet">No table has guests right now.</p> : null}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {active.map((table) => {
+          const label = `Table ${table.displayNumber ?? table.tableNumber}`;
+          const seated = table.seats.filter((seat) => seat.status === 'OCCUPIED');
+          return (
+            <section key={table.tableId} aria-label={label} className="flex flex-col gap-2 rounded-[20px] border-[3px] border-mustard bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="font-heading text-[36px] font-normal leading-none text-bottle">{label}</h2>
+                <span className="text-sm font-bold text-quiet">
+                  {used(table)} of {table.seats.length} in use
+                </span>
+              </div>
+              <ul className="flex flex-col">
+                {table.seats.map((seat) => {
+                  const line = seatLine(seat);
+                  return (
+                    <li key={seat.seatId} className="flex items-center gap-3 border-t border-dashed border-rule2 py-2">
+                      <span
+                        aria-hidden="true"
+                        className={`flex h-12 w-12 flex-none items-center justify-center rounded-full font-heading text-[24px] ${
+                          seat.status === 'OCCUPIED' ? 'bg-bottle text-cream' : seat.status === 'HELD' ? 'bg-mustard text-ink' : 'border-[1.5px] border-dashed border-quiet text-ink'
+                        }`}
                       >
-                        Free seat
-                      </Button>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-            {inUse > 0 ? (
-              <Button big tone="bottle" disabled={lost || act.busy !== null} onClick={() => onClose(table)}>
-                Close this table
-              </Button>
-            ) : (
-              <p className="border-t border-dashed border-rule2 pt-2 text-[15px] text-quiet">Clear and ready for the next guests.</p>
-            )}
-          </section>
-        );
-      })}
+                        {seat.position}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-bold uppercase tracking-[0.1em] text-quiet">Seat {seat.position}</div>
+                        <div className="font-bold leading-tight">{line.title}</div>
+                        <div className="text-sm text-quiet">{line.note}</div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              {/* Free a seat and close the table sit side by side, so neither is pushed off the screen. */}
+              <div className="mt-1 flex flex-wrap gap-2">
+                {seated.map((seat) => (
+                  <Button
+                    key={seat.seatId}
+                    full={false}
+                    tone="outline"
+                    big
+                    className="min-w-[132px] flex-1"
+                    aria-label={`Free seat ${seat.position} at ${label.toLowerCase()}`}
+                    disabled={lost || act.busy !== null}
+                    onClick={() => void act.run(seat.seatId, () => staffApi.release(seat.seatId))}
+                  >
+                    Free seat {seat.position}
+                  </Button>
+                ))}
+                <Button full={false} big tone="bottle" className="min-w-[132px] flex-1" disabled={lost || act.busy !== null} onClick={() => onClose(table)}>
+                  Close this table
+                </Button>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      {empty.length > 0 ? (
+        <section aria-label="Empty tables" className="flex flex-col gap-2">
+          <h2 className="text-[13px] font-bold uppercase tracking-[0.12em] text-soft">Empty tables, ready for guests</h2>
+          <ul className="flex flex-wrap gap-2">
+            {empty.map((table) => (
+              <li key={table.tableId} className="rounded-full border-[1.5px] border-cream/45 px-3.5 py-1.5 text-[15px] font-bold text-cream">
+                Table {table.displayNumber ?? table.tableNumber}
+                <span className="ml-1.5 font-normal text-soft">{table.seats.length} {table.seats.length === 1 ? 'seat' : 'seats'}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -348,7 +373,17 @@ function Floor() {
 
       <div id={FAILURE_ID}>{act.failure && !sheetOpen ? <FailureCard title={act.failure.title} message={act.failure.message} /> : null}</div>
 
-      {tab === 'carry' || tab === 'visits' ? <Orders act={act} part={tab} onSwap={setSwapping} /> : null}
+      {tab === 'carry' ? (
+        // On a wide screen the calls sit beside what is waiting to be carried, so neither is a tap away.
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+          <Orders act={act} part="carry" onSwap={setSwapping} />
+          <section aria-label="Calls" className="hidden flex-col gap-3 lg:flex">
+            <h2 className="font-heading text-[26px] font-normal">Calls</h2>
+            <Calls act={act} columns={false} />
+          </section>
+        </div>
+      ) : null}
+      {tab === 'visits' ? <Orders act={act} part="visits" onSwap={setSwapping} /> : null}
       {tab === 'calls' ? <Calls act={act} /> : null}
       {tab === 'tables' ? <Tables act={act} onClose={setClosing} /> : null}
 

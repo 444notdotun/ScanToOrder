@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import Backdrop from '@/components/marketing/Backdrop';
+import DemoPhone from '@/components/marketing/DemoPhone';
 import Reveal from '@/components/marketing/Reveal';
 import TopBar from '@/components/marketing/TopBar';
 import { Brand, Watermark } from '@/components/plately/Logo';
@@ -14,7 +15,6 @@ export const metadata: Metadata = {
 
 const BUTTON = 'flex min-h-[52px] items-center justify-center rounded-full px-6 text-base font-bold leading-tight text-center';
 const PRIMARY = `${BUTTON} bg-tomato text-white hover:bg-[#a23420]`;
-const GHOST = `${BUTTON} border-[1.5px] border-cream/45 text-cream hover:bg-cream/10`;
 
 function Section({ id, eyebrow, title, intro, children }: { id: string; eyebrow: string; title: string; intro?: string; children: ReactNode }) {
   return (
@@ -47,14 +47,27 @@ function Tile({ number, title, children, delay = 0 }: { number?: number; title: 
   );
 }
 
+// A role and its one sentence, as plain text in a list: no card, no picture.
 function Role({ name, children }: { name: string; children: ReactNode }) {
   return (
-    <li className="rounded-2xl border border-cream/20 bg-bottle/60 p-4">
+    <li className="border-t border-cream/20 py-4 first:border-t-0 first:pt-0">
       <h3 className="text-base font-bold text-mustard">{name}</h3>
       <p className="mt-1 text-[16px] leading-[1.5] text-cream">{children}</p>
     </li>
   );
 }
+
+// One plain column in "Straight answers". "Coming soon" is quiet text, never a chip.
+function Answer({ question, children }: { question: string; children: ReactNode }) {
+  return (
+    <div>
+      <h3 className="text-[13px] font-bold uppercase tracking-[0.14em] text-bottle">{question}</h3>
+      <div className="mt-2 text-[17px] leading-[1.5] text-ink">{children}</div>
+    </div>
+  );
+}
+
+const QUIET = 'text-quiet';
 
 export default function MarketingPage() {
   return (
@@ -64,25 +77,28 @@ export default function MarketingPage() {
         <TopBar />
 
         <main>
-          <section aria-labelledby="hero-title" className="relative mx-auto w-full max-w-6xl px-5 pb-12 pt-14 md:pb-20 md:pt-24">
+          <section aria-labelledby="hero-title" className="relative mx-auto w-full max-w-6xl px-5 pb-12 pt-14 md:pb-20 md:pt-20">
             <Watermark className="-right-28 top-6 hidden md:block" opacity={0.07} />
-            <div className="relative max-w-3xl animate-rise">
-              <h1 id="hero-title" className="font-heading text-[52px] font-normal leading-[1.02] md:text-[84px]">
-                Scan. Order. Eat.
-              </h1>
-              <p className="mt-4 font-hand text-[30px] font-bold leading-tight text-mustard md:text-[36px]">No app to download. No account to make.</p>
-              <p className="mt-5 max-w-2xl text-[18px] leading-[1.55] text-soft md:text-[20px]">
-                Guests scan the code on their table, pick a seat, then order and pay from their phone. Paid orders go straight to the kitchen and the food arrives at
-                the right seat. At events, each guest&apos;s code is their seat and their plates.
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/signup" className={PRIMARY}>
-                  Bring Plately to your business
-                </Link>
-                <Link href="/scan" className={GHOST}>
-                  Here to eat? Scan your table
-                </Link>
+            <div className="relative grid items-center gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+              <div className="animate-rise">
+                <h1 id="hero-title" className="font-heading text-[52px] font-normal leading-[1.02] md:text-[84px]">
+                  Scan. Order. Eat.
+                </h1>
+                <p className="mt-4 font-hand text-[30px] font-bold leading-tight text-mustard md:text-[36px]">No app to download. No account to make.</p>
+                <p className="mt-5 max-w-2xl text-[18px] leading-[1.55] text-soft md:text-[20px]">
+                  Guests scan the code on their table, pick a seat, then order and pay from their phone. Paid orders go straight to the kitchen and the food arrives at
+                  the right seat. At events, each guest&apos;s code is their seat and their plates.
+                </p>
+                <div className="mt-8 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-6">
+                  <Link href="/signup" className={`${PRIMARY} w-full sm:w-auto`}>
+                    Get Plately for your place
+                  </Link>
+                  <Link href="/scan" className="flex min-h-[44px] items-center text-[16px] font-bold text-soft underline underline-offset-4 hover:text-cream">
+                    I&apos;m at a table: scan to order
+                  </Link>
+                </div>
               </div>
+              <DemoPhone />
             </div>
           </section>
 
@@ -104,24 +120,26 @@ export default function MarketingPage() {
           </Section>
 
           <Section id="restaurants" eyebrow="For restaurants" title="Run your place on it.">
-            <div className="grid gap-4 md:grid-cols-3">
-              <Tile title="Menu, tables and team">
-                One short form to sign up. Print a code for each table, and go live once Plately approves you.
-              </Tile>
-              <Tile title="Paid on every order" delay={80}>
-                Each payment is split automatically, and your share goes straight to your bank.
-              </Tile>
-              <Tile title="See how the night went" delay={160}>
-                Sales, best plates, busiest hours and how fast calls were answered. Today, this week, this month.
-              </Tile>
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+              <div className="grid gap-4 md:grid-cols-3">
+                <Tile title="Menu, tables and team">
+                  One short form to sign up. Print a code for each table, and go live once Plately approves you.
+                </Tile>
+                <Tile title="Paid on every order" delay={80}>
+                  Each payment is split automatically, and your share goes straight to your bank.
+                </Tile>
+                <Tile title="See how the night went" delay={160}>
+                  Sales, best plates, busiest hours and how fast calls were answered. Today, this week, this month.
+                </Tile>
+              </div>
+              <Reveal>
+                <ul aria-label="Who does what" className="lg:border-l lg:border-cream/20 lg:pl-8">
+                  <Role name="The chef">Sees an order only once it is paid, starts it, marks it ready, and marks a dish sold out.</Role>
+                  <Role name="The waiter">Carries ready plates to the right seat, answers calls, and frees seats or closes a table.</Role>
+                  <Role name="The manager">Sets the menu, tables and team, opens and closes for orders, and settles refunds.</Role>
+                </ul>
+              </Reveal>
             </div>
-            <Reveal className="mt-6">
-              <ul className="grid gap-3 md:grid-cols-3">
-                <Role name="The chef">Sees an order only once it is paid, starts it, marks it ready, and marks a dish sold out.</Role>
-                <Role name="The waiter">Carries ready plates to the right seat, answers calls, and frees seats or closes a table.</Role>
-                <Role name="The manager">Sets the menu, tables and team, opens and closes for orders, and settles refunds.</Role>
-              </ul>
-            </Reveal>
           </Section>
 
           <Section id="events" eyebrow="For event planners" title="Feed every guest, and know that you did.">
@@ -147,6 +165,30 @@ export default function MarketingPage() {
             </div>
           </Section>
 
+          <section aria-labelledby="answers-title" className="bg-cream text-ink">
+            <div className="mx-auto w-full max-w-6xl px-5 py-12 md:py-16">
+              <h2 id="answers-title" className="font-heading text-[30px] font-normal leading-[1.1] text-bottle md:text-[38px]">
+                Straight answers
+              </h2>
+              <div className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                <Answer question="How guests pay">Every way they like: card, bank transfer, USSD and more, through Paystack.</Answer>
+                <Answer question="What it costs">Pricing: coming soon.</Answer>
+                <Answer question="Talk to us">
+                  <p>
+                    On X:{' '}
+                    <a href="https://x.com/platelyy" rel="noopener noreferrer" target="_blank" className="font-bold text-bottle underline underline-offset-4">
+                      @platelyy
+                    </a>
+                  </p>
+                  <p className={`mt-1 ${QUIET}`}>WhatsApp and email: coming soon.</p>
+                </Answer>
+                <Answer question="About us">
+                  <p className={QUIET}>Coming soon.</p>
+                </Answer>
+              </div>
+            </div>
+          </section>
+
           <section aria-labelledby="closing-title" className="relative mx-auto w-full max-w-6xl px-5 pb-20 pt-10 md:pb-28">
             <Reveal>
               <div className="rounded-[28px] border border-cream/20 bg-bottle/70 px-6 py-12 text-center md:py-16">
@@ -157,7 +199,7 @@ export default function MarketingPage() {
                 <p className="mx-auto mt-3 max-w-xl text-[18px] leading-[1.5] text-soft">Tell us about your place and we&apos;ll get the tables ready.</p>
                 <div className="mx-auto mt-7 max-w-sm">
                   <Link href="/signup" className={PRIMARY}>
-                    Bring Plately to your business
+                    Get Plately for your place
                   </Link>
                 </div>
               </div>

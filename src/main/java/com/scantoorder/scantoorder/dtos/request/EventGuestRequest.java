@@ -13,12 +13,12 @@ public class EventGuestRequest {
     private String name;
     @Size(max = 30, message = "That phone number is too long")
     private String phone;
-    @Email(message = "Invalid email format")
+    @Email(message = "That email doesn't look right")
     @Size(max = 254, message = "That email is too long")
     private String email;
     // Assigned seating only. A table alone gets its next free seat; leave both out and the next free seat anywhere is used.
-    @Pattern(regexp = "^[A-Za-z0-9_-]*$", message = "Invalid identifier")
+    @Pattern(regexp = "^[A-Za-z0-9_-]*$", message = "That link doesn't look right. Go back and try again.")
     private String tableId;
-    @Pattern(regexp = "^[A-Za-z0-9_-]*$", message = "Invalid identifier")
+    @Pattern(regexp = "^[A-Za-z0-9_-]*$", message = "That link doesn't look right. Go back and try again.")
     private String seatId;
 }

@@ -11,7 +11,7 @@ import java.util.List;
 
 @Data
 public class HoldSeatsRequest {
-    @NotEmpty(message = "choose at least one seat to hold")
-    @Size(max = 20, message = "too many seats")
-    private List<@NotBlank @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier format") String> seatIds = new ArrayList<>();
+    @NotEmpty(message = "Choose at least one chair to save")
+    @Size(max = 20, message = "That is too many chairs to save at once")
+    private List<@NotBlank @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String> seatIds = new ArrayList<>();
 }
