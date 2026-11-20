@@ -7,11 +7,11 @@ import { useQuery } from '@tanstack/react-query';
 import OrderTracker from '@/components/guest/OrderTracker';
 import { useConnection } from '@/components/plately/Connection';
 import { Loader } from '@/components/plately/Logo';
-import { Button, Dashes, Eyebrow, FailureCard, Field } from '@/components/plately/ui';
+import { Button, Dashes, Eyebrow, FailureCard, Field, Sheet } from '@/components/plately/ui';
 import { guestApi, rememberedTable, useSession, useSessionOrders } from '@/lib/guest';
 import { dataOf, failureOf, http, type ApiFailure } from '@/lib/http';
 import { naira } from '@/lib/money';
-import { useCart } from '@/store/cartStore';
+import { cartCount, useCart } from '@/store/cartStore';
 
 // What'll it be? Pick plates, say who they are for, pay, and the kitchen starts cooking.
 function OrderScreen() {
@@ -24,6 +24,9 @@ function OrderScreen() {
 
   const cart = useCart((state) => state.lines);
   const change = useCart((state) => state.change);
+  const basketOpen = useCart((state) => state.basketOpen);
+  const setBasketOpen = useCart((state) => state.setBasketOpen);
+  const [emailProblem, setEmailProblem] = useState<string | undefined>();
   const [forSeat, setForSeat] = useState<string | null>(null);
   const [email, setEmail] = useState(() => rememberedTable()?.email ?? '');
   const [failure, setFailure] = useState<ApiFailure | null>(null);
@@ -37,10 +40,11 @@ function OrderScreen() {
   const target = forSeat && withoutPhone.some((seat) => seat.seatId === forSeat) ? forSeat : null;
   const pending = resume ? orders.data?.orders.find((order) => order.orderId === resume && order.status === 'PENDING_PAYMENT') : undefined;
 
-  // Tapping Basket on another page arrives here with #basket: go straight to it.
+  // An old #basket link, or a payment that was left half-done, opens the basket sheet. On a laptop the basket is already in view.
   useEffect(() => {
-    if (window.location.hash === '#basket') document.getElementById('basket')?.scrollIntoView({ block: 'start' });
-  }, [menu.data]);
+    const wide = window.matchMedia('(min-width: 1280px)').matches;
+    if (!wide && (window.location.hash === '#basket' || resume)) setBasketOpen(true);
+  }, [resume, setBasketOpen]);
 
   const priced = useMemo(() => {
     const lines: Array<{ name: string; quantity: number; price: number }> = [];
@@ -67,9 +71,10 @@ function OrderScreen() {
 
   const pay = async () => {
     if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setFailure({ status: null, title: '', message: 'That email does not look right. Leave it empty if you would rather not give one.', offline: false });
+      setEmailProblem("That email doesn't look right. Leave it empty if you'd rather not give one.");
       return;
     }
+    setEmailProblem(undefined);
     setPaying(true);
     setFailure(null);
     try {
@@ -109,8 +114,62 @@ function OrderScreen() {
     document.getElementById(`menu-${name}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
 
+  const plates = cartCount(cart);
+  // Items, the total, Pay right under the total, and the optional receipt email below Pay.
+  const basket = (
+    <>
+      <h2 className="mb-1 font-heading text-[22px] font-normal text-bottle">Your basket</h2>
+      {!pending && target ? <p className="mb-3 text-[15px] font-bold text-hand">For {withoutPhone.find((seat) => seat.seatId === target)?.guestName ?? 'your friend'}. You pay for them.</p> : <div className="mb-2" />}
+      {pending ? (
+        <>
+          <div className="text-[15px] font-bold">{pending.items.join(', ')}</div>
+          <div className="mt-2 flex justify-between border-t border-dashed border-rule2 pt-2 text-base font-bold">
+            <span>Total</span>
+            <span>{naira(pending.amount)}</span>
+          </div>
+        </>
+      ) : priced.length === 0 ? (
+        <p className="mb-3 text-[15px] text-quiet">Nothing yet. Tap Add on a plate.</p>
+      ) : (
+        <>
+          {priced.map((line) => (
+            <div key={line.name} className="flex justify-between gap-3 py-0.5 text-[15px]">
+              <span>
+                {line.quantity} × {line.name}
+              </span>
+              <span className="font-bold">{naira(line.price * line.quantity)}</span>
+            </div>
+          ))}
+          <div className="mt-2 flex justify-between border-t border-dashed border-rule2 pt-2 text-base font-bold">
+            <span>Total</span>
+            <span>{naira(total)}</span>
+          </div>
+        </>
+      )}
+      <Button className="mt-4" tone="primary" big disabled={!canPay || lost || !mine} onClick={() => void pay()}>
+        {payLabel}
+      </Button>
+      <p className="mt-2 text-center text-sm text-quiet">The kitchen starts cooking the moment you&apos;ve paid.</p>
+      {failure ? <FailureCard className="mt-3" title={failure.title} message={failure.message} /> : null}
+      <Dashes className="my-4" />
+      <Field
+        label="Email for your receipt"
+        need="optional"
+        type="email"
+        value={email}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          setEmailProblem(undefined);
+        }}
+        autoComplete="email"
+        error={emailProblem}
+        hint="We'll send the receipt there. Leave it empty and you still get one on this screen."
+      />
+    </>
+  );
+
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-3 px-5 pb-6 md:max-w-3xl xl:max-w-5xl">
+    <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-3 px-5 pb-24 md:max-w-3xl xl:max-w-5xl xl:pb-6">
       <h1 className="mt-3 font-heading text-[34px] font-normal leading-[1.1]">{pending ? 'Nearly there.' : "What'll it be?"}</h1>
 
       <OrderTracker />
@@ -228,41 +287,33 @@ function OrderScreen() {
 
         </div>
 
-      <section id="basket" aria-label="Your basket" className="mt-2 scroll-mt-[calc(var(--you-h)+1rem)] rounded-[20px] bg-paper p-5 text-ink xl:sticky xl:top-[calc(var(--you-h)+1rem)]">
-        <h2 className="mb-1 font-heading text-[22px] font-normal text-bottle">Your basket</h2>
-        {!pending && target ? <p className="mb-3 text-[15px] font-bold text-hand">For {withoutPhone.find((seat) => seat.seatId === target)?.guestName ?? 'your friend'}. You pay for them.</p> : <div className="mb-2" />}
-        {!pending && priced.length === 0 ? <p className="mb-3 text-[15px] text-quiet">Nothing yet. Tap Add on a plate.</p> : null}
-        {!pending && priced.length > 0 ? (
-          <>
-            {priced.map((line) => (
-              <div key={line.name} className="flex justify-between gap-3 py-0.5 text-[15px]">
-                <span>
-                  {line.quantity} × {line.name}
-                </span>
-                <span className="font-bold">{naira(line.price * line.quantity)}</span>
-              </div>
-            ))}
-            <div className="mt-2 flex justify-between border-t border-dashed border-rule2 pt-2 text-base font-bold">
-              <span>Total</span>
-              <span>{naira(total)}</span>
-            </div>
-            <Dashes className="my-4" />
-          </>
-        ) : null}
-        <Field
-          label="Email for your receipt (optional)"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          hint="We'll send the receipt there. Leave it empty and you still get one on this screen."
-        />
-        {failure ? <FailureCard className="mt-3" title={failure.title} message={failure.message} /> : null}
-        <Button className="mt-4" tone="primary" big disabled={!canPay || lost || !mine} onClick={() => void pay()}>
-          {payLabel}
-        </Button>
-        <p className="mt-2 text-center text-sm text-quiet">The kitchen starts cooking the moment you&apos;ve paid.</p>
+      <section id="basket" aria-label="Your basket" className="mt-2 hidden scroll-mt-[calc(var(--you-h)+1rem)] rounded-[20px] bg-paper p-5 text-ink xl:sticky xl:top-[calc(var(--you-h)+1rem)] xl:block">
+        {basket}
       </section>
+      </div>
+
+      {/* Below the laptop layout the basket is its own sheet, and a bar just above the tab bar says what is in it. */}
+      {canPay ? (
+        <div className="pointer-events-none fixed inset-x-[14px] bottom-[calc(var(--bar-h)+8px+env(safe-area-inset-bottom))] z-30 flex justify-center md:bottom-[calc(16px+env(safe-area-inset-bottom))] xl:hidden print:hidden">
+          <button
+            type="button"
+            onClick={() => setBasketOpen(true)}
+            className="pointer-events-auto flex min-h-[56px] w-full max-w-md items-center justify-between gap-3 rounded-full bg-tomato px-5 text-left text-base font-bold leading-tight text-white shadow-[0_10px_28px_rgba(0,0,0,0.4)] hover:bg-[#a23420]"
+          >
+            <span className="min-w-0">
+              {pending ? 'Finish paying' : `${plates} ${plates === 1 ? 'plate' : 'plates'}`}
+              <span aria-hidden="true"> · </span>
+              {naira(pending ? pending.amount : total)}
+            </span>
+            <span className="flex-none underline underline-offset-4">View basket</span>
+          </button>
+        </div>
+      ) : null}
+
+      <div className="xl:hidden">
+        <Sheet open={basketOpen} onClose={() => setBasketOpen(false)} label="Your basket">
+          {basket}
+        </Sheet>
       </div>
     </main>
   );

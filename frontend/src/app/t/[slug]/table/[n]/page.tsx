@@ -5,9 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Ground from '@/components/plately/Ground';
 import { Brand, Loader } from '@/components/plately/Logo';
+import TableProblem from '@/components/guest/TableProblem';
 import { Eyebrow, FailureCard, Handwriting } from '@/components/plately/ui';
 import ClaimSheet from '@/components/guest/ClaimSheet';
-import SeatButton from '@/components/guest/SeatButton';
+import SeatButton, { SeatLegend } from '@/components/guest/SeatButton';
 import { guestApi, rememberTable, type SeatOnMap } from '@/lib/guest';
 import { failureOf } from '@/lib/http';
 
@@ -42,17 +43,7 @@ export default function TableMapPage() {
   }
 
   if (map.isError) {
-    const failure = failureOf(map.error, "We couldn't find this table");
-    return (
-      <Ground>
-        <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-6 pb-8 pt-10">
-          <Brand />
-          <h1 className="font-heading text-[34px] font-normal leading-tight">We can&apos;t seat you here yet.</h1>
-          <FailureCard title={failure.title} message={failure.message} />
-          <p className="text-[15px] text-soft">Ask a waiter, or scan the card on your table again.</p>
-        </main>
-      </Ground>
-    );
+    return <TableProblem failure={failureOf(map.error)} tableNumber={n} onRetry={() => void map.refetch()} />;
   }
 
   const table = map.data;
@@ -85,14 +76,15 @@ export default function TableMapPage() {
         <Eyebrow className="mt-3">{label}</Eyebrow>
         <h1 className="font-heading text-[34px] font-normal leading-[1.1]">Where are you sitting?</h1>
         <Handwriting className="-rotate-[1.5deg] origin-left">Tap your chair so the food finds you.</Handwriting>
+        <SeatLegend />
 
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-4">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-3">
           <div className="grid w-full gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.min(top.length, 4))}, minmax(0, 1fr))` }}>
             {top.map((seat) => (
               <SeatButton key={seat.seatId} seat={seat} onTap={() => tap(seat)} />
             ))}
           </div>
-          <div className="flex w-full items-center justify-center gap-3 rounded-[28px] border-2 border-cream/30 bg-cream/10 px-4 py-5">
+          <div className="mx-auto flex w-full max-w-[16rem] items-center justify-center gap-3 rounded-[28px] border-2 border-cream/30 bg-cream/10 px-4 py-5">
             <div className="text-center">
               <div className="text-[13px] font-bold uppercase tracking-[0.14em] text-cream">Table {table.displayNumber}</div>
               <div className="text-sm text-soft">seats {table.Capacity ?? table.capacity ?? seats.length}</div>
@@ -111,7 +103,6 @@ export default function TableMapPage() {
         {full ? (
           <p className="rounded-2xl bg-cream/10 p-3.5 text-[15px] leading-snug">Every chair here is taken. A waiter can find you somewhere good.</p>
         ) : null}
-        <p className="text-center text-[13px] text-soft">Dashed chairs are free. A gold chair is being saved for someone with a code.</p>
       </main>
 
       {picked ? (

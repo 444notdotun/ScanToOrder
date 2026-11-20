@@ -36,8 +36,8 @@ public class PaymentController {
 
     @GetMapping("/verify/{reference}")
     public ResponseEntity<ApiResponse<PaymentStatusResponse>> verifyPayment(
-            @NotNull(message = "Reference cannot be null") 
-            @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "Invalid payment reference format")
+            @NotNull(message = "We can't find that payment. Go back and try again.") 
+            @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "We can't find that payment. Go back and try again.")
             @PathVariable String reference) {
         PaymentStatusResponse response = paymentService.verifyAndSyncPayment(CurrentTenant.id(), reference);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));

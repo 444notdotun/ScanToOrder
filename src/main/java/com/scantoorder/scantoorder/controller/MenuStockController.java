@@ -32,13 +32,13 @@ public class MenuStockController {
 
     @PreAuthorize("hasAnyRole('CHEF', 'MANAGER')")
     @PostMapping("/{id}/sold-out")
-    public ResponseEntity<ApiResponse<ToggleItemResponse>> soldOut(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+    public ResponseEntity<ApiResponse<ToggleItemResponse>> soldOut(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(stock.soldOut(CurrentTenant.id(), id)));
     }
 
     @PreAuthorize("hasAnyRole('CHEF', 'MANAGER')")
     @PostMapping("/{id}/back-in-stock")
-    public ResponseEntity<ApiResponse<ToggleItemResponse>> backInStock(@PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id) {
+    public ResponseEntity<ApiResponse<ToggleItemResponse>> backInStock(@PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id) {
         return ResponseEntity.ok(new ApiResponse<>(stock.backInStock(CurrentTenant.id(), id)));
     }
 }

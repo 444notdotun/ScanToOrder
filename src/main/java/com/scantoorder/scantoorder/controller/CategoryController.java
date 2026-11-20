@@ -26,7 +26,7 @@ public class CategoryController {
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping
     public ResponseEntity<ApiResponse<String>> createCategory(
-             @NotNull(message = "Request body cannot be null")
+             @NotNull(message = "Enter a name for the category")
             @RequestBody @Valid  CreateCategoryRequest createCategoryRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(categoryService.createCategory(createCategoryRequest)));

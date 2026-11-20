@@ -144,7 +144,7 @@ export default function SignupPage() {
       </header>
       <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-5 px-5 pb-8 pt-6 md:max-w-xl">
         <div>
-          <h1 className="font-heading text-[38px] font-normal leading-[1.1]">Bring Plately to your place.</h1>
+          <h1 className="font-heading text-[38px] font-normal leading-[1.1]">Get Plately for your place.</h1>
           <p className="mt-2 text-[17px] leading-snug text-soft">Guests scan, sit, order and pay. You cook. Tell us about your place and we take one look before your first guest orders.</p>
         </div>
 
@@ -177,22 +177,23 @@ export default function SignupPage() {
 
             <Field
               label={restaurant ? 'Name of your restaurant' : 'Name of your business'}
+              need="needed"
               value={business}
-              onChange={(e) => typeName(e.target.value)}
+              name="business" onChange={(e) => typeName(e.target.value)}
               error={errors.business ?? (nameTaken ? NAME_TAKEN : undefined)}
               hint={nameFree ? '✓ That name is free.' : undefined}
               placeholder="The Corner Table"
               autoComplete="organization"
             />
-            <Field label="Your name" value={owner} onChange={(e) => setOwner(e.target.value)} error={errors.owner} autoComplete="name" />
-            <Field label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} hint="Your sign-in is emailed here once you are approved." autoComplete="email" />
-            <Field label="Phone number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={errors.phone} autoComplete="tel" />
+            <Field label="Your name" name="owner" need="needed" value={owner} onChange={(e) => setOwner(e.target.value)} error={errors.owner} autoComplete="name" />
+            <Field label="Email" name="email" need="needed" type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} hint="Your sign-in is emailed here once you are approved." autoComplete="email" />
+            <Field label="Phone number" name="phone" need="needed" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={errors.phone} autoComplete="tel" />
 
             {restaurant ? (
               <fieldset className="flex flex-col gap-3.5 rounded-2xl border border-dashed border-rule2 p-4">
                 <legend className="px-1 font-heading text-lg text-bottle">Where should your money go?</legend>
                 <p className="text-sm leading-snug text-quiet">Every sale lands in this account, minus our small charge.</p>
-                <SelectField label="Bank" value={bankCode} onChange={(e) => changeBank(e.target.value)} error={errors.bank}>
+                <SelectField label="Bank" name="bank" autoComplete="off" value={bankCode} onChange={(e) => changeBank(e.target.value)} error={errors.bank}>
                   <option value="">{banks.isPending ? 'Fetching the banks…' : 'Choose your bank'}</option>
                   {(banks.data ?? []).map((bank) => (
                     <option key={bank.code} value={bank.code}>
@@ -200,7 +201,7 @@ export default function SignupPage() {
                     </option>
                   ))}
                 </SelectField>
-                <Field label="Account number" inputMode="numeric" maxLength={10} value={account} onChange={(e) => changeAccount(e.target.value)} autoComplete="off" />
+                <Field label="Account number" name="account" inputMode="numeric" maxLength={10} value={account} onChange={(e) => changeAccount(e.target.value)} autoComplete="off" />
                 <Button tone="outline" disabled={busy} onClick={() => void check()}>
                   Check this account
                 </Button>

@@ -24,8 +24,8 @@ public class ReceiptController {
 
     @GetMapping("/{reference}")
     public ResponseEntity<ApiResponse<ReceiptResponse>> getReceipt(
-            @NotNull(message = "Reference cannot be null") 
-            @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "Invalid payment reference format")
+            @NotNull(message = "We can't find that payment. Go back and try again.") 
+            @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "We can't find that payment. Go back and try again.")
             @PathVariable String reference) {
         ReceiptResponse response = receiptService.getReceiptData(CurrentTenant.id(), reference);
         return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
@@ -33,8 +33,8 @@ public class ReceiptController {
 
     @GetMapping("/{reference}/download")
     public ResponseEntity<byte[]> downloadReceiptCsv(
-            @NotNull(message = "Reference cannot be null") 
-            @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "Invalid payment reference format")
+            @NotNull(message = "We can't find that payment. Go back and try again.") 
+            @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "We can't find that payment. Go back and try again.")
             @PathVariable String reference) {
         byte[] csvBytes = receiptService.generateReceiptCsv(CurrentTenant.id(), reference);
         

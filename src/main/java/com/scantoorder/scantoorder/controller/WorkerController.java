@@ -38,7 +38,7 @@ public class WorkerController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<String>> deleteWorker(
-            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Invalid identifier") String id) {
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String id) {
         workerService.deleteWorker(CurrentTenant.id(), id);
         return ResponseEntity.ok(new ApiResponse<>("Team member removed"));
     }

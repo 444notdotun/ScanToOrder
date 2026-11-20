@@ -35,14 +35,14 @@ public class RefundController {
 
     @GetMapping("/{id}/guest")
     public ResponseEntity<ApiResponse<GuestRefundResponse>> guestView(
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
             @RequestParam("t") @Size(max = 100) String token) {
         return ResponseEntity.ok(new ApiResponse<>(refundService.guestView(id, token)));
     }
 
     @PostMapping("/{id}/guest/email")
     public ResponseEntity<ApiResponse<GuestRefundResponse>> guestEmail(
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
             @RequestParam("t") @Size(max = 100) String token,
             @Valid @RequestBody GuestEmailRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(refundService.guestEmail(id, token, request)));
@@ -50,7 +50,7 @@ public class RefundController {
 
     @PostMapping("/{id}/guest/bank-details")
     public ResponseEntity<ApiResponse<GuestRefundResponse>> guestBankDetails(
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
             @RequestParam("t") @Size(max = 100) String token,
             @Valid @RequestBody GuestBankDetailsRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(refundService.guestBankDetails(id, token, request)));
@@ -58,14 +58,14 @@ public class RefundController {
 
     @PostMapping("/{id}/guest/received")
     public ResponseEntity<ApiResponse<GuestRefundResponse>> guestReceived(
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
             @RequestParam("t") @Size(max = 100) String token) {
         return ResponseEntity.ok(new ApiResponse<>(refundService.guestReceived(id, token)));
     }
 
     @PostMapping("/{id}/guest/not-received")
     public ResponseEntity<ApiResponse<GuestRefundResponse>> guestNotReceived(
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
             @RequestParam("t") @Size(max = 100) String token) {
         return ResponseEntity.ok(new ApiResponse<>(refundService.guestNotReceived(id, token)));
     }
@@ -83,7 +83,7 @@ public class RefundController {
     @PostMapping("/{id}/settle")
     public ResponseEntity<ApiResponse<ManagerRefundResponse>> settle(
             @AuthenticationPrincipal WorkerPrincipal caller,
-            @PathVariable @Pattern(regexp = ID, message = "Invalid identifier") String id,
+            @PathVariable @Pattern(regexp = ID, message = "That link doesn't look right. Go back and try again.") String id,
             @Valid @RequestBody SettleRefundRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(refundService.settle(CurrentTenant.id(), caller.getWorkerId(), id, request)));
     }

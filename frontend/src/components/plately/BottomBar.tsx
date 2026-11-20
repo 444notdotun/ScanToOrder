@@ -34,8 +34,8 @@ export default function BottomBar({ items, label = 'Main' }: { items: BarItem[];
 
   return (
     <>
-      {/* Keeps the end of every page clear of the bar. */}
-      <div aria-hidden="true" className="h-[96px] flex-none md:hidden print:hidden" />
+      {/* Keeps the end of every page clear of the bar: its height plus 16px. */}
+      <div aria-hidden="true" className="h-[var(--bar-clear)] flex-none md:hidden print:hidden" />
       <nav
         aria-label={label}
         hidden={typing}

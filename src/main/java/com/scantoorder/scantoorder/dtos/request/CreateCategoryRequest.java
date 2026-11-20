@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class CreateCategoryRequest {
-    @NotBlank(message = "Category name is required")
+    @NotBlank(message = "Enter a name for the category")
     String categoryName;
 }

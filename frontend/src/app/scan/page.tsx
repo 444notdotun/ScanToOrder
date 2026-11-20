@@ -238,7 +238,7 @@ function Scan() {
           </Link>
           {' · '}
           <Link href="/signup" className="underline underline-offset-4">
-            Bring Plately to your place
+            Get Plately for your place
           </Link>
         </p>
       </main>
