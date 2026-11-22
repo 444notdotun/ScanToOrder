@@ -9,8 +9,8 @@ import { staffApi, useStock } from '@/lib/staff';
 
 type Act = ReturnType<typeof useAction>;
 
-// "What we have left": a narrow panel beside the orders (below them on a phone). Sold-out plates come first and are one tap to bring
-// back; the rest are behind "Show all", or found by typing. Guests' menus follow at once.
+// "Sold out?": a narrow panel beside the orders (below them on a phone). Three plates show until "Show all" opens the list,
+// sold-out ones first and one tap to bring back; typing in the search finds any plate. Guests' menus follow at once.
 export default function StockSection({ act }: { act: Act }) {
   const { lost } = useConnection();
   const stock = useStock();
@@ -20,27 +20,26 @@ export default function StockSection({ act }: { act: Act }) {
   const [all, setAll] = useState(false);
 
   const items = [...(stock.data ?? [])].sort((a, b) => Number(a.available) - Number(b.available) || a.itemName.localeCompare(b.itemName));
-  const soldOut = items.filter((item) => !item.available);
   const searching = query.trim().length > 0;
-  const shown = searching ? items.filter((item) => item.itemName.toLowerCase().includes(query.trim().toLowerCase())) : all ? items : soldOut;
+  const shown = searching ? items.filter((item) => item.itemName.toLowerCase().includes(query.trim().toLowerCase())) : all ? items : items.slice(0, 3);
 
   return (
-    <section aria-label="What we have left" className="flex flex-col gap-3 rounded-[20px] bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
+    <section aria-label="Sold out?" className="flex flex-col gap-3 rounded-[20px] bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
       <div>
-        <h2 className="font-heading text-[24px] font-normal leading-tight text-bottle">What we have left</h2>
-        <p className="text-sm leading-snug text-quiet">Sold out plates leave guests&apos; menus straight away.</p>
+        <h2 className="font-heading text-[22px] font-normal leading-tight text-bottle">Sold out?</h2>
+        <p className="text-sm leading-snug text-quiet">Switch a plate off. It leaves guests&apos; menus straight away.</p>
       </div>
       {stock.isError ? <FailureCard title="We couldn't load the stock" message={failureOf(stock.error).message} /> : null}
       <div>
         <label htmlFor={searchId} className="sr-only">
-          Find a plate
+          Search plates
         </label>
         <input
           id={searchId}
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Find a plate"
+          placeholder={`Search ${items.length} plates…`}
           autoComplete="off"
           className="h-11 w-full rounded-xl border-[1.5px] border-rule2 bg-paperlight px-3 text-[16px] text-ink placeholder:text-quiet/70 focus:border-bottle"
         />
@@ -62,18 +61,18 @@ export default function StockSection({ act }: { act: Act }) {
         ))}
         {shown.length === 0 && !stock.isError ? (
           <li className="py-3 text-[15px] text-quiet">
-            {items.length === 0 ? 'No plates on the menu yet.' : searching ? 'No plate has that name.' : 'Nothing is sold out.'}
+            {items.length === 0 ? 'No plates on the menu yet.' : 'No plate has that name.'}
           </li>
         ) : null}
       </ul>
-      {!searching && items.length > 0 ? (
+      {!searching && items.length > 3 ? (
         <button
           type="button"
           aria-expanded={all}
           onClick={() => setAll(!all)}
           className="min-h-[44px] rounded-full border-[1.5px] border-bottle px-4 text-[15px] font-bold text-bottle hover:bg-bottle/5"
         >
-          {all ? 'Show only sold out' : `Show all ${items.length}`}
+          {all ? 'Show fewer ▴' : `Show all ${items.length} ▾`}
         </button>
       ) : null}
     </section>

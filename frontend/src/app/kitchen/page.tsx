@@ -23,7 +23,7 @@ function Column({ title, count, empty, children }: { title: string; count: numbe
   );
 }
 
-// Past this many minutes since it was paid, a card is marked: a clay edge and "Waiting n min".
+// Past this many minutes since it was paid, a card is marked: a clay edge and the wait in clay.
 const LATE_AFTER = 15;
 
 // One order on the pass: where it goes, who it is for, what it is, how long since it was paid, and the one thing to do.
@@ -47,16 +47,15 @@ function OrderCard({
   return (
     <article
       aria-label={`${title || order.orderNumber}${order.guestName ? `, ${order.guestName}` : ''}`}
-      className={`flex animate-fade flex-col gap-2 rounded-lg bg-paperlight p-4 text-ink shadow-[0_8px_20px_rgba(0,0,0,0.22)] ${late ? 'border-[3px] border-tomato' : 'border-[1.5px] border-rule'}`}
+      className={`flex animate-fade flex-col gap-2 rounded-2xl bg-paperlight p-4 text-ink shadow-[0_8px_20px_rgba(0,0,0,0.22)] ${late ? 'border-l-[6px] border-tomato' : 'border-l-[6px] border-transparent'}`}
     >
-      <h3 className="font-heading text-[28px] font-normal leading-[1.05] text-bottle">{title || order.orderNumber}</h3>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="min-w-0 break-words text-[16px] font-bold text-quiet">{order.guestName ?? ''}</span>
-        <span className={`flex-none whitespace-nowrap text-sm font-bold ${late ? 'text-tomato' : 'text-quiet'}`}>
-          {late ? `Waiting ${minutes} min` : minutes <= 0 ? 'Paid just now' : `Paid ${minutes} min ago`}
-        </span>
+      <div className="flex items-baseline justify-between gap-3 text-[12px] font-bold">
+        <span className="min-w-0 break-all uppercase tracking-[0.06em] text-quiet">{order.orderNumber}</span>
+        <span className={`flex-none whitespace-nowrap ${late ? 'text-tomato' : 'text-good'}`}>{minutes <= 0 ? 'paid just now' : `paid ${minutes} min ago`}</span>
       </div>
-      <ul className="flex flex-col gap-0.5 text-[21px] font-bold leading-snug">
+      <h3 className="font-heading text-[26px] font-normal leading-[1.05] text-bottle">{title || order.orderNumber}</h3>
+      {order.guestName ? <div className="break-words text-[15px] text-quiet">{order.guestName}</div> : null}
+      <ul className="flex flex-col gap-0.5 text-[18px] font-bold leading-snug">
         {order.items.map((line, index) => (
           <li key={`${line}-${index}`}>{line}</li>
         ))}
@@ -73,7 +72,7 @@ function OrderCard({
         type="button"
         disabled={disabled}
         onClick={onAction}
-        className="min-h-[60px] w-full rounded-full bg-bottle px-5 text-[19px] font-bold leading-tight text-cream hover:bg-[#10281f]"
+        className="min-h-[56px] w-full rounded-full bg-tomato px-5 text-[18px] font-bold leading-tight text-white hover:bg-[#a23420]"
       >
         {action}
       </button>
