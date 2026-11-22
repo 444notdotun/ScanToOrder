@@ -48,7 +48,8 @@ export default function FloorNowPage() {
           {/* The four numbers first, and each says what it means. */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Tile large label="Cooking" value={String(data.cooking)} sub={data.paid > 0 ? `${plural(data.paid, 'plate', 'plates')} waiting to start` : 'nothing waiting to start'} />
-            <Tile large label="Ready to carry" value={String(data.ready)} sub={data.needVisit > 0 ? (data.ready === 1 ? 'one plate waiting' : `${plural(data.needVisit, 'table needs', 'tables need')} a visit`) : 'nothing needs a visit'} />
+            <Tile large label="Ready to carry" value={String(data.ready)} sub={data.ready > 0 ? `${plural(data.ready, 'plate', 'plates')} waiting` : 'nothing waiting'}
+            />
             <Tile large label="Calls waiting" value={String(data.openCalls)} sub={data.takenCalls > 0 ? `${data.takenCalls} being seen to` : 'nobody is on one yet'} />
             <Tile
               large
