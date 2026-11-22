@@ -153,7 +153,7 @@ export function FailureCard({ title, message, className = '' }: { title?: string
     };
   }, [title, message]);
   return (
-    <div ref={card} role="alert" className={`flex scroll-mb-28 scroll-mt-4 animate-shake md:scroll-mb-4 gap-3 rounded-2xl border-[1.5px] border-errborder bg-errbg p-3.5 text-errtext ${className}`}>
+    <div ref={card} role="alert" className={`flex scroll-mb-28 scroll-mt-[calc(var(--head-h,0px)+1rem)] animate-shake md:scroll-mb-4 gap-3 rounded-2xl border-[1.5px] border-errborder bg-errbg p-3.5 text-errtext ${className}`}>
       <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-none">
         <circle cx="12" cy="12" r="10" />
         <path d="M12 7v6M12 17h.01" />
