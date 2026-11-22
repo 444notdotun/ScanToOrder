@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Field, Handwriting } from '@/components/plately/ui';
+import { Button, Field } from '@/components/plately/ui';
 import { spacedCode } from '@/lib/labels';
 
-const CHOICE = 'flex min-h-[64px] w-full items-center justify-center gap-2 rounded-2xl border-2 px-3 py-2 text-center text-[15px] font-bold leading-snug';
+const CHOICE = 'flex min-h-[52px] w-full items-center justify-between gap-2 rounded-full border-2 px-5 py-2 text-left text-[15px] font-bold leading-snug';
 // Chosen: filled ink with a tick. Not chosen: an outline. Neither ever looks switched off.
 const CHOSEN = 'border-ink bg-ink text-paperlight';
 const OUTLINED = 'border-ink bg-transparent text-ink hover:bg-ink/5';
@@ -36,8 +36,6 @@ export default function SavedChair({
   const [name, setName] = useState('');
   const [problem, setProblem] = useState<string | undefined>();
   const [copied, setCopied] = useState(false);
-  // The phone's own share sheet, where the browser has one. This block only appears once the guest is seated, so it is never drawn on the server.
-  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   const plain = joinCode.replace(/\s+/g, '');
   const copy = async () => {
@@ -56,6 +54,11 @@ export default function SavedChair({
     setTimeout(() => setCopied(false), 2000);
   };
   const share = async () => {
+    // A browser with no share sheet gets the code copied instead.
+    if (typeof navigator.share !== 'function') {
+      await copy();
+      return;
+    }
     try {
       await navigator.share({ title: 'A seat at my table', text: `I saved you a seat. Scan the table, tap the chair and type this code: ${spacedCode(joinCode)}`, url: link });
     } catch {
@@ -77,15 +80,15 @@ export default function SavedChair({
 
   return (
     <div className="mt-2.5 flex flex-col gap-2.5">
-      <div role="group" aria-label="Who orders and pays for this chair?" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div role="group" aria-label="Who orders and pays for this chair?" className="flex flex-col gap-2">
         <button
           type="button"
           aria-pressed={choice === 'phone'}
           onClick={() => pick('phone')}
           className={`${CHOICE} ${choice === 'phone' ? CHOSEN : OUTLINED}`}
         >
-          {choice === 'phone' ? <Tick /> : null}
           They&apos;ll order and pay on their phone
+          {choice === 'phone' ? <Tick /> : null}
         </button>
         <button
           type="button"
@@ -93,32 +96,26 @@ export default function SavedChair({
           onClick={() => pick('me')}
           className={`${CHOICE} ${choice === 'me' ? CHOSEN : OUTLINED}`}
         >
-          {choice === 'me' ? <Tick /> : null}
           I&apos;ll order and pay for them
+          {choice === 'me' ? <Tick /> : null}
         </button>
       </div>
 
       {choice === 'phone' ? (
-        <div className="animate-pop rounded-2xl border-2 border-ink/20 bg-cream p-4 text-center">
-          <div className="text-sm font-bold text-ink">Give your friend this code.</div>
-          <div className="my-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
-            <div aria-label={`Join code ${plain.split('').join(' ')}`} className="font-body text-[44px] font-bold leading-none tracking-[0.18em] text-ink">
-              {spacedCode(joinCode)}
-            </div>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => void copy()} className="min-h-[44px] rounded-full border-2 border-ink px-4 text-[15px] font-bold text-ink hover:bg-ink/5">
-                {copied ? 'Copied ✓' : 'Copy code'}
-              </button>
-              {canShare ? (
-                <button type="button" onClick={() => void share()} className="min-h-[44px] rounded-full bg-ink px-4 text-[15px] font-bold text-paperlight hover:bg-black">
-                  Share
-                </button>
-              ) : null}
-            </div>
+        <div className="animate-pop rounded-[20px] border-2 border-dashed border-rule2 px-3 pb-4 pt-4 text-center">
+          <div className="text-[12px] font-bold uppercase tracking-[0.14em] text-quiet">Give your friend this code</div>
+          <div aria-label={`Join code ${plain.split('').join(' ')}`} className="my-2 font-body text-[44px] font-bold leading-none tracking-[0.16em] text-ink">
+            {spacedCode(joinCode)}
           </div>
-          <Handwriting onPaper className="!text-[20px]">
-            They scan the table, tap this chair and type it in.
-          </Handwriting>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => void copy()} className="min-h-[48px] rounded-full border-[1.5px] border-ink px-4 text-[15px] font-bold text-ink hover:bg-ink/5">
+              {copied ? 'Copied ✓' : 'Copy code'}
+            </button>
+            <button type="button" onClick={() => void share()} className="min-h-[48px] rounded-full bg-tomato px-4 text-[15px] font-bold text-white hover:bg-[#a23420]">
+              Share
+            </button>
+          </div>
+          <p className="mt-3 text-[14px] leading-snug text-quiet">They scan the table, tap this chair and type it in.</p>
           <span role="status" className="sr-only">
             {copied ? 'Code copied' : ''}
           </span>

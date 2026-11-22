@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useConnection } from '@/components/plately/Connection';
-import { Button, Card, FailureCard } from '@/components/plately/ui';
+import { Button, FailureCard } from '@/components/plately/ui';
 import CloseTableSheet from '@/components/staff/CloseTableSheet';
 import PageHead, { Empty, Tile } from '@/components/staff/PageHead';
 import { FAILURE_ID, useAction } from '@/hooks/useAction';
@@ -48,7 +48,8 @@ export default function FloorNowPage() {
           {/* The four numbers first, and each says what it means. */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Tile large label="Cooking" value={String(data.cooking)} sub={data.paid > 0 ? `${plural(data.paid, 'plate', 'plates')} waiting to start` : 'nothing waiting to start'} />
-            <Tile large label="Ready to carry" value={String(data.ready)} sub={data.needVisit > 0 ? `${plural(data.needVisit, 'table needs', 'tables need')} a visit` : 'nothing needs a visit'} />
+            <Tile large label="Ready to carry" value={String(data.ready)} sub={data.ready > 0 ? `${plural(data.ready, 'plate', 'plates')} waiting` : 'nothing waiting'}
+            />
             <Tile large label="Calls waiting" value={String(data.openCalls)} sub={data.takenCalls > 0 ? `${data.takenCalls} being seen to` : 'nobody is on one yet'} />
             <Tile
               large
@@ -58,21 +59,21 @@ export default function FloorNowPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
             <section aria-label="Tables right now" className="flex flex-col gap-3">
               <h2 className="font-heading text-[26px] font-normal">Tables right now</h2>
               {data.tables.length === 0 ? <Empty>No tables yet. Add them under Tables and print the cards.</Empty> : null}
               {data.tables.length > 0 && inUse.length === 0 ? <Empty>No table has guests right now.</Empty> : null}
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-3">
                 {inUse.map((table) => {
                   const label = `Table ${table.displayNumber ?? table.tableNumber}`;
                   return (
-                    <Card key={table.tableId} className="flex flex-col gap-3 border-[3px] border-mustard !p-4">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <h3 className="font-heading text-[28px] font-normal leading-none text-bottle">{label}</h3>
-                        <span className="text-sm font-bold text-quiet">
+                    <article key={table.tableId} aria-label={label} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-[20px] border-[3px] border-mustard bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
+                      <div className="min-w-0">
+                        <h3 className="font-heading text-[26px] font-normal leading-none text-bottle">{label}</h3>
+                        <p className="mt-1 text-sm text-quiet">
                           {used(table)} of {table.seats.length} in use · {plural(table.groups, 'group', 'groups')}
-                        </span>
+                        </p>
                       </div>
                       <ul aria-label={`Seats at ${label}`} className="flex flex-wrap gap-2">
                         {table.seats.map((seat) => (
@@ -92,10 +93,10 @@ export default function FloorNowPage() {
                           </li>
                         ))}
                       </ul>
-                      <Button big tone="outline" disabled={lost || act.busy !== null} onClick={() => setClosing(table)}>
+                      <Button full={false} tone="outline" disabled={lost || act.busy !== null} onClick={() => setClosing(table)}>
                         Close this table
                       </Button>
-                    </Card>
+                    </article>
                   );
                 })}
               </div>
@@ -103,8 +104,7 @@ export default function FloorNowPage() {
                 <ul aria-label="Empty tables" className="flex flex-wrap gap-2">
                   {empty.map((table) => (
                     <li key={table.tableId} className="rounded-full border-[1.5px] border-cream/45 px-3 py-1 text-sm font-bold text-cream">
-                      Table {table.displayNumber ?? table.tableNumber}
-                      <span className="sr-only"> is empty</span>
+                      Table {table.displayNumber ?? table.tableNumber} · empty
                     </li>
                   ))}
                 </ul>
@@ -112,9 +112,23 @@ export default function FloorNowPage() {
               {inUse.length > 0 ? <p className="text-sm text-soft">Filled: seated. Gold: saved for a friend. Dashed: free.</p> : null}
             </section>
 
-            <section aria-label="Calls" className="flex flex-col gap-3">
+            <section aria-label="Plates tonight" className="flex flex-col gap-3">
+              <h2 className="font-heading text-[26px] font-normal">Plates tonight</h2>
+              <div className="flex flex-col gap-3 rounded-[20px] bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
+                <p className="text-[17px] font-bold">
+                  {plates.length - soldOut} on · <span className={soldOut > 0 ? 'text-hand' : ''}>{soldOut} sold out</span>
+                </p>
+                <p className="text-sm leading-snug text-quiet">Sold-out plates leave guests&apos; menus straight away.</p>
+                <Link href="/manager/menu" className="flex min-h-[44px] items-center justify-center rounded-full border-[1.5px] border-bottle px-4 text-[15px] font-bold text-bottle hover:bg-bottle/5">
+                  Edit plates ▾
+                </Link>
+              </div>
+            </section>
+          </div>
+
+          {data.calls.length > 0 || data.openRefunds > 0 ? (
+            <section aria-label="Calls" className="flex max-w-2xl flex-col gap-3">
               <h2 className="font-heading text-[26px] font-normal">Calls</h2>
-              {data.calls.length === 0 ? <Empty>Nobody is calling.</Empty> : null}
               <ul className="flex flex-col gap-3">
                 {data.calls.map((call) => (
                   <li key={call.callId} className="rounded-lg bg-paperlight p-3.5 text-ink shadow-[0_8px_20px_rgba(0,0,0,0.22)]">
@@ -132,18 +146,7 @@ export default function FloorNowPage() {
                 </Link>
               ) : null}
             </section>
-          </div>
-
-          {/* Stock is a single line here: the list itself lives with the menu and the pass. */}
-          <p aria-label="Stock" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-full bg-cream/10 px-5 py-2 text-[16px] font-bold">
-            <span>{plates.length - soldOut} on</span>
-            <span aria-hidden="true">·</span>
-            <span className={soldOut > 0 ? 'text-mustard' : ''}>{soldOut} sold out</span>
-            <span aria-hidden="true">·</span>
-            <Link href="/manager/menu" className="flex min-h-[44px] items-center underline underline-offset-4">
-              Edit
-            </Link>
-          </p>
+          ) : null}
         </>
       ) : null}
 

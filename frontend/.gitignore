@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 !.env.example
+
+# files `next dev` generates
+AGENTS.md
+CLAUDE.md

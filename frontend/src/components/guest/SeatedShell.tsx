@@ -21,6 +21,7 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { slug, n, eventCode } = useParams<{ slug: string; n: string; eventCode?: string }>();
   const basket = cartCount(useCart((state) => state.lines));
+  const basketOpen = useCart((state) => state.basketOpen);
   const setBasketOpen = useCart((state) => state.setBasketOpen);
   const [calling, setCalling] = useState(false);
   const session = useSession();
@@ -71,6 +72,11 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
             eventCode,
             path,
             basket,
+            basketOpen,
+            menu: () => {
+              setBasketOpen(false);
+              if (!path.endsWith('/order')) router.push(`/t/${slug}/table/${n}/order`);
+            },
             call: () => setCalling(true),
             // The basket is a sheet on the order page: from another page, go there and it opens.
             openBasket: () => {
@@ -87,7 +93,7 @@ export default function SeatedShell({ children }: { children: ReactNode }) {
 
 // A restaurant guest moves between the menu, their table, their basket and a waiter. An event guest has no basket:
 // one plate at a time, straight to the kitchen.
-function guestItems({ slug, n, eventCode, path, basket, call, openBasket }: { slug: string; n: string; eventCode?: string; path: string; basket: number; call: () => void; openBasket: () => void }): BarItem[] {
+function guestItems({ slug, n, eventCode, path, basket, basketOpen, menu, call, openBasket }: { slug: string; n: string; eventCode?: string; path: string; basket: number; basketOpen: boolean; menu: () => void; call: () => void; openBasket: () => void }): BarItem[] {
   const callItem: BarItem = { key: 'call', label: 'Call waiter', icon: icons.bell, onSelect: call };
   if (eventCode) {
     const base = `/t/${slug}/e/${eventCode}/table/${n}`;
@@ -99,9 +105,9 @@ function guestItems({ slug, n, eventCode, path, basket, call, openBasket }: { sl
   }
   const base = `/t/${slug}/table/${n}`;
   return [
-    { key: 'menu', label: 'Menu', icon: icons.menu, href: `${base}/order`, current: path.endsWith('/order') },
+    { key: 'menu', label: 'Menu', icon: icons.menu, onSelect: menu, current: path.endsWith('/order') && !basketOpen },
     { key: 'table', label: 'My table', icon: icons.table, href: `${base}/home`, current: !path.endsWith('/order') },
-    { key: 'basket', label: 'Basket', icon: icons.basket, onSelect: openBasket, count: basket },
+    { key: 'basket', label: 'Basket', icon: icons.basket, onSelect: openBasket, count: basket, current: path.endsWith('/order') && basketOpen },
     callItem,
   ];
 }

@@ -41,6 +41,46 @@ function Section({ title, count, empty, children }: { title: string; count: numb
 
 type Act = ReturnType<typeof useAction>;
 
+// One plate to carry: the table and seat are the biggest thing on it, so a glance across the room is enough.
+function CarryCard({ order, minutes, disabled, onDelivered }: { order: ServiceOrder; minutes: number; disabled: boolean; onDelivered: () => void }) {
+  return (
+    <article
+      aria-label={`${order.orderNumber}, table ${order.tableNumber ?? ''}${order.seatPosition != null ? `, seat ${order.seatPosition}` : ''}`}
+      className={`flex animate-fade flex-col gap-3 rounded-2xl bg-paperlight p-4 text-ink shadow-[0_8px_20px_rgba(0,0,0,0.22)] ${order.flag ? 'border-[2.5px] border-mustard' : ''}`}
+    >
+      <div className="flex gap-4">
+        <div className="flex h-[76px] w-[76px] flex-none flex-col items-center justify-center rounded-xl bg-bottle text-cream">
+          <span className="text-[10px] font-bold tracking-[0.14em]">TABLE</span>
+          <span className="font-heading text-[36px] leading-none">{order.tableNumber ?? '–'}</span>
+          {order.seatPosition != null ? <span className="text-[10px] font-bold tracking-[0.14em]">SEAT {order.seatPosition}</span> : null}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-3 text-[12px] font-bold">
+            <span className="min-w-0 break-all uppercase tracking-[0.06em] text-quiet">{order.orderNumber}</span>
+            <span className="flex-none whitespace-nowrap text-good">{minutes <= 0 ? 'ready just now' : `ready ${minutesText(minutes)}`}</span>
+          </div>
+          <ul className="mt-1 flex flex-col text-[17px] font-bold leading-snug">
+            {order.items.map((line, index) => (
+              <li key={`${line}-${index}`}>{line}</li>
+            ))}
+          </ul>
+          {order.guestName ? <div className="text-[15px] text-quiet">{order.guestName}</div> : null}
+        </div>
+      </div>
+      {(order.instructions ?? []).map((asked) => (
+        <div key={asked} className="font-hand text-[23px] font-bold leading-[1.1] text-hand">
+          {asked}
+        </div>
+      ))}
+      {order.note ? <div className="font-hand text-[23px] font-bold leading-[1.1] text-hand">{order.note}</div> : null}
+      {order.flag ? <div className="text-[15px] font-bold leading-snug text-[#8A5A00]">{order.flag}</div> : null}
+      <Button big tone="primary" disabled={disabled} onClick={onDelivered}>
+        Delivered
+      </Button>
+    </article>
+  );
+}
+
 function Orders({ act, part, onSwap }: { act: Act; part: 'carry' | 'visits'; onSwap: (order: ServiceOrder) => void }) {
   const { lost } = useConnection();
   const ready = useReady();
@@ -65,18 +105,13 @@ function Orders({ act, part, onSwap }: { act: Act; part: 'carry' | 'visits'; onS
       {part === 'carry' ? (
       <Section title="To carry" count={carry.length} empty="Nothing ready yet. The kitchen will send it here.">
         {carry.map((order) => (
-          <Ticket
+          <CarryCard
             key={order.orderId}
             order={order}
             minutes={agedMinutes(order.minutesWaiting, ready.dataUpdatedAt, now)}
-            waitLabel="ready"
-            mood={order.flag ? 'cold' : 'plain'}
-            flag={order.flag}
-          >
-            <Button big disabled={lost || act.busy !== null} onClick={() => void act.run(order.orderId, () => staffApi.deliver(order.orderId))}>
-              Delivered
-            </Button>
-          </Ticket>
+            disabled={lost || act.busy !== null}
+            onDelivered={() => void act.run(order.orderId, () => staffApi.deliver(order.orderId))}
+          />
         ))}
       </Section>
       ) : (
@@ -151,7 +186,7 @@ function Calls({ act, columns = true }: { act: Act; columns?: boolean }) {
               <div className="text-sm font-bold text-quiet">{stateOf(call)}</div>
             </div>
             {call.state === 'OPEN' ? (
-              <Button full={false} big disabled={lost || act.busy !== null} onClick={() => void act.run(call.callId, () => staffApi.take(call.callId))}>
+              <Button full={false} big tone="primary" disabled={lost || act.busy !== null} onClick={() => void act.run(call.callId, () => staffApi.take(call.callId))}>
                 I&apos;ll go
               </Button>
             ) : mine ? (
@@ -279,6 +314,84 @@ function Tables({ act, onClose }: { act: Act; onClose: (table: FloorTable) => vo
   );
 }
 
+// The tables in use at a glance, beside the plates to carry: seat dots, Free seat and Close this table side by side, empty tables as chips.
+function TableGlance({ act, onClose }: { act: Act; onClose: (table: FloorTable) => void }) {
+  const { lost } = useConnection();
+  const tables = useFloorTables();
+  if (tables.isError) return <FailureCard title="We couldn't load the tables" message={failureOf(tables.error).message} />;
+  if (tables.isPending) {
+    return (
+      <p role="status" className="text-soft">
+        Fetching the tables…
+      </p>
+    );
+  }
+  const used = (table: FloorTable) => table.seats.filter((seat) => seat.status !== 'VACANT').length;
+  const active = tables.data.filter((table) => used(table) > 0);
+  const empty = tables.data.filter((table) => used(table) === 0);
+  return (
+    <div className="flex flex-col gap-3">
+      {tables.data.length === 0 ? <p className="rounded-[20px] bg-paper p-4 text-[15px] text-quiet">No tables are set up yet. The manager adds them.</p> : null}
+      {tables.data.length > 0 && active.length === 0 ? <p className="rounded-[20px] bg-paper p-4 text-[15px] text-quiet">No table has guests right now.</p> : null}
+      {active.map((table) => {
+        const label = `Table ${table.displayNumber ?? table.tableNumber}`;
+        const seated = table.seats.filter((seat) => seat.status === 'OCCUPIED');
+        return (
+          <article key={table.tableId} aria-label={label} className="flex flex-col gap-3 rounded-[20px] border-[3px] border-mustard bg-paper p-4 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="font-heading text-[24px] font-normal leading-none text-bottle">{label}</h3>
+              <span className="text-sm text-quiet">
+                {used(table)} of {table.seats.length} in use
+              </span>
+            </div>
+            <ul aria-label={`Seats at ${label}`} className="flex flex-wrap gap-2">
+              {table.seats.map((seat) => (
+                <li
+                  key={seat.seatId}
+                  title={seat.status === 'OCCUPIED' ? 'Seated' : seat.status === 'HELD' ? 'Saved for a friend' : 'Free'}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                    seat.status === 'OCCUPIED' ? 'bg-bottle text-cream' : seat.status === 'HELD' ? 'bg-mustard text-ink' : 'border-[1.5px] border-dashed border-quiet text-ink'
+                  }`}
+                >
+                  <span className="sr-only">{seat.status === 'OCCUPIED' ? 'Seated, seat ' : seat.status === 'HELD' ? 'Saved, seat ' : 'Free, seat '}</span>
+                  {seat.position}
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-wrap gap-2">
+              {seated.map((seat) => (
+                <Button
+                  key={seat.seatId}
+                  full={false}
+                  tone="outline"
+                  className="min-w-[110px] flex-1"
+                  aria-label={`Free seat ${seat.position} at ${label.toLowerCase()}`}
+                  disabled={lost || act.busy !== null}
+                  onClick={() => void act.run(seat.seatId, () => staffApi.release(seat.seatId))}
+                >
+                  Free seat {seat.position}
+                </Button>
+              ))}
+              <Button full={false} tone="bottle" className="min-w-[110px] flex-1" disabled={lost || act.busy !== null} onClick={() => onClose(table)}>
+                Close this table
+              </Button>
+            </div>
+          </article>
+        );
+      })}
+      {empty.length > 0 ? (
+        <ul aria-label="Empty tables" className="flex flex-wrap gap-2">
+          {empty.map((table) => (
+            <li key={table.tableId} className="rounded-full border-[1.5px] border-cream/45 px-3 py-1 text-sm font-bold text-cream">
+              Table {table.displayNumber ?? table.tableNumber} · empty
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 // Choose what the guest will have instead. Plates can be counted up, since an order can hold several.
 function SwapSheet({ order, act, onDone }: { order: ServiceOrder | null; act: Act; onDone: () => void }) {
   const { lost } = useConnection();
@@ -374,12 +487,18 @@ function Floor() {
       <div id={FAILURE_ID}>{act.failure && !sheetOpen ? <FailureCard title={act.failure.title} message={act.failure.message} /> : null}</div>
 
       {tab === 'carry' ? (
-        // On a wide screen the calls sit beside what is waiting to be carried, so neither is a tap away.
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
-          <Orders act={act} part="carry" onSwap={setSwapping} />
-          <section aria-label="Calls" className="hidden flex-col gap-3 lg:flex">
-            <h2 className="font-heading text-[26px] font-normal">Calls</h2>
-            <Calls act={act} columns={false} />
+        // On a wide screen the plates to carry, the calls and the table in use share one screen, so nothing is a tap away.
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
+          <div className="flex flex-col gap-6">
+            <Orders act={act} part="carry" onSwap={setSwapping} />
+            <section aria-label="Calls" className="hidden flex-col gap-3 lg:flex">
+              <h2 className="font-heading text-[26px] font-normal">Calls</h2>
+              <Calls act={act} columns={false} />
+            </section>
+          </div>
+          <section aria-label="Tables" className="hidden flex-col gap-3 lg:flex">
+            <h2 className="font-heading text-[26px] font-normal">Tables</h2>
+            <TableGlance act={act} onClose={setClosing} />
           </section>
         </div>
       ) : null}

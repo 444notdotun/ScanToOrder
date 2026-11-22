@@ -4,6 +4,7 @@ import { useId, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConnection } from '@/components/plately/Connection';
 import { Button, Card, FailureCard, Field, SelectField, Switch } from '@/components/plately/ui';
+import ClosedBanner from '@/components/staff/ClosedBanner';
 import PageHead from '@/components/staff/PageHead';
 import { failureOf, type ApiFailure } from '@/lib/http';
 import { managerApi, useBanks, useTenant } from '@/lib/manager';
@@ -44,10 +45,10 @@ function Switches() {
                 Open for orders
               </div>
               <p className="text-sm leading-snug text-quiet">
-                {data.openForOrders ? 'Guests who scan a card can order.' : 'Guests who scan a card are told you are not taking orders yet.'}
+                {data.openForOrders ? 'Guests who scan a card can order.' : 'Switch on when the kitchen is ready.'}
               </p>
             </div>
-            <Switch checked={data.openForOrders} labelledBy={openLabel} disabled={lost || busy} onChange={(next) => void change(() => managerApi.setOpen(next))} />
+            <Switch offAlert checked={data.openForOrders} labelledBy={openLabel} disabled={lost || busy} onChange={(next) => void change(() => managerApi.setOpen(next))} />
           </div>
           <div className="flex items-center justify-between gap-4 border-t border-dashed border-rule2 pt-4">
             <div>
@@ -79,6 +80,9 @@ function Payout() {
   const [failure, setFailure] = useState<ApiFailure | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [changing, setChanging] = useState(false);
+  const hasAccount = Boolean(tenant.data?.bankName);
+  const formOpen = changing || !hasAccount;
 
   const edit = (set: (value: string) => void) => (value: string) => {
     set(value);
@@ -115,6 +119,7 @@ function Payout() {
     try {
       await managerApi.changePayout({ currentPassword: password, bankCode, accountNumber: account });
       setSaved(true);
+      setChanging(false);
       setPassword('');
       setAccount('');
       setChecked(null);
@@ -132,6 +137,11 @@ function Payout() {
       <p className="text-[15px] leading-snug text-quiet">
         {tenant.data?.bankName ? `Now: ${tenant.data.bankName}, account ending ${tenant.data.accountLast4}.` : 'No account is set up yet.'} Every sale lands in this account, minus our small charge.
       </p>
+      {!formOpen ? (
+        <Button tone="outline" aria-expanded={false} onClick={() => setChanging(true)}>
+          Change bank account
+        </Button>
+      ) : (
       <form noValidate onSubmit={(event) => void save(event)} className="flex flex-col gap-3.5">
         <SelectField label="Bank" value={bankCode} onChange={(event) => edit(setBankCode)(event.target.value)} error={problems.bank}>
           <option value="">{banks.isPending ? 'Fetching the banks…' : 'Choose your bank'}</option>
@@ -161,6 +171,7 @@ function Payout() {
           </>
         ) : null}
       </form>
+      )}
       {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
       {saved ? (
         <p role="status" className="animate-pop text-[17px] font-bold text-good">
@@ -176,6 +187,7 @@ export default function SettingsPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 animate-rise flex-col gap-5 px-5 pb-6 pt-4">
       <PageHead title="Settings" line={tenant.data ? `${tenant.data.name} · /t/${tenant.data.slug}` : 'Your place on Plately.'} />
+      <ClosedBanner inPage />
       {tenant.data?.testPaymentsUnsplit ? (
         <p role="status" className="rounded-[20px] bg-paper p-4 text-[16px] font-bold leading-snug text-ink shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
           Test payments: split is off until Paystack sets up your account.

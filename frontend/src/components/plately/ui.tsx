@@ -52,26 +52,30 @@ export function Field({
   error,
   hint,
   need,
+  trailing,
   className = '',
   ...rest
-}: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; hint?: string; need?: 'needed' | 'optional' }) {
+}: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; hint?: string; need?: 'needed' | 'optional'; trailing?: ReactNode }) {
   const id = useId();
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={id} className="flex items-baseline justify-between gap-3 text-sm font-bold text-bottle">
+      <label htmlFor={id} className="flex items-baseline gap-1.5 text-sm font-bold text-bottle">
         <span>{label}</span>
-        {need ? <span className="flex-none text-[13px] font-normal text-quiet">{need}</span> : null}
+        {need ? <span className={`flex-none text-[13px] ${need === 'needed' ? 'font-bold text-hand' : 'font-normal text-quiet'}`}>{need}</span> : null}
       </label>
-      <input
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
-        required={need === 'needed' ? true : undefined}
-        {...rest}
-        className="h-[50px] w-full rounded-xl border-[1.5px] border-rule2 bg-paperlight px-3.5 text-[17px] text-ink placeholder:text-quiet/70 focus:border-bottle aria-invalid:border-hand aria-invalid:border-2"
-      />
+      <div className="relative">
+        <input
+          id={id}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
+          required={need === 'needed' ? true : undefined}
+          {...rest}
+          className={`h-[50px] w-full rounded-xl border-[1.5px] border-rule2 bg-paperlight px-3.5 text-[17px] text-ink placeholder:text-quiet/70 focus:border-bottle aria-invalid:border-hand aria-invalid:border-2 aria-invalid:bg-paperlight ${trailing ? 'pr-20' : ''}`}
+        />
+        {trailing ? <div className="absolute inset-y-0 right-1 flex items-center">{trailing}</div> : null}
+      </div>
       {error ? (
-        <span id={`${id}-error`} className="text-sm font-bold text-hand">
+        <span id={`${id}-error`} className="text-sm text-hand">
           {error}
         </span>
       ) : hint ? (
@@ -112,10 +116,10 @@ export function SelectField({
 }
 
 // "Saving a chair for a friend?", stock, and "Open for orders". ON or OFF is written beside it, so the state never rests on colour alone.
-export function Switch({ checked, onChange, labelledBy, disabled }: { checked: boolean; onChange: (next: boolean) => void; labelledBy: string; disabled?: boolean }) {
+export function Switch({ checked, onChange, labelledBy, disabled, offAlert = false }: { checked: boolean; onChange: (next: boolean) => void; labelledBy: string; disabled?: boolean; offAlert?: boolean }) {
   return (
     <span className="inline-flex flex-none items-center gap-2.5">
-      <span aria-hidden="true" className={`w-7 text-right text-[13px] font-bold tracking-[0.06em] ${checked ? 'text-bottle' : 'text-quiet'}`}>
+      <span aria-hidden="true" className={`w-7 text-right text-[13px] font-bold tracking-[0.06em] ${checked ? 'text-bottle' : offAlert ? 'text-hand' : 'text-quiet'}`}>
         {checked ? 'ON' : 'OFF'}
       </span>
       <button
@@ -181,7 +185,7 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
   if (!open || typeof document === 'undefined') return null;
   // Drawn at the top of the page, outside whatever it was opened from, so nothing (not even the floating tab bar) can sit over it.
   return createPortal(
-    <div className="plately fixed inset-0 z-50 flex items-end justify-center bg-black/55 animate-fade sm:items-center" onClick={onClose}>
+    <div className="plately fixed inset-0 z-50 flex items-end justify-center bg-[#0A1812]/80 animate-fade sm:items-center" onClick={onClose}>
       <div
         ref={panel}
         role="dialog"
