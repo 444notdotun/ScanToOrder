@@ -281,10 +281,10 @@ export default function MarketingPage() {
 
           <section id="events" aria-labelledby="events-title" className={`${SECTION} scroll-mt-6`}>
             <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-              <Reveal className="order-2 lg:order-1">
+              <Reveal className="order-1">
                 <EventCard />
               </Reveal>
-              <Reveal delay={80} className="order-1 lg:order-2">
+              <Reveal delay={80} className="order-2">
                 <Heading id="events-title" eyebrow="For event planners" title="Feed every guest, and know you did." />
                 <ul className="mt-8 flex flex-col gap-5">
                   {EVENT_POINTS.map(([title, line]) => (
