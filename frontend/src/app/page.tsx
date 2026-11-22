@@ -41,7 +41,15 @@ const STEPS = [
 function Receipt() {
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="bg-paper px-6 pb-6 pt-6 text-ink shadow-[0_18px_36px_rgba(0,0,0,0.3)]">
+      <svg aria-hidden="true" focusable="false" width="100%" height="10" className="block">
+        <defs>
+          <pattern id="tear-top" width="20" height="10" patternUnits="userSpaceOnUse">
+            <polygon points="0,10 10,0 20,10" fill="#FBF6EA" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="10" fill="url(#tear-top)" />
+      </svg>
+      <div className="bg-paper px-6 pb-6 pt-4 text-ink shadow-[0_18px_36px_rgba(0,0,0,0.3)]">
         <div className="flex justify-between border-b border-dashed border-rule2 pb-3 text-[12px] font-bold uppercase tracking-[0.14em] text-quiet">
           <span>Table 7</span>
           <span>How it goes</span>
@@ -85,9 +93,9 @@ const LEDGER = [
 
 function Ledger() {
   return (
-    <dl className="border-y border-rule2">
+    <dl className="border-t border-cream/25">
       {LEDGER.map(([name, line]) => (
-        <div key={name} className="grid gap-1 border-b border-rule2 py-5 last:border-b-0 md:grid-cols-[200px_1fr] md:gap-6">
+        <div key={name} className="grid gap-1 border-b border-cream/25 py-5 md:grid-cols-[170px_1fr] md:gap-6">
           <dt className="font-heading text-[22px] font-normal leading-tight">{name}</dt>
           <dd className="text-[16px] leading-[1.5] text-soft">{line}</dd>
         </div>
@@ -96,33 +104,83 @@ function Ledger() {
   );
 }
 
-function Role({ name, children }: { name: string; children: ReactNode }) {
+// One kitchen ticket per role, with a torn top edge: the role, what they do, and one sample line with its status.
+const TICKETS: Array<{ role: string; line: string; sample: string; chip: string; chipLook: string; tilt: string }> = [
+  {
+    role: 'The chef',
+    line: 'Sees an order only once it is paid, starts it, marks it ready, and marks a dish sold out.',
+    sample: 'T7 · Seat 2 · Jollof ×1',
+    chip: 'PAID',
+    chipLook: 'bg-mustard text-ink',
+    tilt: '-rotate-[0.6deg]',
+  },
+  {
+    role: 'The waiter',
+    line: 'Carries ready plates to the right seat, answers calls, and frees seats or closes a table.',
+    sample: 'T7 · Seat 2 · Ready',
+    chip: 'TAKE IT',
+    chipLook: 'bg-bottle text-cream',
+    tilt: 'rotate-[0.4deg]',
+  },
+  {
+    role: 'The manager',
+    line: 'Sets the menu, tables and team, opens and closes for orders, and settles refunds.',
+    sample: 'Orders open · 12 tables',
+    chip: 'OPEN',
+    chipLook: 'bg-tomato text-white',
+    tilt: '-rotate-[0.3deg]',
+  },
+];
+
+function KitchenTicket({ role, line, sample, chip, chipLook, tilt }: (typeof TICKETS)[number]) {
   return (
-    <li className="border-t border-cream/20 py-4 first:border-t-0 first:pt-0">
-      <h4 className="text-base font-bold text-mustard">{name}</h4>
-      <p className="mt-1 text-[16px] leading-[1.5] text-cream">{children}</p>
+    <li className={tilt}>
+      <svg aria-hidden="true" focusable="false" width="100%" height="10" className="block">
+        <defs>
+          <pattern id={`tear-ticket-${chip.replace(/\W+/g, '-')}`} width="20" height="10" patternUnits="userSpaceOnUse">
+            <polygon points="0,10 10,0 20,10" fill="#FBF6EA" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="10" fill={`url(#tear-ticket-${chip.replace(/\W+/g, '-')})`} />
+      </svg>
+      <article className="bg-paper px-5 pb-4 pt-3 text-ink shadow-[0_14px_28px_rgba(0,0,0,0.3)]">
+        <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.14em] text-quiet">
+          <span>Role</span>
+          <span>Sample ticket</span>
+        </div>
+        <h4 className="mt-2 font-heading text-[24px] font-normal leading-tight text-bottle">{role}</h4>
+        <p className="mt-2 text-[14px] leading-[1.5] text-quiet">{line}</p>
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-dashed border-rule2 pt-3 text-[12px] font-bold text-ink">
+          <span>{sample}</span>
+          <span className={`flex-none rounded px-2 py-0.5 text-[10px] tracking-[0.1em] ${chipLook}`}>{chip}</span>
+        </div>
+      </article>
     </li>
   );
 }
 
 function EventCard() {
   return (
-    <div className="mx-auto w-full max-w-sm -rotate-1 rounded-[20px] bg-paper p-6 text-ink shadow-[0_18px_36px_rgba(0,0,0,0.3)]">
-      <div className="flex justify-between text-[12px] font-bold uppercase tracking-[0.14em] text-quiet">
+    <div className="relative mx-auto w-full max-w-sm -rotate-[2deg] rounded-[18px] bg-paper p-6 text-ink shadow-[0_18px_36px_rgba(0,0,0,0.3)]">
+      <div className="flex justify-between text-[11px] font-bold uppercase tracking-[0.14em] text-quiet">
         <span>Event guest card</span>
-        <span className="rounded-full border border-hand px-2 text-hand">Sample</span>
+        <span>Sample</span>
       </div>
-      <h3 className="mt-3 font-heading text-[40px] font-normal leading-none text-bottle">
-        Seat 12 <span className="text-[18px] text-hand">· 2 plates</span>
+      <h3 className="mt-3 font-heading text-[44px] font-normal leading-none text-bottle">
+        Seat 12 <span className="text-[19px] text-hand">2 plates</span>
       </h3>
-      <p className="mt-1 text-[15px] text-quiet">Sample guest · Table 3</p>
-      <ul className="mt-4 divide-y divide-dashed divide-rule2 border-y border-dashed border-rule2 text-[15px]">
-        <li className="flex justify-between py-2"><span>Plate 1 · Jollof &amp; small chops</span><span className="font-bold">left</span></li>
-        <li className="flex justify-between py-2"><span>Plate 2 · Jollof &amp; small chops</span><span className="font-bold">left</span></li>
-      </ul>
-      <div className="mt-4 flex items-baseline justify-between">
-        <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-quiet">Your code</span>
-        <span className="text-[22px] font-bold tracking-[0.2em] text-ink">K7M4QX</span>
+      <p className="mt-1 text-[14px] text-quiet">Guest name · Table 3</p>
+      <div className="relative mt-4">
+        <span aria-hidden="true" className="absolute -left-[31px] top-0 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-bottle" />
+        <span aria-hidden="true" className="absolute -right-[31px] top-0 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-bottle" />
+        <ul className="divide-y divide-dashed divide-rule2 border-t border-dashed border-rule2 text-[14px]">
+          <li className="flex justify-between py-2"><span>Plate 1 · Jollof &amp; small chops</span><span className="font-bold">left</span></li>
+          <li className="flex justify-between py-2"><span>Plate 2 · Jollof &amp; small chops</span><span className="font-bold">left</span></li>
+        </ul>
+      </div>
+      <div className="mt-3 flex items-center justify-between rounded-lg bg-cream px-4 py-3">
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-quiet">Your code</span>
+        <span className="text-[19px] font-bold tracking-[0.22em] text-ink">K7M4QX</span>
       </div>
     </div>
   );
@@ -137,8 +195,8 @@ const EVENT_POINTS = [
 
 function Answer({ question, children }: { question: string; children: ReactNode }) {
   return (
-    <div>
-      <h3 className="text-[13px] font-bold uppercase tracking-[0.14em] text-bottle">{question}</h3>
+    <div className="lg:border-l lg:border-rule2 lg:pl-6 lg:first:border-l-0 lg:first:pl-0">
+      <h3 className="font-heading text-[20px] font-normal leading-tight text-bottle">{question}</h3>
       <div className="mt-3 text-[16px] leading-[1.5] text-ink">{children}</div>
     </div>
   );
@@ -194,26 +252,32 @@ export default function MarketingPage() {
             </div>
           </section>
 
-          <section id="restaurants" aria-labelledby="restaurants-title" className={`${SECTION} scroll-mt-6`}>
-            <Reveal>
-              <Heading id="restaurants-title" eyebrow="For restaurants" title="Run your place on it.">
-                Menu, tables, team and money, in one place.
-              </Heading>
-            </Reveal>
-            <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12">
+          <div className="bg-[#10281F]">
+            <section id="restaurants" aria-labelledby="restaurants-title" className={`${SECTION} scroll-mt-6`}>
+              <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+                <Reveal>
+                  <Heading id="restaurants-title" eyebrow="For restaurants" title="Run your place on it.">
+                    From first sign-up to closing time, one place to run the night.
+                  </Heading>
+                </Reveal>
+                <Reveal delay={80}>
+                  <Ledger />
+                </Reveal>
+              </div>
+
               <Reveal>
-                <Ledger />
+                <div className="mt-16 md:mt-20">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-mustard">Your team, one ticket each</p>
+                  <h3 className="mt-2 font-heading text-[28px] font-normal leading-tight md:text-[32px]">Everyone sees only what they need.</h3>
+                  <ul aria-label="Who does what" className="mt-8 grid gap-6 md:grid-cols-3">
+                    {TICKETS.map((ticket) => (
+                      <KitchenTicket key={ticket.role} {...ticket} />
+                    ))}
+                  </ul>
+                </div>
               </Reveal>
-              <Reveal delay={80}>
-                <h3 className="mb-4 font-heading text-[20px] font-normal leading-tight">Everyone sees only what they need.</h3>
-                <ul aria-label="Who does what">
-                  <Role name="The chef">Sees an order only once it is paid, starts it, marks it ready, and marks a dish sold out.</Role>
-                  <Role name="The waiter">Carries ready plates to the right seat, answers calls, and frees seats or closes a table.</Role>
-                  <Role name="The manager">Sets the menu, tables and team, opens and closes for orders, and settles refunds.</Role>
-                </ul>
-              </Reveal>
-            </div>
-          </section>
+            </section>
+          </div>
 
           <section id="events" aria-labelledby="events-title" className={`${SECTION} scroll-mt-6`}>
             <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -221,7 +285,7 @@ export default function MarketingPage() {
                 <EventCard />
               </Reveal>
               <Reveal delay={80} className="order-1 lg:order-2">
-                <Heading id="events-title" eyebrow="For event planners" title="Feed every guest, and know that you did." />
+                <Heading id="events-title" eyebrow="For event planners" title="Feed every guest, and know you did." />
                 <ul className="mt-8 flex flex-col gap-5">
                   {EVENT_POINTS.map(([title, line]) => (
                     <li key={title} className="flex gap-3">
@@ -233,8 +297,9 @@ export default function MarketingPage() {
                     </li>
                   ))}
                 </ul>
-                <p className="mt-6 text-[15px] text-soft">
-                  <span className="font-bold text-mustard">Coming soon:</span> sending codes to guests from Plately.
+                <p className="mt-6 inline-flex items-center gap-3 rounded-lg border border-cream/20 px-3 py-2 text-[14px] text-soft">
+                  <span className="rounded bg-mustard px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-ink">COMING SOON</span>
+                  Sending codes to guests from Plately.
                 </p>
               </Reveal>
             </div>
@@ -246,7 +311,7 @@ export default function MarketingPage() {
               <h2 id="answers-title" className="mt-2 max-w-3xl font-heading text-[32px] font-normal leading-[1.1] text-bottle md:text-[44px]">
                 What it costs, how you get paid, and who to call.
               </h2>
-              <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-10 grid gap-8 border-t-2 border-bottle pt-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
                 <Answer question="Guests can pay with">
                   <ul className="flex flex-wrap gap-2">
                     {['Card', 'Bank transfer', 'Opay', 'Moniepoint', 'USSD'].map((way) => (
@@ -257,7 +322,7 @@ export default function MarketingPage() {
                   </ul>
                 </Answer>
                 <Answer question="What it costs">Pricing: coming soon.</Answer>
-                <Answer question="Talk to us">
+                <Answer question="Talk to a person">
                   <p>
                     On X:{' '}
                     <a href={X_URL} target="_blank" rel="noopener noreferrer" className={`${XLINK} text-bottle`}>
@@ -275,9 +340,8 @@ export default function MarketingPage() {
 
           <section aria-labelledby="closing-title" className="relative mx-auto w-full max-w-6xl px-5 py-12 md:py-24">
             <Reveal>
-              <div className="rounded-[28px] border border-cream/20 bg-bottle/70 px-6 py-12 text-center md:py-16">
-                <Brand className="justify-center" />
-                <h2 id="closing-title" className="mt-4 font-heading text-[38px] font-normal leading-[1.08] md:text-[56px]">
+              <div className="px-6 py-6 text-center md:py-10">
+                <h2 id="closing-title" className="font-heading text-[38px] font-normal leading-[1.08] md:text-[56px]">
                   Pull up a chair.
                 </h2>
                 <p className="mx-auto mt-3 max-w-xl text-[17px] leading-[1.5] text-soft">Tell us about your place and we&apos;ll get the tables ready.</p>
@@ -301,7 +365,7 @@ export default function MarketingPage() {
           <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
             <div>
               <Brand />
-              <p className="mt-3 max-w-xs text-[15px] leading-snug text-soft">Scan the table, pick a seat, order and eat. Built in Lagos.</p>
+              <p className="mt-3 max-w-xs text-[15px] leading-snug text-soft">Scan the table, pick a seat, order and eat.</p>
             </div>
             <nav aria-label="Product">
               <h2 className="text-[13px] font-bold uppercase tracking-[0.14em] text-mustard">Product</h2>
