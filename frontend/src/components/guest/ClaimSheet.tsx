@@ -138,7 +138,7 @@ export default function ClaimSheet({
           autoComplete="off"
         />
         <Field
-          label="Phone number"
+          label="Phone"
           need="needed"
           name="phone"
           type="tel"
@@ -150,10 +150,10 @@ export default function ClaimSheet({
           }}
           error={problems.phone}
           autoComplete="off"
-          hint="Only so we can send your receipt. We won't call."
+          hint="Only for your receipt. We won't call."
         />
         <Field
-          label="Email (for a receipt there)"
+          label="Email"
           need="optional"
           name="email"
           type="email"

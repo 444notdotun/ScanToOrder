@@ -74,20 +74,20 @@ export default function TableMapPage() {
       <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-2 px-6 pb-7 pt-7">
         <Brand size={24} />
         <Eyebrow className="mt-3">{label}</Eyebrow>
-        <h1 className="font-heading text-[34px] font-normal leading-[1.1]">Where are you sitting?</h1>
+        <h1 className="font-heading text-[36px] font-normal leading-[1.08]">Where are you sitting?</h1>
         <Handwriting className="-rotate-[1.5deg] origin-left">Tap your chair so the food finds you.</Handwriting>
         <SeatLegend />
 
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-3">
+        <div className="mt-3 flex flex-col items-center gap-3">
           <div className="grid w-full gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.min(top.length, 4))}, minmax(0, 1fr))` }}>
             {top.map((seat) => (
               <SeatButton key={seat.seatId} seat={seat} onTap={() => tap(seat)} />
             ))}
           </div>
-          <div className="mx-auto flex w-full max-w-[16rem] items-center justify-center gap-3 rounded-[28px] border-2 border-cream/30 bg-cream/10 px-4 py-5">
-            <div className="text-center">
-              <div className="text-[13px] font-bold uppercase tracking-[0.14em] text-cream">Table {table.displayNumber}</div>
-              <div className="text-sm text-soft">seats {table.Capacity ?? table.capacity ?? seats.length}</div>
+          <div className="flex w-full flex-col items-center justify-center rounded-[20px] border border-cream/25 bg-cream/10 px-4 py-4 text-center">
+            <div className="text-[13px] font-bold uppercase tracking-[0.14em] text-cream">Table {table.displayNumber}</div>
+            <div className="text-[15px] text-soft">
+              seats {table.Capacity ?? table.capacity ?? seats.length} · the card on your table
             </div>
           </div>
           {bottom.length > 0 ? (

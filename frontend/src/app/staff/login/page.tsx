@@ -39,10 +39,8 @@ function SignIn() {
 
   return (
     <Ground>
-      <header className="mx-auto flex w-full max-w-md items-center justify-between px-5 pt-5 md:max-w-xl">
+      <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col justify-center gap-5 px-5 pb-10 pt-8 md:max-w-[26rem]">
         <Brand />
-      </header>
-      <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col justify-center gap-5 px-5 pb-10 pt-6 md:max-w-xl">
         <h1 className="font-heading text-[38px] font-normal leading-[1.1]">Staff sign-in</h1>
 
         {ended ? (
@@ -63,25 +61,26 @@ function SignIn() {
               value={username}
               onChange={(event) => setUsername(event.target.value)}
             />
-            <div className="flex flex-col gap-1">
-              <Field
-                label="Password"
-                name="password"
-                type={shown ? 'text' : 'password'}
-                autoComplete="current-password"
-                autoCapitalize="none"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-              <button
-                type="button"
-                aria-pressed={shown}
-                onClick={() => setShown(!shown)}
-                className="flex min-h-[44px] items-center self-start rounded-full px-1 text-[15px] font-bold text-bottle underline underline-offset-4"
-              >
-                {shown ? 'Hide password' : 'Show password'}
-              </button>
-            </div>
+            <Field
+              label="Password"
+              name="password"
+              type={shown ? 'text' : 'password'}
+              autoComplete="current-password"
+              autoCapitalize="none"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              trailing={
+                <button
+                  type="button"
+                  aria-pressed={shown}
+                  aria-label={shown ? 'Hide password' : 'Show password'}
+                  onClick={() => setShown(!shown)}
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 text-[13px] font-bold text-quiet hover:text-bottle"
+                >
+                  {shown ? 'Hide' : 'Show'}
+                </button>
+              }
+            />
             {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
             <Button type="submit" tone="primary" big disabled={busy}>
               {busy ? 'Signing you in…' : 'Sign in'}
@@ -89,12 +88,12 @@ function SignIn() {
           </form>
         </Card>
 
-        <div className="flex flex-wrap justify-center gap-x-6 text-[15px] text-soft">
-          <Link href="/scan" className="flex min-h-[44px] items-center underline underline-offset-4">
-            Find your table
+        <div className="flex flex-col items-start text-[15px]">
+          <Link href="/scan" className="flex min-h-[44px] items-center border-b border-cream/40 pr-1 text-cream">
+            Here to eat? Scan the card on your table
           </Link>
-          <Link href="/signup" className="flex min-h-[44px] items-center underline underline-offset-4">
-            Get Plately for your place
+          <Link href="/signup" className="mt-1 flex min-h-[44px] items-center border-b border-mustard pr-1 text-cream">
+            Own a place? Get Plately for your place
           </Link>
         </div>
       </main>

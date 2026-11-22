@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import OrderTracker from '@/components/guest/OrderTracker';
 import { useConnection } from '@/components/plately/Connection';
 import { Loader } from '@/components/plately/Logo';
-import { Button, Dashes, Eyebrow, FailureCard, Field, Sheet } from '@/components/plately/ui';
+import { Button, Dashes, Eyebrow, FailureCard, Field } from '@/components/plately/ui';
 import { guestApi, rememberedTable, useSession, useSessionOrders } from '@/lib/guest';
 import { dataOf, failureOf, http, type ApiFailure } from '@/lib/http';
 import { naira } from '@/lib/money';
@@ -115,11 +115,10 @@ function OrderScreen() {
   };
 
   const plates = cartCount(cart);
-  // Items, the total, Pay right under the total, and the optional receipt email below Pay.
-  const basket = (
+  // The lines and the total.
+  const lines = (
     <>
-      <h2 className="mb-1 font-heading text-[22px] font-normal text-bottle">Your basket</h2>
-      {!pending && target ? <p className="mb-3 text-[15px] font-bold text-hand">For {withoutPhone.find((seat) => seat.seatId === target)?.guestName ?? 'your friend'}. You pay for them.</p> : <div className="mb-2" />}
+      {!pending && target ? <p className="mb-3 text-[15px] font-bold text-hand">For {withoutPhone.find((seat) => seat.seatId === target)?.guestName ?? 'your friend'}. You pay for them.</p> : null}
       {pending ? (
         <>
           <div className="text-[15px] font-bold">{pending.items.join(', ')}</div>
@@ -129,7 +128,7 @@ function OrderScreen() {
           </div>
         </>
       ) : priced.length === 0 ? (
-        <p className="mb-3 text-[15px] text-quiet">Nothing yet. Tap Add on a plate.</p>
+        <p className="text-[15px] text-quiet">Nothing yet. Tap Add on a plate.</p>
       ) : (
         <>
           {priced.map((line) => (
@@ -146,35 +145,62 @@ function OrderScreen() {
           </div>
         </>
       )}
-      <Button className="mt-4" tone="primary" big disabled={!canPay || lost || !mine} onClick={() => void pay()}>
-        {payLabel}
-      </Button>
+    </>
+  );
+  const payButton = (
+    <Button tone="primary" big disabled={!canPay || lost || !mine} onClick={() => void pay()}>
+      {payLabel}
+    </Button>
+  );
+  const emailField = (
+    <Field
+      label="Email for your receipt"
+      need="optional"
+      type="email"
+      value={email}
+      onChange={(e) => {
+        setEmail(e.target.value);
+        setEmailProblem(undefined);
+      }}
+      autoComplete="email"
+      error={emailProblem}
+      hint="Leave it empty and you still get a receipt on this screen."
+    />
+  );
+  // Laptop: one card beside the menu. Items, the total, Pay right under the total, and the optional receipt email below Pay.
+  const basket = (
+    <>
+      <h2 className="mb-2 font-heading text-[22px] font-normal text-bottle">Your basket</h2>
+      {lines}
+      <div className="mt-4">{payButton}</div>
       <p className="mt-2 text-center text-sm text-quiet">The kitchen starts cooking the moment you&apos;ve paid.</p>
       {failure ? <FailureCard className="mt-3" title={failure.title} message={failure.message} /> : null}
       <Dashes className="my-4" />
-      <Field
-        label="Email for your receipt"
-        need="optional"
-        type="email"
-        value={email}
-        onChange={(e) => {
-          setEmail(e.target.value);
-          setEmailProblem(undefined);
-        }}
-        autoComplete="email"
-        error={emailProblem}
-        hint="We'll send the receipt there. Leave it empty and you still get one on this screen."
-      />
+      {emailField}
     </>
   );
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 animate-rise flex-col gap-3 px-5 pb-24 md:max-w-3xl xl:max-w-5xl xl:pb-6">
-      <h1 className="mt-3 font-heading text-[34px] font-normal leading-[1.1]">{pending ? 'Nearly there.' : "What'll it be?"}</h1>
+      {/* On a phone the basket is its own view: Pay sits right under the total, in reach of the thumb. */}
+      {basketOpen ? (
+        <div className="flex animate-rise flex-col gap-3 xl:hidden">
+          <h1 className="mt-3 font-heading text-[34px] font-normal leading-[1.1]">Your basket</h1>
+          <div className="rounded-[20px] bg-paper p-5 text-ink">{lines}</div>
+          {payButton}
+          <p className="px-2 text-[15px] leading-snug text-soft">The kitchen starts cooking the moment you&apos;ve paid.</p>
+          {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
+          <div className="rounded-[20px] bg-paper p-5 text-ink">{emailField}</div>
+        </div>
+      ) : null}
 
-      <OrderTracker />
+      <h1 className={`mt-3 font-heading text-[34px] font-normal leading-[1.1] ${basketOpen ? 'max-xl:hidden' : ''}`}>{pending ? 'Nearly there.' : "What'll it be?"}</h1>
 
-      <div className="flex flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start xl:gap-8">
+      <div className={basketOpen ? 'max-xl:hidden' : ''}>
+        <OrderTracker />
+      </div>
+
+      <div className={`flex flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start xl:gap-8 ${basketOpen ? 'max-xl:hidden' : ''}`}>
         <div className="flex min-w-0 flex-col gap-3">
       {pending ? (
         <div className="rounded-[20px] bg-paper p-5 text-ink">
@@ -293,12 +319,12 @@ function OrderScreen() {
       </div>
 
       {/* Below the laptop layout the basket is its own sheet, and a bar just above the tab bar says what is in it. */}
-      {canPay ? (
+      {canPay && !basketOpen ? (
         <div className="pointer-events-none fixed inset-x-[14px] bottom-[calc(var(--bar-h)+8px+env(safe-area-inset-bottom))] z-30 flex justify-center md:bottom-[calc(16px+env(safe-area-inset-bottom))] xl:hidden print:hidden">
           <button
             type="button"
             onClick={() => setBasketOpen(true)}
-            className="pointer-events-auto flex min-h-[56px] w-full max-w-md items-center justify-between gap-3 rounded-full bg-tomato px-5 text-left text-base font-bold leading-tight text-white shadow-[0_10px_28px_rgba(0,0,0,0.4)] hover:bg-[#a23420]"
+            className="pointer-events-auto flex min-h-[56px] w-full max-w-md items-center justify-between gap-3 rounded-full bg-tomato px-5 text-left text-[15px] font-bold leading-tight text-white shadow-[0_10px_28px_rgba(0,0,0,0.4)] hover:bg-[#a23420]"
           >
             <span className="min-w-0">
               {pending ? 'Finish paying' : `${plates} ${plates === 1 ? 'plate' : 'plates'}`}
@@ -310,11 +336,6 @@ function OrderScreen() {
         </div>
       ) : null}
 
-      <div className="xl:hidden">
-        <Sheet open={basketOpen} onClose={() => setBasketOpen(false)} label="Your basket">
-          {basket}
-        </Sheet>
-      </div>
     </main>
   );
 }
