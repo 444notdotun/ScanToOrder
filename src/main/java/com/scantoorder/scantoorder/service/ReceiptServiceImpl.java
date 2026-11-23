@@ -125,8 +125,10 @@ public class ReceiptServiceImpl implements ReceiptService {
                 .toList();
         java.util.List<EmailTemplate.Row> facts = new java.util.ArrayList<>();
         facts.add(new EmailTemplate.Row("Receipt", data.getReceiptNumber()));
-        if (data.getTableNumber() != null && !"N/A".equals(data.getTableNumber())) {
-            facts.add(new EmailTemplate.Row("Table", data.getTableNumber()));
+        // The receipt's table number is the table's own code. A guest knows it by the number on the card.
+        Integer shownTable = payment.getOrder().getTable() == null ? null : payment.getOrder().getTable().getDisplayNumber();
+        if (shownTable != null) {
+            facts.add(new EmailTemplate.Row("Table", String.valueOf(shownTable)));
         }
         if (when != null) {
             facts.add(new EmailTemplate.Row("Date", TimeText.dayAndClock(when)));

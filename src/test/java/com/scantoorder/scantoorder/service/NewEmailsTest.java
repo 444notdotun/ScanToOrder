@@ -73,6 +73,10 @@ class NewEmailsTest {
     @Autowired
     private PaymentTestSupport payments;
     @Autowired
+    private com.scantoorder.scantoorder.data.repository.TableRepo tableRepo;
+    @Autowired
+    private com.scantoorder.scantoorder.data.repository.OrderRepo orderRepo;
+    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
     @Autowired
     private StringRedisTemplate redis;
@@ -346,6 +350,22 @@ class NewEmailsTest {
         assertTrue(message.html().contains("Jollof &amp; &lt;i&gt;chicken&lt;/i&gt;"));
         assertFalse(message.html().contains("<i>chicken</i>"));
         assertTrue(message.idempotencyKey().startsWith("receipt:" + payment.getReference() + ":guest@example.com:"));
+    }
+
+    @Test
+    void testThatTheEmailNamesTheTableByTheNumberOnTheCardNotItsInternalCode() {
+        Tenant tenant = tenants.freshActiveTenant();
+        Payment payment = receiptFor(tenant, "Suya");
+        com.scantoorder.scantoorder.data.model.RestaurantTable table = tableRepo.save(com.scantoorder.scantoorder.data.model.RestaurantTable.builder().tenant(tenant).displayNumber(7).Capacity(4).build());
+        Order order = payment.getOrder();
+        order.setTable(table);
+        orderRepo.save(order);
+
+        receipts.emailReceipt(tenant.getTenantId(), payment.getReference(), "guest@example.com", "10.3.3.3");
+
+        String text = sent().get(0).text();
+        assertTrue(text.contains("Table: 7\n"));
+        assertFalse(text.contains(table.getTableNumber()), "the internal table code is never shown");
     }
 
     @Test
