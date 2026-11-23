@@ -5,7 +5,7 @@ import { Button, Card, FailureCard, Field, Sheet } from '@/components/plately/ui
 import PageHead, { Empty } from '@/components/staff/PageHead';
 import { FAILURE_ID, useAction } from '@/hooks/useAction';
 import { failureOf } from '@/lib/http';
-import { platformApi, sent, SUGGESTED, useTenants, type Tenant } from '@/lib/platform';
+import { isPayoutRefusal, PAYOUT_REFUSED_REASON, platformApi, sent, SUGGESTED, useTenants, type Tenant } from '@/lib/platform';
 
 export default function ApprovalsPage() {
   const waiting = useTenants('pending_approval');
@@ -14,6 +14,8 @@ export default function ApprovalsPage() {
   const [reason, setReason] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  // The business whose payout account Paystack refused when it was approved.
+  const [refused, setRefused] = useState<string | null>(null);
   const list = waiting.data ?? [];
 
   const close = () => {
@@ -55,26 +57,57 @@ export default function ApprovalsPage() {
                 <div className="text-sm text-quiet">
                   {tenant.type === 'RESTAURANT' ? 'Payout account checked with the bank when they sent it' : 'No bank needed'} · {sent(tenant.createdAt)}
                 </div>
-                <div className="mt-1 flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    big
-                    tone="primary"
-                    disabled={act.busy !== null}
-                    onClick={async () => {
-                      setResult(null);
-                      let message = '';
-                      const worked = await act.run(tenant.tenantId, async () => {
-                        message = (await platformApi.approve(tenant.tenantId)).message;
-                      });
-                      if (worked) setResult(message);
-                    }}
-                  >
-                    Approve
-                  </Button>
-                  <Button big tone="outline" disabled={act.busy !== null} onClick={() => setDeclining(tenant)}>
-                    Decline
-                  </Button>
-                </div>
+                {refused === tenant.tenantId ? (
+                  <div role="alert" className="mt-1 flex flex-col gap-3 rounded-xl border-[1.5px] border-errborder bg-errbg p-3.5 text-errtext">
+                    <p className="font-bold leading-snug">Paystack couldn&apos;t use their payout account.</p>
+                    <Button
+                      big
+                      tone="primary"
+                      disabled={act.busy !== null}
+                      onClick={() => {
+                        act.clear();
+                        setReason(PAYOUT_REFUSED_REASON);
+                        setProblem(null);
+                        setDeclining(tenant);
+                      }}
+                    >
+                      Decline and tell them
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+                    <Button
+                      big
+                      tone="primary"
+                      disabled={act.busy !== null}
+                      onClick={async () => {
+                        setResult(null);
+                        setRefused(null);
+                        let message = '';
+                        let refusal = false;
+                        const worked = await act.run(tenant.tenantId, async () => {
+                          try {
+                            message = (await platformApi.approve(tenant.tenantId)).message;
+                          } catch (error) {
+                            refusal = isPayoutRefusal(failureOf(error));
+                            throw error;
+                          }
+                        });
+                        if (worked) setResult(message);
+                        else if (refusal) {
+                          // The page shows its own words for this one, not the server's.
+                          act.clear();
+                          setRefused(tenant.tenantId);
+                        }
+                      }}
+                    >
+                      Approve
+                    </Button>
+                    <Button big tone="outline" disabled={act.busy !== null} onClick={() => setDeclining(tenant)}>
+                      Decline
+                    </Button>
+                  </div>
+                )}
               </Card>
             </li>
           ))}

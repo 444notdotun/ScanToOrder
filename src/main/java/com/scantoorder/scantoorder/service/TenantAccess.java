@@ -14,8 +14,18 @@ public class TenantAccess {
 
     public static final String PLACE_CLOSED = "This place isn't taking orders on Plately yet.";
 
+    // What a guest reads when their place has been paused. It is not the staff's wording: the guest has nobody to "contact".
+    public static final String PLACE_PAUSED = "This place isn't taking orders right now. A waiter can help you.";
+
     @Autowired
     private TenantRepo tenantRepo;
+
+    // A guest already seated at a suspended business cannot start or pay for another order. A closed place is different: seated guests finish.
+    public void requireNotSuspended(Tenant tenant) {
+        if (tenant != null && tenant.getStatus() == com.scantoorder.scantoorder.data.model.TenantStatus.SUSPENDED) {
+            throw new PlaceClosedException(PLACE_PAUSED, tenant.getName());
+        }
+    }
 
     public void requireTakingOrders(Tenant tenant) {
         if (tenant == null || !tenant.isTakingOrders()) {

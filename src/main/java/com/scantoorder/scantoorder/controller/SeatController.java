@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.AccessCookie;
 import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.dtos.request.ClaimSeatRequest;
@@ -31,6 +32,8 @@ import java.util.List;
 @Validated
 public class SeatController {
 
+    @Autowired
+    private AccessCookie accessCookie;
     @Autowired
     private SeatService seatService;
 
@@ -82,13 +85,7 @@ public class SeatController {
         if (response.getToken() == null) {
             return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(response));
         }
-        ResponseCookie jwtCookie = ResponseCookie.from("access_token", response.getToken())
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
-                .path("/")
-                .maxAge(Duration.ofHours(4))
-                .build();
+        ResponseCookie jwtCookie = accessCookie.set(response.getToken(), Duration.ofHours(4));
         response.setToken(null);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())

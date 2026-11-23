@@ -402,8 +402,16 @@ export default function MarketingPage() {
             <div>
               <h2 className="text-[13px] font-bold uppercase tracking-[0.14em] text-mustard">Good to know</h2>
               <ul className="mt-3 flex flex-col text-[15px] text-soft">
-                <li className="flex min-h-[44px] items-center">Terms: coming soon</li>
-                <li className="flex min-h-[44px] items-center">Privacy: coming soon</li>
+                <li>
+                  <Link href="/terms" className="flex min-h-[44px] items-center underline-offset-4 hover:text-cream hover:underline">
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="flex min-h-[44px] items-center underline-offset-4 hover:text-cream hover:underline">
+                    Privacy
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

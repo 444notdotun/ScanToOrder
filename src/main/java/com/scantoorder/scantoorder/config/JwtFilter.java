@@ -7,6 +7,7 @@ import com.scantoorder.scantoorder.data.model.SessionSeatStatus;
 import com.scantoorder.scantoorder.data.repository.SessionSeatRepo;
 import com.scantoorder.scantoorder.data.model.Worker;
 import com.scantoorder.scantoorder.data.model.WorkerPrincipal;
+import com.scantoorder.scantoorder.service.AuthImplementation;
 import com.scantoorder.scantoorder.service.Interface.JwtService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -37,6 +38,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
     private SessionSeatRepo sessionSeatRepo;
+    @Autowired
+    private SuspendedTenants suspendedTenants;
 
     public static final String SESSION_ENDED_ATTRIBUTE = "plately.sessionEnded";
     public static final String SESSION_ENDED_MESSAGE = "Your session has ended";
@@ -45,6 +48,12 @@ public class JwtFilter extends OncePerRequestFilter {
     // Someone on the choose-a-password screen can also sign out.
     public static final String LOGOUT_PATH = "/api/v1/auth/logout";
     public static final String CHANGE_PASSWORD_MESSAGE = "Choose a new password before you carry on.";
+
+    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"status\":\"ERROR\",\"message\":\"" + message + "\"}");
+    }
 
     private void writeForbidden(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -90,6 +99,15 @@ public class JwtFilter extends OncePerRequestFilter {
                     UserDetails userDetails = auth.loadUserByUsername(username);
                     if (jwtService.validateToken(jwt, userDetails) && userDetails.isEnabled() && !issuedBeforePasswordChange(claims, (Worker) userDetails)) {
                         Worker worker = (Worker) userDetails;
+                        // A suspended business's staff are signed out at once, whatever time their token has left. Signing out still works.
+                        if (suspendedTenants.blocks(worker.getTenant())) {
+                            if (LOGOUT_PATH.equals(request.getRequestURI())) {
+                                filterChain.doFilter(request, response);
+                            } else {
+                                writeUnauthorized(response, AuthImplementation.SUSPENDED);
+                            }
+                            return;
+                        }
                         if (worker.isMustChangePassword() && !CHANGE_PASSWORD_PATH.equals(request.getRequestURI()) && !LOGOUT_PATH.equals(request.getRequestURI())) {
                             writeForbidden(response, CHANGE_PASSWORD_MESSAGE);
                             return;

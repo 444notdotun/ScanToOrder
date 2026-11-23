@@ -82,6 +82,15 @@ export const useTenants = (status?: string) => useQuery({ queryKey: ['tenants', 
 export const useProblemRefunds = () => useQuery({ queryKey: ['problem-refunds'], queryFn: platformApi.refunds, ...again });
 export const useEarnings = (period: Period) => useQuery({ queryKey: ['earnings', period], queryFn: () => platformApi.earnings(period), ...again });
 
+// Approving fails with this when Paystack will not take the payout account the business gave. The words come from the server and are never shown.
+export function isPayoutRefusal(failure: { status: number | null; message: string }): boolean {
+  return failure.status === 422 && /^Paystack rejected/i.test(failure.message);
+}
+
+// What the owner is offered to tell them, and may change before sending.
+export const PAYOUT_REFUSED_REASON =
+  "Paystack couldn't use the bank account you gave for payouts. Check the account number and bank, then send the form again with the same email.";
+
 export const SUGGESTED = [
   'The name on the bank account does not match the business',
   'We could not reach you on the phone number given',

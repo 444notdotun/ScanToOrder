@@ -64,6 +64,8 @@ class PasswordResetTest {
     @Autowired
     private RateLimiter limiter;
     @Autowired
+    private com.scantoorder.scantoorder.config.RateSettings rates;
+    @Autowired
     private TenantTestSupport tenants;
     @Autowired
     private TenantRepo tenantRepo;
@@ -307,10 +309,10 @@ class PasswordResetTest {
 
         // The first client uses up its twenty; the second still gets through.
         for (int i = 0; i < 20; i++) {
-            assertTrue(limiter.allow("reset-address", com.scantoorder.scantoorder.utils.ClientAddress.of(first), PasswordResetService.PER_ADDRESS, Duration.ofHours(1)));
+            assertTrue(limiter.allow("reset-address", com.scantoorder.scantoorder.utils.ClientAddress.of(first), rates.getEmailPerIpHour(), Duration.ofHours(1)));
         }
-        assertFalse(limiter.allow("reset-address", com.scantoorder.scantoorder.utils.ClientAddress.of(first), PasswordResetService.PER_ADDRESS, Duration.ofHours(1)));
-        assertTrue(limiter.allow("reset-address", com.scantoorder.scantoorder.utils.ClientAddress.of(second), PasswordResetService.PER_ADDRESS, Duration.ofHours(1)));
+        assertFalse(limiter.allow("reset-address", com.scantoorder.scantoorder.utils.ClientAddress.of(first), rates.getEmailPerIpHour(), Duration.ofHours(1)));
+        assertTrue(limiter.allow("reset-address", com.scantoorder.scantoorder.utils.ClientAddress.of(second), rates.getEmailPerIpHour(), Duration.ofHours(1)));
     }
 
     // ---- choosing the new password

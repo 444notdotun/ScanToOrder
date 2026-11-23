@@ -254,7 +254,7 @@ class TenantWorkspaceTest {
     }
 
     @Test
-    void testThatAGuestAlreadySeatedKeepsTheirSessionWhenTheBusinessClosesOrIsSuspended() {
+    void testThatAGuestAlreadySeatedKeepsTheirSessionWhenTheBusinessClosesOrIsSuspendedButCannotOrderWhileSuspended() {
         addItem("Jollof", true);
         RestaurantTable table = addTable(3);
         workspace.setOpenForOrders(id, true);
@@ -263,16 +263,20 @@ class TenantWorkspaceTest {
         String code = sessionService.holdSeats(host, List.of(seats.get(1).getSeatId())).getJoinCode();
 
         workspace.setOpenForOrders(id, false);
-        Tenant suspended = tenantRepo.findById(id).orElseThrow();
-        suspended.setStatus(TenantStatus.SUSPENDED);
-        tenantRepo.save(suspended);
 
         CreateOrderRequest request = new CreateOrderRequest();
         CreateOrderItemRequest line = new CreateOrderItemRequest();
         line.setItemName("Jollof");
         line.setQuantity(1);
         request.getOrderItems().add(line);
-        assertNotNull(orderService.createOrder(request, host).getOrderId());
+        assertNotNull(orderService.createOrder(request, host).getOrderId(), "a closed place lets seated guests finish");
+
+        Tenant suspended = tenantRepo.findById(id).orElseThrow();
+        suspended.setStatus(TenantStatus.SUSPENDED);
+        tenantRepo.save(suspended);
+
+        // A suspended business keeps its guests' sessions, but they cannot start another order.
+        assertEquals(TenantAccess.PLACE_PAUSED, assertThrows(PlaceClosedException.class, () -> orderService.createOrder(request, host)).getMessage());
         assertNotNull(sessionService.getMySession(host).getSessionId());
 
         assertEquals(CLOSED, assertThrows(PlaceClosedException.class, () -> seatService.claimSeat(claim(seats.get(2)), null)).getMessage());
