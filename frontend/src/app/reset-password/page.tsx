@@ -15,6 +15,8 @@ function ResetPassword() {
   const fromAddress = useSearchParams().get('token');
   // The token is taken once, then the address is cleaned, so it is not left in the history, a bookmark or a screenshot.
   const token = useRef<string | null>(fromAddress);
+  // Whether there was a link to use at all, kept in state so it can be read while drawing the page.
+  const [hadToken, setHadToken] = useState(Boolean(fromAddress));
   const [password, setPassword] = useState('');
   const [again, setAgain] = useState('');
   const [shown, setShown] = useState(false);
@@ -26,7 +28,6 @@ function ResetPassword() {
 
   useEffect(() => {
     if (fromAddress !== null) {
-      token.current = fromAddress;
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [fromAddress]);
@@ -43,11 +44,13 @@ function ResetPassword() {
     try {
       setDone(dataOf<string>(await http.post('/api/v1/auth/reset-password', { token: token.current, newPassword: password })));
       token.current = null;
+      setHadToken(false);
     } catch (error) {
       const failed = failureOf(error, "We couldn't save your password");
       if (DEAD_LINK.test(failed.message)) {
         setDead(failed.message);
         token.current = null;
+        setHadToken(false);
       } else {
         setFailure(failed);
       }
@@ -57,7 +60,7 @@ function ResetPassword() {
   };
 
   // No token at all is the same dead end as a used one.
-  const deadMessage = dead ?? (token.current ? null : 'This link has expired or was already used. Ask for a new one.');
+  const deadMessage = dead ?? (hadToken ? null : 'This link has expired or was already used. Ask for a new one.');
 
   return (
     <Ground>
