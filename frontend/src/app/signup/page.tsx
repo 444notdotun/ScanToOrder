@@ -230,6 +230,14 @@ export default function SignupPage() {
             Sign in
           </Link>
         </p>
+        <p className="text-center text-[13px] text-soft">
+          <Link href="/terms" className="inline-flex min-h-[44px] items-center px-2 underline underline-offset-4">
+            Terms
+          </Link>
+          <Link href="/privacy" className="inline-flex min-h-[44px] items-center px-2 underline underline-offset-4">
+            Privacy
+          </Link>
+        </p>
       </main>
     </Ground>
   );
