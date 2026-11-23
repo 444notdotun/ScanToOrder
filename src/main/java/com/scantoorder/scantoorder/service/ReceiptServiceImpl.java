@@ -19,7 +19,6 @@ import com.scantoorder.scantoorder.service.email.EmailMessage;
 import com.scantoorder.scantoorder.service.email.EmailTemplate;
 import com.scantoorder.scantoorder.service.email.Mailer;
 import com.scantoorder.scantoorder.utils.TimeText;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -47,9 +46,6 @@ public class ReceiptServiceImpl implements ReceiptService {
     private Mailer mailer;
     @Autowired
     private RateLimiter limiter;
-
-    @Value("${app.frontend.url:http://localhost:3000}")
-    private String frontendUrl;
 
     public static final String SENT = "Sent. Check your inbox in a minute.";
     public static final String BAD_EMAIL = "That email doesn't look right.";
@@ -136,15 +132,11 @@ public class ReceiptServiceImpl implements ReceiptService {
         if (when != null) {
             facts.add(new EmailTemplate.Row("Date", TimeText.dayAndClock(when)));
         }
-        // The receipt page lives under the table; with no table on the order there is no page to send them to.
-        String link = "N/A".equals(data.getTableNumber()) ? frontendUrl
-                : frontendUrl + "/t/" + payment.getTenant().getSlug() + "/table/" + data.getTableNumber() + "/receipt/" + paymentReference;
         EmailTemplate.Rendered body = EmailTemplate.of("Your receipt", business)
                 .paragraph("Thanks for eating with us. Here's what you had.")
                 .details(facts)
                 .lines(lines, "Total", naira(data.getTotalPaid()))
                 .small("Paid through Paystack" + (when == null ? "" : " · " + TimeText.dayAndClock(when)))
-                .button("View receipt online", link)
                 .small("Something wrong with your order? Reply to this email and we'll pass it to " + business + ".")
                 .render();
         String key = "receipt:" + paymentReference + ":" + email.toLowerCase(java.util.Locale.ROOT) + ":" + System.currentTimeMillis() / 3_600_000L;

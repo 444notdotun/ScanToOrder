@@ -335,7 +335,13 @@ class NewEmailsTest {
         assertTrue(message.text().contains("1 × Jollof & <i>chicken</i>  ₦1,500"));
         assertTrue(message.text().contains("Total  ₦1,500"));
         assertTrue(message.text().contains("Paid through Paystack"));
-        assertTrue(message.text().contains("View receipt online:"));
+        // The email holds the whole receipt. The receipt page needs the guest's seat cookie, so no link is sent.
+        assertFalse(message.text().contains("View receipt online"));
+        assertFalse(message.text().contains("http"));
+        assertFalse(message.html().contains("View receipt online"));
+        assertFalse(message.html().contains("Button not working"));
+        assertFalse(message.html().contains("<a href=\"http"));
+        assertTrue(message.text().contains("Something wrong with your order? Reply to this email and we'll pass it to " + tenant.getName() + ".\n\n--\n"), "that is the last line before the footer");
         assertTrue(message.text().contains("Something wrong with your order? Reply to this email and we'll pass it to " + tenant.getName() + "."));
         assertTrue(message.html().contains("Jollof &amp; &lt;i&gt;chicken&lt;/i&gt;"));
         assertFalse(message.html().contains("<i>chicken</i>"));
