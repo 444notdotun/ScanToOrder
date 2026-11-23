@@ -81,6 +81,9 @@ function SignIn() {
                 </button>
               }
             />
+            <Link href="/forgot-password" className="-mt-2 flex min-h-[44px] items-center self-start text-[15px] font-bold text-bottle underline underline-offset-4">
+              Forgot password?
+            </Link>
             {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
             <Button type="submit" tone="primary" big disabled={busy}>
               {busy ? 'Signing you in…' : 'Sign in'}
