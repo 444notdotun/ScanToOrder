@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.config.RateSettings;
 import com.scantoorder.scantoorder.dtos.respond.ReceiptItemDto;
 import com.scantoorder.scantoorder.dtos.respond.ReceiptResponse;
 import com.scantoorder.scantoorder.data.model.Order;
@@ -45,11 +46,11 @@ public class ReceiptServiceImpl implements ReceiptService {
     private Mailer mailer;
     @Autowired
     private RateLimiter limiter;
+    @Autowired
+    private RateSettings rates;
 
     public static final String SENT = "Sent. Check your inbox in a minute.";
     public static final String BAD_EMAIL = "That email doesn't look right.";
-    static final int PER_RECEIPT = 3;
-    static final int PER_ADDRESS = 20;
     private static final java.util.regex.Pattern EMAIL = java.util.regex.Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
     @Override
@@ -111,8 +112,8 @@ public class ReceiptServiceImpl implements ReceiptService {
             throw new com.scantoorder.scantoorder.exception.InvalidRequestException(BAD_EMAIL);
         }
         Duration hour = Duration.ofHours(1);
-        boolean receiptOk = limiter.allow("receipt", paymentReference, PER_RECEIPT, hour);
-        boolean addressOk = limiter.allow("receipt-address", address == null ? "unknown" : address, PER_ADDRESS, hour);
+        boolean receiptOk = limiter.allow("receipt", paymentReference, rates.getEmailPerAddressHour(), hour);
+        boolean addressOk = limiter.allow("receipt-address", address == null ? "unknown" : address, rates.getEmailPerIpHour(), hour);
         if (!receiptOk || !addressOk) {
             throw new TryAgainLaterException(HttpStatus.TOO_MANY_REQUESTS, "That's a few receipts already. Try again in an hour.");
         }

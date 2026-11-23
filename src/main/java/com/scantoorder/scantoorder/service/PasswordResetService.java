@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.config.RateSettings;
 import com.scantoorder.scantoorder.data.model.PasswordResetToken;
 import com.scantoorder.scantoorder.data.model.Tenant;
 import com.scantoorder.scantoorder.data.model.TenantStatus;
@@ -44,8 +45,6 @@ public class PasswordResetService {
     public static final String DEAD_LINK = "This link has expired or was already used. Ask for a new one.";
     public static final String CHANGED = "Your password is changed. Sign in with it now.";
     static final Duration LIFETIME = Duration.ofMinutes(15);
-    static final int PER_EMAIL = 3;
-    static final int PER_ADDRESS = 20;
     private static final Duration WINDOW = Duration.ofHours(1);
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -59,6 +58,8 @@ public class PasswordResetService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private RateLimiter limiter;
+    @Autowired
+    private RateSettings rates;
     @Autowired
     private Mailer mailer;
     @Autowired
@@ -82,8 +83,8 @@ public class PasswordResetService {
         try {
             String email = rawEmail == null ? "" : rawEmail.trim().toLowerCase(Locale.ROOT);
             // Both counters always move, so a refusal on one does not show on the other.
-            boolean emailOk = limiter.allow("reset-email", email, PER_EMAIL, WINDOW);
-            boolean addressOk = limiter.allow("reset-address", address == null ? "unknown" : address, PER_ADDRESS, WINDOW);
+            boolean emailOk = limiter.allow("reset-email", email, rates.getEmailPerAddressHour(), WINDOW);
+            boolean addressOk = limiter.allow("reset-address", address == null ? "unknown" : address, rates.getEmailPerIpHour(), WINDOW);
             if (emailOk && addressOk && !email.isBlank()) {
                 issueFor(email);
             }

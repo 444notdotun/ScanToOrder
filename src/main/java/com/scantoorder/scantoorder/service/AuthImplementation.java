@@ -34,6 +34,8 @@ public class AuthImplementation implements Auth {
     @Autowired
     private WorkerRepo workerRepo;
     @Autowired
+    private LoginAttempts loginAttempts;
+    @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
     @org.springframework.context.annotation.Lazy
@@ -42,6 +44,8 @@ public class AuthImplementation implements Auth {
     // The same answer for an unknown username, a wrong password and a removed account.
     @Override
     public AuthResponse login(LoginRequest loginRequest) {
+        String username = loginRequest.getUsername();
+        loginAttempts.requireNotWaiting(username);
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
@@ -51,8 +55,10 @@ public class AuthImplementation implements Auth {
                     )
             );
         } catch (AuthenticationException e) {
+            loginAttempts.recordWrong(username);
             throw new BadSignInException(BAD_SIGN_IN);
         }
+        loginAttempts.clear(username);
         Worker worker = (Worker) authentication.getPrincipal();
         if (worker.getTenant() != null && worker.getTenant().getStatus() == TenantStatus.SUSPENDED) {
             throw new SuspendedTenantException(SUSPENDED);

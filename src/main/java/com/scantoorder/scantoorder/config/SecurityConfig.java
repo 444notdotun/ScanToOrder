@@ -27,6 +27,8 @@ public class SecurityConfig {
     private UserDetailsService auth;
     @Autowired
     private JwtFilter  jwtFilter;
+    @Autowired
+    private ApiRateLimitFilter apiRateLimitFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -54,6 +56,7 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(frame -> frame.deny()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/health").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.HEAD, "/api/v1/health").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/t/*/tables/*/seatMap", "/api/v1/t/*/menu").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/signup/banks", "/api/v1/signup/name-available").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/signup", "/api/v1/signup/verify-account").permitAll()
@@ -78,7 +81,9 @@ public class SecurityConfig {
                     res.getWriter().write("{\"status\":\"ERROR\",\"message\":\"" + message + "\"}");
                 }))
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                // Counted before anything else about the request is looked at.
+                .addFilterBefore(apiRateLimitFilter, JwtFilter.class);
         return httpSecurity.build();
     }
 

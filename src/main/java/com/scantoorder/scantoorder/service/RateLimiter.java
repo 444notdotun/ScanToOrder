@@ -36,7 +36,7 @@ public class RateLimiter {
         }
     }
 
-    static String digest(String value) {
+    public static String digest(String value) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
         } catch (java.security.NoSuchAlgorithmException e) {
