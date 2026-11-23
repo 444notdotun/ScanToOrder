@@ -4,8 +4,9 @@ import com.scantoorder.scantoorder.data.model.Tenant;
 import com.scantoorder.scantoorder.data.model.Worker;
 import com.scantoorder.scantoorder.data.repository.WorkerRepo;
 import com.scantoorder.scantoorder.dtos.request.PayoutAccountRequest;
-import com.scantoorder.scantoorder.exception.EmailSendException;
-import com.scantoorder.scantoorder.service.Interface.EmailSender;
+import com.scantoorder.scantoorder.service.email.EmailMessage;
+import com.scantoorder.scantoorder.service.email.EmailTemplate;
+import com.scantoorder.scantoorder.service.email.Mailer;
 import com.scantoorder.scantoorder.service.Interface.PaystackClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,7 +53,7 @@ public class TenantWorkspaceServiceImpl implements TenantWorkspaceService {
     @Autowired
     private PaystackClient paystackClient;
     @Autowired
-    private EmailSender emailSender;
+    private Mailer mailer;
     @Autowired
     private UnsplitPayments unsplitPayments;
 
@@ -142,18 +143,17 @@ public class TenantWorkspaceServiceImpl implements TenantWorkspaceService {
     private void tellTheOwner(Tenant tenant) {
         String number = tenant.getAccountNumber();
         String last4 = number.substring(number.length() - 4);
-        try {
-            emailSender.send(tenant.getEmail(), "Your payout account was changed",
-                    "Hello " + tenant.getOwnerName() + ",\n\n"
-                            + "The payout account for " + tenant.getName() + " was changed.\n\n"
-                            + "New bank: " + tenant.getBankName() + "\n"
-                            + "New account ending: " + last4 + "\n"
-                            + "When: " + TimeText.dayAndClock(LocalDateTime.now()) + "\n\n"
-                            + "If this wasn't you, contact Plately straight away.\n\n"
-                            + "The Plately team");
-        } catch (EmailSendException e) {
-            log.warn("The payout account change email could not be sent for tenant {}", tenant.getTenantId());
-        }
+        EmailTemplate.Rendered body = EmailTemplate.of(tenant.getName(), "Your payout account was changed")
+                .paragraph("Hello " + tenant.getOwnerName() + ",")
+                .paragraph("The payout account for " + tenant.getName() + " was changed.")
+                .details(List.of(
+                        new EmailTemplate.Row("New bank", tenant.getBankName()),
+                        new EmailTemplate.Row("New account ending", last4),
+                        new EmailTemplate.Row("When", TimeText.dayAndClock(LocalDateTime.now()))))
+                .note("If this wasn't you, contact Plately straight away.")
+                .render();
+        mailer.sendAfterCommit(EmailMessage.of(tenant.getEmail(), "Your payout account was changed", body, "payout-changed",
+                "payout:" + tenant.getTenantId() + ":" + System.currentTimeMillis()));
     }
 
     private Tenant find(String tenantId) {

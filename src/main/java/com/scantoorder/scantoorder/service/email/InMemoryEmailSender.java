@@ -10,18 +10,18 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Used while MAIL_HOST is not set: emails are kept in memory so the platform admin can read them.
+ * Used while neither SENDBYTE_API_KEY nor MAIL_HOST is set: emails are kept in memory so the platform admin can read them.
  */
 @Component
-@ConditionalOnExpression("'${MAIL_HOST:}'.isEmpty()")
+@ConditionalOnExpression(EmailSenderChoice.IN_MEMORY)
 public class InMemoryEmailSender implements EmailSender {
 
     private static final int KEEP = 200;
     private final List<OutboxMessage> outbox = Collections.synchronizedList(new ArrayList<>());
 
     @Override
-    public void send(String to, String subject, String body) {
-        outbox.add(new OutboxMessage(to, subject, body, LocalDateTime.now()));
+    public void send(EmailMessage message) {
+        outbox.add(new OutboxMessage(message.to(), message.subject(), message.text(), message.tag(), LocalDateTime.now()));
         while (outbox.size() > KEEP) {
             outbox.remove(0);
         }

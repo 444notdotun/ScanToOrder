@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.service.email.EmailSenderChoice;
 import com.scantoorder.scantoorder.service.email.InMemoryEmailSender;
 import com.scantoorder.scantoorder.service.email.OutboxMessage;
 import com.scantoorder.scantoorder.dtos.respond.ApiResponse;
@@ -14,11 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Only exists while MAIL_HOST is not set: it shows the emails that would have been sent.
+ * Only exists while no real sender is set: it shows the emails that would have been sent.
  */
 @RestController
 @RequestMapping("/api/v1/platform/outbox")
-@ConditionalOnExpression("'${MAIL_HOST:}'.isEmpty()")
+@ConditionalOnExpression(EmailSenderChoice.IN_MEMORY)
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")
 public class OutboxController {
 

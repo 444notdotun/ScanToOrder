@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.service.email.EmailMessage;
 import com.scantoorder.scantoorder.data.model.Tenant;
 import com.scantoorder.scantoorder.data.model.TenantStatus;
 import com.scantoorder.scantoorder.data.model.Worker;
@@ -211,7 +212,7 @@ class PlatformApprovalTest {
     @Test
     void testThatApprovalStandsWhenTheEmailCannotBeSentAndSignInCanBeResent() {
         Tenant pending = tenants.pendingTenant("Mail Down");
-        Mockito.doThrow(new EmailSendException("The email could not be sent")).when(emailSender).send(Mockito.eq(pending.getEmail()), Mockito.anyString(), Mockito.anyString());
+        Mockito.doThrow(new EmailSendException("The email could not be sent")).when(emailSender).send(Mockito.argThat(m -> m.to().equals(pending.getEmail())));
 
         TenantActionResponse response = platformService.approve(pending.getTenantId());
 
@@ -221,7 +222,7 @@ class PlatformApprovalTest {
         assertTrue(workerRepo.existsByUsername(pending.getSlug() + ".manager"));
         String oldHash = workerRepo.findByUsername(pending.getSlug() + ".manager").orElseThrow().getPassword();
 
-        Mockito.doCallRealMethod().when(emailSender).send(Mockito.eq(pending.getEmail()), Mockito.anyString(), Mockito.anyString());
+        Mockito.doCallRealMethod().when(emailSender).send(Mockito.argThat(m -> m.to().equals(pending.getEmail())));
         TenantActionResponse resent = platformService.resendSignIn(pending.getTenantId());
 
         assertTrue(resent.isEmailSent());

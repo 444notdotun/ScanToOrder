@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.service.email.EmailMessage;
 import com.scantoorder.scantoorder.data.model.*;
 import com.scantoorder.scantoorder.data.repository.OrderItemRepo;
 import com.scantoorder.scantoorder.data.repository.OrderRepo;
@@ -79,16 +80,17 @@ class RefundEmailTest {
         latePaymentFrom("guest@example.com");
 
         Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
-        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(emailSender, times(1)).send(eq("guest@example.com"), anyString(), body.capture());
-        assertTrue(body.getValue().contains("/refund/" + refund.getId() + "?t=" + refund.getGuestToken()));
-        assertTrue(body.getValue().contains("₦2,000.00"));
-        assertTrue(body.getValue().contains("Test Place"));
+        ArgumentCaptor<EmailMessage> body = ArgumentCaptor.forClass(EmailMessage.class);
+        verify(emailSender, times(1)).send(body.capture());
+        assertEquals("guest@example.com", body.getValue().to());
+        assertTrue(body.getValue().text().contains("/refund/" + refund.getId() + "?t=" + refund.getGuestToken()));
+        assertTrue(body.getValue().text().contains("₦2,000.00"));
+        assertTrue(body.getValue().text().contains("Test Place"));
     }
 
     @Test
     void testThatARefundIsStillRecordedWhenTheEmailCannotBeSent() {
-        doThrow(new EmailSendException("down")).when(emailSender).send(anyString(), anyString(), anyString());
+        doThrow(new EmailSendException("down")).when(emailSender).send(org.mockito.ArgumentMatchers.any(EmailMessage.class));
 
         latePaymentFrom("guest@example.com");
 
@@ -118,11 +120,12 @@ class RefundEmailTest {
 
         refunds.settle(tenants.main().getTenantId(), "w", refund.getId(), settle(RefundMethod.TRANSFER));
 
-        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(emailSender, times(1)).send(eq("guest@example.com"), anyString(), body.capture());
-        assertTrue(body.getValue().contains("Test Place has sent your refund of ₦2,000.00 by transfer on " + java.time.LocalDate.now()));
-        assertTrue(body.getValue().contains("If it hasn't reached you, tell us here: "));
-        assertTrue(body.getValue().contains("/refund/" + refund.getId() + "?t=" + refund.getGuestToken()));
+        ArgumentCaptor<EmailMessage> body = ArgumentCaptor.forClass(EmailMessage.class);
+        verify(emailSender, times(1)).send(body.capture());
+        assertEquals("guest@example.com", body.getValue().to());
+        assertTrue(body.getValue().text().contains("Test Place has sent your refund of ₦2,000.00 by transfer on " + java.time.LocalDate.now()));
+        assertTrue(body.getValue().text().contains("If it hasn't reached you, tell us here:"));
+        assertTrue(body.getValue().text().contains("/refund/" + refund.getId() + "?t=" + refund.getGuestToken()));
     }
 
     @Test
@@ -147,8 +150,8 @@ class RefundEmailTest {
         first.setEmail("newer@example.com");
         refunds.guestEmail(refund.getId(), refund.getGuestToken(), first);
 
-        verify(emailSender, times(1)).send(eq("new@example.com"), anyString(), contains("/refund/" + refund.getId()));
-        verify(emailSender, never()).send(eq("newer@example.com"), anyString(), anyString());
+        verify(emailSender, times(1)).send(org.mockito.ArgumentMatchers.argThat(m -> m.to().equals("new@example.com") && m.text().contains("/refund/" + refund.getId())));
+        verify(emailSender, never()).send(org.mockito.ArgumentMatchers.argThat(m -> m.to().equals("newer@example.com")));
     }
 
     @Test
@@ -158,7 +161,7 @@ class RefundEmailTest {
         appender.start();
         root.addAppender(appender);
         try {
-            doThrow(new EmailSendException("down for guest@example.com")).when(emailSender).send(anyString(), anyString(), anyString());
+            doThrow(new EmailSendException("down for guest@example.com")).when(emailSender).send(org.mockito.ArgumentMatchers.any(EmailMessage.class));
             latePaymentFrom("guest@example.com");
             Refund refund = refundRepo.findByPayment_Id(payment.getId()).orElseThrow();
             refunds.settle(tenants.main().getTenantId(), "w", refund.getId(), settle(RefundMethod.CASH));
