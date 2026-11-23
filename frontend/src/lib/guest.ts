@@ -112,8 +112,26 @@ export interface MenuSection {
   itemResponse: MenuItem[];
 }
 
+export interface Receipt {
+  receiptNumber: string;
+  paymentReference: string;
+  orderId: string;
+  tableNumber: string;
+  seatLabel: string;
+  paymentDate?: string;
+  items: Array<{ itemName: string; quantity: number; unitPrice: number; totalPrice: number; specialInstructions?: string }>;
+  subtotal: number;
+  totalPaid: number;
+  status: string;
+  refundMessage?: string;
+  refundLink?: string;
+}
+
 export const guestApi = {
   seatMap: async (slug: string, n: string) => dataOf<SeatMap>(await http.get(`/api/v1/t/${slug}/tables/${n}/seatMap`)),
+  receipt: async (reference: string) => dataOf<Receipt>(await http.get(`/api/v1/receipts/${reference}`)),
+  // The server answers in plain words, for a sent receipt and for every refusal.
+  emailReceipt: async (reference: string, email: string) => dataOf<string>(await http.post(`/api/v1/receipts/${reference}/email`, { email })),
   session: async () => dataOf<MySession>(await http.get('/api/v1/sessions/me')),
   orders: async () => dataOf<MySessionOrders>(await http.get('/api/v1/sessions/me/orders')),
   menu: async (slug: string) => {

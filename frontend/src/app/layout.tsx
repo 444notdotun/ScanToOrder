@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Caveat, Fraunces, Karla, Young_Serif } from "next/font/google";
+import { Caveat, Courier_Prime, Fraunces, Karla, Young_Serif } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 
 const youngSerif = Young_Serif({ weight: "400", subsets: ["latin"], variable: "--font-young-serif", display: "swap" });
 const karla = Karla({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-karla", display: "swap" });
 const caveat = Caveat({ weight: "700", subsets: ["latin"], variable: "--font-caveat", display: "swap" });
+// The typewriter lettering on the guest's receipt.
+const courierPrime = Courier_Prime({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-typewriter", display: "swap" });
 const fraunces = Fraunces({ weight: "600", subsets: ["latin"], variable: "--font-fraunces", display: "swap" });
 
 export const metadata: Metadata = {
@@ -25,7 +27,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`min-h-full bg-bottle antialiased ${youngSerif.variable} ${karla.variable} ${caveat.variable} ${fraunces.variable}`}>
+    <html lang="en" className={`min-h-full bg-bottle antialiased ${youngSerif.variable} ${karla.variable} ${caveat.variable} ${fraunces.variable} ${courierPrime.variable}`}>
       <body className="min-h-dvh flex flex-col bg-bottle text-stone-900 font-body">
         <Providers>
           <div className="flex-1 flex flex-col">{children}</div>

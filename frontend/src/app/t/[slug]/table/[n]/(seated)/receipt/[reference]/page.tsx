@@ -1,30 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import BackLink from '@/components/guest/BackLink';
-import { Brand, Loader, Watermark } from '@/components/plately/Logo';
-import { Dashes, FailureCard } from '@/components/plately/ui';
-import { useSession } from '@/lib/guest';
-import { apiUrl, dataOf, failureOf, http } from '@/lib/http';
-import { naira } from '@/lib/money';
-import { happened } from '@/lib/time';
-
-interface Receipt {
-  receiptNumber: string;
-  paymentReference: string;
-  orderId: string;
-  tableNumber: string;
-  seatLabel: string;
-  paymentDate?: string;
-  items: Array<{ itemName: string; quantity: number; unitPrice: number; totalPrice: number; specialInstructions?: string }>;
-  subtotal: number;
-  totalPaid: number;
-  status: string;
-  refundMessage?: string;
-  refundLink?: string;
-}
+import ReceiptTicket from '@/components/guest/ReceiptTicket';
+import { Loader, Mark, Wordmark } from '@/components/plately/Logo';
+import { Button, Card, FailureCard, Field } from '@/components/plately/ui';
+import { guestApi, rememberedTable, useSession } from '@/lib/guest';
+import { failureOf, type ApiFailure } from '@/lib/http';
+import { PICTURE_WIDTH, pictureOf, saveOrShare } from '@/lib/receiptPicture';
 
 // Where a refund link points inside this app, whatever address the email used.
 function insidePath(link: string): string {
@@ -39,101 +25,151 @@ function insidePath(link: string): string {
 export default function ReceiptPage() {
   const { slug, n, reference } = useParams<{ slug: string; n: string; reference: string }>();
   const session = useSession().data!;
-  const receipt = useQuery({
-    queryKey: ['receipt', reference],
-    queryFn: async () => dataOf<Receipt>(await http.get(`/api/v1/receipts/${reference}`)),
-    retry: false,
-  });
+  const receipt = useQuery({ queryKey: ['receipt', reference], queryFn: () => guestApi.receipt(reference), retry: false });
+  const picture = useRef<HTMLDivElement>(null);
+  const emailPanel = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveProblem, setSaveProblem] = useState<string | null>(null);
+  const [emailing, setEmailing] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailProblem, setEmailProblem] = useState<string | undefined>();
+  const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState<ApiFailure | null>(null);
+  const [sentAnswer, setSentAnswer] = useState<string | null>(null);
+
+  // The field is brought to the middle of the screen, so the Send button is never left under the floating tab bar.
+  useEffect(() => {
+    if (emailing) emailPanel.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [emailing]);
 
   if (receipt.isPending) return <Loader message="Finding your receipt…" />;
   if (receipt.isError) {
-    const failure = failureOf(receipt.error, "We can't open that receipt");
+    const failed = failureOf(receipt.error, "We can't open that receipt");
     return (
       <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 flex-col gap-4 px-5 pt-6">
         <BackLink href={`/t/${slug}/table/${n}/home`} />
-        <FailureCard title={failure.title} message={failure.message} />
+        <FailureCard title={failed.title} message={failed.message} />
       </main>
     );
   }
 
   const r = receipt.data;
-  // The receipt carries the seat's code; the guest reads "Seat 2".
-  const seat = session.seats.find((candidate) => candidate.seatNumber === r.seatLabel);
-  const seatName = seat ? `Seat ${seat.position}` : r.seatLabel;
-  const rows: Array<[string, string]> = [
-    ['Receipt', r.receiptNumber],
-    ['Date', happened(r.paymentDate)],
-    ['Table', session.displayNumber ? String(session.displayNumber) : r.tableNumber],
-    ['Seat', seatName],
-  ];
+  const business = session.businessName ?? '';
+  const table = session.displayNumber ? String(session.displayNumber) : r.tableNumber;
+
+  const save = async () => {
+    if (!picture.current) return;
+    setSaving(true);
+    setSaveProblem(null);
+    try {
+      const blob = await pictureOf(picture.current);
+      await saveOrShare(blob, `plately-receipt-${r.receiptNumber}.png`, business ? `Receipt from ${business}` : 'Receipt');
+    } catch {
+      setSaveProblem("We couldn't make the picture. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEmail = () => {
+    setEmailing(true);
+    setSentAnswer(null);
+    // The email the guest typed when they sat down, if they gave one.
+    setEmail((current) => current || rememberedTable()?.email || '');
+  };
+
+  const send = async (event: FormEvent) => {
+    event.preventDefault();
+    setFailure(null);
+    if (!email.trim()) {
+      setEmailProblem('Type the email to send it to.');
+      return;
+    }
+    setEmailProblem(undefined);
+    setSending(true);
+    try {
+      setSentAnswer(await guestApi.emailReceipt(r.paymentReference, email.trim()));
+      setEmailing(false);
+    } catch (error) {
+      setFailure(failureOf(error, "We couldn't send that"));
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-md md:max-w-xl flex-1 animate-rise flex-col gap-4 px-5 pb-8 pt-6">
       <BackLink href={`/t/${slug}/table/${n}/home`} />
-      <div className="relative overflow-hidden rounded-lg bg-paperlight p-6 text-ink shadow-[0_18px_36px_rgba(0,0,0,0.3)]">
-        <Watermark className="-bottom-10 -right-16" color="#183A2E" opacity={0.06} />
-        <div className="relative flex flex-col gap-3">
-          <div className="flex flex-col items-center gap-1 text-center">
-            <Brand size={26} body="#183A2E" ring="#B93C24" />
-            <div className="text-base font-bold">{session.businessName ?? ''}</div>
-            <div className="text-xs font-bold uppercase tracking-[0.16em] text-quiet">Receipt</div>
-          </div>
-          <Dashes />
-          <dl className="flex flex-col gap-1">
-            {rows.map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-3 text-[15px]">
-                <dt className="text-quiet">{k}</dt>
-                <dd className="text-right font-bold">{v}</dd>
-              </div>
-            ))}
-          </dl>
-          <Dashes />
-          <ul className="flex flex-col gap-1.5">
-            {r.items.map((item, index) => (
-              <li key={index} className="flex justify-between gap-3 text-[15px]">
-                <span>
-                  {item.quantity} × {item.itemName}
-                  {item.specialInstructions ? <span className="block text-sm text-quiet">{item.specialInstructions}</span> : null}
-                </span>
-                <span className="font-bold">{naira(item.totalPrice)}</span>
-              </li>
-            ))}
-          </ul>
-          <Dashes />
-          <div className="flex justify-between text-[15px]">
-            <span>Subtotal</span>
-            <span>{naira(r.subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold">
-            <span>Total paid</span>
-            <span>{naira(r.totalPaid)}</span>
-          </div>
-          {r.refundMessage ? (
-            <div className="rounded-md border border-dashed border-hand/60 bg-errbg/60 p-3 text-[15px] text-errtext">
-              <div className="font-bold">{r.refundMessage}</div>
-              {r.refundLink ? (
-                <Link href={insidePath(r.refundLink)} className="mt-1 inline-block font-bold underline underline-offset-4">
-                  Open your refund page
-                </Link>
-              ) : null}
-            </div>
+      <div className="mx-auto w-full max-w-[420px] drop-shadow-[0_18px_30px_rgba(0,0,0,0.35)]">
+        <ReceiptTicket receipt={r} businessName={business} tableName={table} />
+      </div>
+
+      {r.refundMessage ? (
+        <div className="rounded-md border border-dashed border-hand/60 bg-errbg p-3 text-[15px] text-errtext">
+          <div className="font-bold">{r.refundMessage}</div>
+          {r.refundLink ? (
+            <Link href={insidePath(r.refundLink)} className="mt-1 inline-block font-bold underline underline-offset-4">
+              Open your refund page
+            </Link>
           ) : null}
-          <div className="mt-1 flex items-center justify-between gap-3">
-            <div className="font-hand text-[24px] font-bold leading-tight text-hand">Thank you. Come hungry again.</div>
-            <div className="-rotate-6 animate-pop rounded-md border-[3px] border-good px-2.5 py-0.5 text-lg font-bold tracking-[0.12em] text-good">PAID</div>
+        </div>
+      ) : null}
+
+      <div className="mx-auto flex w-full max-w-[420px] flex-col gap-3">
+        <Button big tone="light" disabled={saving} onClick={() => void save()}>
+          {saving ? 'Making the picture…' : 'Save receipt'}
+        </Button>
+        {saveProblem ? <FailureCard message={saveProblem} /> : null}
+        {sentAnswer ? (
+          <p role="status" className="text-center text-[16px] font-bold text-mustard">
+            {sentAnswer}
+          </p>
+        ) : null}
+        {!emailing && !sending ? (
+          <Button tone="ghost" onClick={openEmail}>
+            Email me this receipt
+          </Button>
+        ) : null}
+        {emailing || sending ? (
+          <div ref={emailPanel}>
+          <Card>
+            <form noValidate onSubmit={(event) => void send(event)} className="flex flex-col gap-3">
+              <Field
+                label="Send it to"
+                name="email"
+                type="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                error={emailProblem}
+              />
+              {failure ? <FailureCard title={failure.title} message={failure.message} /> : null}
+              {sending ? (
+                <p role="status" className="text-center text-[15px] font-bold text-quiet">
+                  Sending…
+                </p>
+              ) : (
+                <Button type="submit" tone="primary">
+                  Send
+                </Button>
+              )}
+            </form>
+          </Card>
           </div>
+        ) : null}
+      </div>
+
+      {/* The picture that is saved: the same ticket, with the Plately logo above it on the deep green. It is drawn off screen. */}
+      <div aria-hidden="true" style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}>
+        <div ref={picture} style={{ width: PICTURE_WIDTH, background: '#10281F', padding: '40px 60px 44px', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#F4ECD8', marginBottom: 26 }}>
+            <Mark size={40} />
+            <Wordmark size={36} />
+          </div>
+          <ReceiptTicket receipt={r} businessName={business} tableName={table} width={PICTURE_WIDTH - 120} />
         </div>
       </div>
-      <a
-        href={apiUrl(`/api/v1/receipts/${r.paymentReference}/download`)}
-        download={`receipt_${r.paymentReference}.csv`}
-        className="flex min-h-[48px] items-center justify-center gap-2 rounded-full border-[1.5px] border-cream/45 px-5 text-base font-bold text-cream"
-      >
-        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 3v12M7 11l5 5 5-5M5 21h14" />
-        </svg>
-        Download receipt
-      </a>
     </main>
   );
 }
