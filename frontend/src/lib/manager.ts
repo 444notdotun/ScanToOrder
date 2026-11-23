@@ -148,6 +148,8 @@ export const managerApi = {
 
   team: async () => dataOf<Staff[]>(await http.get('/api/v1/workers')),
   addStaff: async (body: { name: string; role: string; handle: string }) => dataOf<Staff>(await http.post('/api/v1/workers', body)),
+  // A new temporary password for a chef or waiter. The server shows it once, in this answer.
+  resetStaffPassword: async (id: string) => dataOf<Staff>(await http.post(`/api/v1/workers/${id}/reset-password`)),
   removeStaff: async (id: string) => dataOf<string>(await http.delete(`/api/v1/workers/${id}`)),
 
   floor: async () => dataOf<Floor>(await http.get('/api/v1/floor')),
