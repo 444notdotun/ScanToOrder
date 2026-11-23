@@ -14,8 +14,12 @@ import com.scantoorder.scantoorder.exception.ConflictException;
 import com.scantoorder.scantoorder.exception.InvalidRequestException;
 import com.scantoorder.scantoorder.service.Interface.PaystackClient;
 import com.scantoorder.scantoorder.service.Interface.SignupService;
+import com.scantoorder.scantoorder.service.email.EmailMessage;
+import com.scantoorder.scantoorder.service.email.EmailTemplate;
+import com.scantoorder.scantoorder.service.email.Mailer;
 import com.scantoorder.scantoorder.utils.BusinessNames;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -37,6 +41,14 @@ public class SignupServiceImpl implements SignupService {
     private PaystackClient paystackClient;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+    @Autowired
+    private Mailer mailer;
+
+    // Who hears about a new sign-up. Empty means nobody is told.
+    @Value("${app.platform-owner.email:}")
+    private String platformOwnerEmail;
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
 
     @Override
     public List<BankData> banks() {
@@ -93,8 +105,30 @@ public class SignupServiceImpl implements SignupService {
             String cause = String.valueOf(e.getMostSpecificCause().getMessage());
             throw new ConflictException(cause.contains("normalized_name") ? NAME_TAKEN : EMAIL_TAKEN);
         }
+        tellThePlatformOwner(tenant);
         return new SignupResponse(tenant.getSlug(), tenant.getStatus().name(),
                 "Thank you. We will look at your application and email you at " + email + ".");
+    }
+
+    // Goes out once the sign-up is saved, and a failed send never fails the sign-up.
+    private void tellThePlatformOwner(Tenant tenant) {
+        if (platformOwnerEmail == null || platformOwnerEmail.isBlank()) {
+            return;
+        }
+        EmailTemplate.Rendered body = EmailTemplate.of("Waiting for you", "New on Plately: " + tenant.getName())
+                .paragraph("A business just signed up and is waiting for approval.")
+                .details(List.of(
+                        new EmailTemplate.Row("Type", tenant.getType() == TenantType.RESTAURANT ? "Restaurant" : "Event planner"),
+                        new EmailTemplate.Row("Owner", tenant.getOwnerName()),
+                        new EmailTemplate.Row("Email", tenant.getEmail()),
+                        new EmailTemplate.Row("Phone", tenant.getPhone())))
+                .button("Review it", frontendUrl + "/platform")
+                .small("Approving checks their payout account with Paystack first.")
+                .platformOnly()
+                .render();
+        // The key holds the application's own id and when it was sent in, so a form sent again after a decline is a new email.
+        mailer.sendAfterCommit(EmailMessage.of(platformOwnerEmail.trim(), "New on Plately: " + tenant.getName(), body, "new-signup",
+                "signup:" + tenant.getTenantId() + ":" + System.currentTimeMillis()));
     }
 
     // Answers from the same unique index that guards the sign-up, so the form can say so while the owner types.

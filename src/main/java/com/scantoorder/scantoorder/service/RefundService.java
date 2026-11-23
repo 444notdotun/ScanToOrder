@@ -6,8 +6,9 @@ import com.scantoorder.scantoorder.data.model.RefundMethod;
 import com.scantoorder.scantoorder.data.model.RefundReason;
 import com.scantoorder.scantoorder.data.model.RefundStatus;
 import com.scantoorder.scantoorder.data.repository.RefundRepo;
-import com.scantoorder.scantoorder.exception.EmailSendException;
-import com.scantoorder.scantoorder.service.Interface.EmailSender;
+import com.scantoorder.scantoorder.service.email.EmailMessage;
+import com.scantoorder.scantoorder.service.email.EmailTemplate;
+import com.scantoorder.scantoorder.service.email.Mailer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,7 +33,7 @@ public class RefundService {
     @Autowired
     private RefundRepo refundRepo;
     @Autowired
-    private EmailSender emailSender;
+    private Mailer mailer;
     @Autowired
     private LiveUpdates liveUpdates;
 
@@ -70,23 +71,28 @@ public class RefundService {
     // Both emails go out only once the change is safely saved, so a rolled-back change never sends a
     // link to nothing, and a failed email never undoes the change. Addresses are never logged.
     private void tellTheGuest(Refund refund) {
-        sendAfterCommit(refund, "Your refund from " + refund.getTenant().getName(),
-                "Hello,\n\n"
-                        + refund.getTenant().getName() + " owes you " + Money.naira(refund.getAmountKobo())
-                        + " for order " + refund.getOrder().getOrderNumber() + ".\n\n"
-                        + "See the refund, add your bank details, or tell us you have been paid:\n"
-                        + linkFor(refund) + "\n\n"
-                        + "The Plately team");
+        String business = refund.getTenant().getName();
+        EmailTemplate.Rendered body = EmailTemplate.of(business, "Your refund")
+                .paragraph("Hello,")
+                .paragraph(business + " owes you " + Money.naira(refund.getAmountKobo()) + " for order " + refund.getOrder().getOrderNumber() + ".")
+                .paragraph("See the refund, add your bank details, or tell us you have been paid:")
+                .button("See your refund", linkFor(refund))
+                .render();
+        // A guest who adds an email later asks for this one again, so the key moves on every minute.
+        sendAfterCommit(refund, "Your refund from " + business, body, "refund-due", "refund-due:" + refund.getId() + ":" + System.currentTimeMillis() / 60_000);
     }
 
     public void tellTheGuestItWasSent(Refund refund) {
-        sendAfterCommit(refund, "Your refund from " + refund.getTenant().getName(),
-                "Hello,\n\n"
-                        + refund.getTenant().getName() + " has sent your refund of " + Money.naira(refund.getAmountKobo())
+        String business = refund.getTenant().getName();
+        EmailTemplate.Rendered body = EmailTemplate.of(business, "Your refund is on its way")
+                .paragraph("Hello,")
+                .paragraph(business + " has sent your refund of " + Money.naira(refund.getAmountKobo())
                         + " by " + (refund.getMethod() == RefundMethod.CASH ? "cash" : "transfer")
-                        + " on " + refund.getSettledAt().toLocalDate() + ".\n\n"
-                        + "If it hasn't reached you, tell us here: " + linkFor(refund) + "\n\n"
-                        + "The Plately team");
+                        + " on " + refund.getSettledAt().toLocalDate() + ".")
+                .paragraph("If it hasn't reached you, tell us here:")
+                .button("Tell us", linkFor(refund))
+                .render();
+        sendAfterCommit(refund, "Your refund from " + business, body, "refund-sent", "refund-sent:" + refund.getId());
     }
 
     // Also used when the guest adds their email to a refund that is already due.
@@ -94,26 +100,10 @@ public class RefundService {
         tellTheGuest(refund);
     }
 
-    private void sendAfterCommit(Refund refund, String subject, String body) {
+    private void sendAfterCommit(Refund refund, String subject, EmailTemplate.Rendered body, String tag, String key) {
         String email = refund.getGuestEmail();
         if (email == null || email.isBlank()) return;
-        Runnable send = () -> {
-            try {
-                emailSender.send(email, subject, body);
-            } catch (EmailSendException e) {
-                log.warn("A refund email could not be sent for order {}", refund.getOrder().getOrderNumber());
-            }
-        };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    send.run();
-                }
-            });
-        } else {
-            send.run();
-        }
+        mailer.sendAfterCommit(EmailMessage.of(email, subject, body, tag, key));
     }
 
     private static String newToken() {

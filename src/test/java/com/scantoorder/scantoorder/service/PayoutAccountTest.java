@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.service.email.EmailMessage;
 import com.scantoorder.scantoorder.data.model.*;
 import com.scantoorder.scantoorder.data.repository.TenantRepo;
 import com.scantoorder.scantoorder.data.repository.WorkerRepo;
@@ -27,6 +28,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -139,6 +141,17 @@ class PayoutAccountTest {
         assertEquals("Zenith Bank", response.getBankName());
         assertEquals("3344", response.getAccountLast4());
 
+        // The email goes out only once the change is saved, so nothing is sent while it is still open.
+        assertTrue(emailSender.messages().isEmpty());
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        // This one test really commits. The manager made for it is removed again, so no other test sees it.
+        TestTransaction.start();
+        workerRepo.deleteById(manager.getWorkerId());
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        TestTransaction.start();
+
         List<OutboxMessage> mail = emailSender.messages();
         assertEquals(1, mail.size());
         assertEquals(tenant.getEmail(), mail.get(0).to());
@@ -189,7 +202,7 @@ class PayoutAccountTest {
 
     @Test
     void testThatTheChangeStandsEvenIfTheEmailCannotBeSent() {
-        doThrow(new EmailSendException("down")).when(emailSender).send(anyString(), anyString(), anyString());
+        doThrow(new EmailSendException("down")).when(emailSender).send(org.mockito.ArgumentMatchers.any(EmailMessage.class));
 
         workspace.changePayoutAccount(tenant.getTenantId(), manager.getWorkerId(), request(PASSWORD));
 

@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
@@ -30,6 +31,8 @@ public class Worker implements UserDetails {
     @Enumerated(EnumType.STRING)
     private WorkerRole role;
     private boolean isActive;
+    // Sign-in tokens issued before this moment no longer work: a new password signs the person out everywhere.
+    private Instant passwordChangedAt;
     @CreatedBy
     private String createdAt;
     @UpdateTimestamp

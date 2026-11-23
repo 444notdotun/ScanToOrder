@@ -13,6 +13,10 @@ import com.scantoorder.scantoorder.exception.PaymentGatewayUnavailableException;
 import com.scantoorder.scantoorder.exception.PaymentValidationException;
 import com.scantoorder.scantoorder.exception.ResourceNotFoundException;
 import com.scantoorder.scantoorder.service.Interface.PaystackClient;
+import com.scantoorder.scantoorder.service.email.EmailMessage;
+import com.scantoorder.scantoorder.service.email.EmailTemplate;
+import com.scantoorder.scantoorder.service.email.Mailer;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -27,6 +31,11 @@ import java.math.BigDecimal;
 @Slf4j
 @Component
 public class EventPaymentService {
+
+    @Autowired
+    private Mailer mailer;
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
 
     public static final String REFERENCE_PREFIX = "EVENT-";
 
@@ -102,10 +111,33 @@ public class EventPaymentService {
         payment.setStatus(PaymentStatus.SUCCESSFUL);
         paymentRepo.save(payment);
         event.setPaidGuests(event.getPaidGuests() + payment.getGuests());
-        if (event.getStatus() == EventStatus.DRAFT) {
+        boolean wentLive = event.getStatus() == EventStatus.DRAFT;
+        if (wentLive) {
             event.setStatus(EventStatus.ACTIVE);
         }
         eventRepo.save(event);
+        if (wentLive) {
+            tellThePlanner(event);
+        }
         return true;
+    }
+
+    // Once, on the payment that takes the event from draft to live; sent after the change is saved.
+    private void tellThePlanner(Event event) {
+        String name = event.getName();
+        java.util.List<EmailTemplate.Row> facts = new java.util.ArrayList<>();
+        facts.add(new EmailTemplate.Row("Date", event.getStartsAt().format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM yyyy, h:mm a", java.util.Locale.ENGLISH)).replace("AM", "am").replace("PM", "pm")));
+        if (event.getVenue() != null && !event.getVenue().isBlank()) {
+            facts.add(new EmailTemplate.Row("Venue", event.getVenue()));
+        }
+        facts.add(new EmailTemplate.Row("Guests covered", String.valueOf(event.getPaidGuests())));
+        facts.add(new EmailTemplate.Row("Event code", event.getEventCode()));
+        EmailTemplate.Rendered body = EmailTemplate.of("Paid and ready", name + " is live")
+                .paragraph("Your payment went through. Guests can now scan the QR codes on their tables and order.")
+                .details(facts)
+                .button("Open your event", frontendUrl + "/planner/" + event.getId())
+                .small("From your event page you can print the table QR codes and watch plates go out on the day.")
+                .render();
+        mailer.sendAfterCommit(EmailMessage.of(event.getTenant().getEmail(), name + " is live", body, "event-live", "event-live:" + event.getId()));
     }
 }

@@ -71,6 +71,21 @@ public class WorkerServiceImpl implements WorkerService {
         workerRepo.save(worker);
     }
 
+    @Transactional
+    @Override
+    public StaffResponse resetPassword(String tenantId, String workerId) {
+        Worker worker = workerRepo.findByWorkerIdAndTenant_TenantId(workerId, tenantId)
+                .filter(Worker::isActive)
+                .filter(found -> found.getRole() == WorkerRole.CHEF || found.getRole() == WorkerRole.WAITER)
+                .orElseThrow(() -> new ResourceNotFoundException("We cannot find that person"));
+        String temporaryPassword = TemporaryPassword.generate();
+        worker.setPassword(passwordEncoder.encode(temporaryPassword));
+        worker.setMustChangePassword(true);
+        worker.setPasswordChangedAt(java.time.Instant.now());
+        workerRepo.save(worker);
+        return new StaffResponse(worker.getWorkerId(), worker.getUsername(), worker.getFullName(), worker.getRole().name(), temporaryPassword);
+    }
+
     // A manager exists only through approval of the business. This makes chefs and waiters.
     private WorkerRole staffRole(String role) {
         WorkerRole workerRole;

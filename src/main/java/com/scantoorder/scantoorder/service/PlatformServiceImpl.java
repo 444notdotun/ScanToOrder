@@ -12,10 +12,11 @@ import com.scantoorder.scantoorder.data.repository.WorkerRepo;
 import com.scantoorder.scantoorder.dtos.respond.TenantActionResponse;
 import com.scantoorder.scantoorder.dtos.respond.TenantSummaryResponse;
 import com.scantoorder.scantoorder.exception.ConflictException;
-import com.scantoorder.scantoorder.exception.EmailSendException;
 import com.scantoorder.scantoorder.exception.InvalidRequestException;
 import com.scantoorder.scantoorder.exception.ResourceNotFoundException;
-import com.scantoorder.scantoorder.service.Interface.EmailSender;
+import com.scantoorder.scantoorder.service.email.EmailMessage;
+import com.scantoorder.scantoorder.service.email.EmailTemplate;
+import com.scantoorder.scantoorder.service.email.Mailer;
 import com.scantoorder.scantoorder.service.Interface.MenuService;
 import com.scantoorder.scantoorder.service.Interface.PlatformService;
 import com.scantoorder.scantoorder.utils.TemporaryPassword;
@@ -40,7 +41,7 @@ public class PlatformServiceImpl implements PlatformService {
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
-    private EmailSender emailSender;
+    private Mailer mailer;
     @Autowired
     private MenuService menuService;
     @Autowired
@@ -134,12 +135,15 @@ public class PlatformServiceImpl implements PlatformService {
             found.setDeclineReason(reason.trim());
             return tenantRepo.save(found);
         });
-        boolean sent = send(tenant.getEmail(), "About your Plately application",
-                "Hello " + tenant.getOwnerName() + ",\n\n"
-                        + "We could not approve " + tenant.getName() + " this time.\n\n"
-                        + "Reason: " + tenant.getDeclineReason() + "\n\n"
-                        + "You can fix the details and send the form again at " + frontendUrl + "/signup.\n\n"
-                        + "The Plately team");
+        EmailTemplate.Rendered declined = EmailTemplate.of(tenant.getName(), "About your application")
+                .paragraph("Hello " + tenant.getOwnerName() + ",")
+                .paragraph("We could not approve " + tenant.getName() + " this time.")
+                .details(List.of(new EmailTemplate.Row("Reason", tenant.getDeclineReason())))
+                .paragraph("You can fix the details and send the form again.")
+                .button("Send the form again", frontendUrl + "/signup")
+                .render();
+        boolean sent = mailer.send(EmailMessage.of(tenant.getEmail(), "About your Plately application", declined, "decline",
+                "decline:" + tenant.getTenantId() + ":" + System.currentTimeMillis()));
         return action(tenant, null, sent, sent ? "Application declined and the owner has been told."
                 : "Application declined, but the email could not be sent.");
     }
@@ -154,7 +158,12 @@ public class PlatformServiceImpl implements PlatformService {
             found.setStatus(TenantStatus.SUSPENDED);
             return tenantRepo.save(found);
         });
-        return action(tenant, null, false, tenant.getName() + " is suspended. Guests already seated can finish; no new guests can sit down.");
+        EmailTemplate.Rendered paused = EmailTemplate.of(tenant.getName(), "Your account is paused")
+                .paragraph(tenant.getName() + " is paused on Plately. Guests can't order and your team can't sign in for now. Reply to this email and we'll sort it out with you.")
+                .render();
+        boolean sent = mailer.send(EmailMessage.of(tenant.getEmail(), "Your Plately account is paused", paused, "suspended",
+                "suspend:" + tenant.getTenantId() + ":" + System.currentTimeMillis()));
+        return action(tenant, null, sent, tenant.getName() + " is suspended. Guests already seated can finish; no new guests can sit down.");
     }
 
     @Override
@@ -167,7 +176,13 @@ public class PlatformServiceImpl implements PlatformService {
             found.setStatus(TenantStatus.ACTIVE);
             return tenantRepo.save(found);
         });
-        return action(tenant, null, false, tenant.getName() + " is active again.");
+        EmailTemplate.Rendered back = EmailTemplate.of(tenant.getName(), "Your account is back")
+                .paragraph(tenant.getName() + " is back on Plately. Your team can sign in and guests can order again.")
+                .button("Sign in", frontendUrl + "/staff/login")
+                .render();
+        boolean sent = mailer.send(EmailMessage.of(tenant.getEmail(), "Your Plately account is back", back, "reinstated",
+                "reinstate:" + tenant.getTenantId() + ":" + System.currentTimeMillis()));
+        return action(tenant, null, sent, tenant.getName() + " is active again.");
     }
 
     @Override
@@ -202,24 +217,15 @@ public class PlatformServiceImpl implements PlatformService {
     }
 
     private boolean sendSignIn(Tenant tenant, String username, String password) {
-        return send(tenant.getEmail(), "Your Plately sign-in",
-                "Hello " + tenant.getOwnerName() + ",\n\n"
-                        + tenant.getName() + " is approved on Plately. Welcome.\n\n"
-                        + "Username: " + username + "\n"
-                        + "Temporary password: " + password + "\n"
-                        + "Sign in here: " + frontendUrl + "/login\n\n"
-                        + "You will choose your own password the first time you sign in.\n\n"
-                        + "The Plately team");
-    }
-
-    private boolean send(String to, String subject, String body) {
-        try {
-            emailSender.send(to, subject, body);
-            return true;
-        } catch (EmailSendException e) {
-            log.warn("An email to a business owner could not be sent");
-            return false;
-        }
+        EmailTemplate.Rendered signIn = EmailTemplate.of(tenant.getName(), "Welcome to Plately")
+                .paragraph("Hello " + tenant.getOwnerName() + ",")
+                .paragraph(tenant.getName() + " is approved on Plately. Welcome.")
+                .details(List.of(new EmailTemplate.Row("Username", username), new EmailTemplate.Row("Temporary password", password)))
+                .paragraph("You will choose your own password the first time you sign in.")
+                .button("Sign in", frontendUrl + "/staff/login")
+                .render();
+        return mailer.send(EmailMessage.of(tenant.getEmail(), "Your Plately sign-in", signIn, "sign-in",
+                "sign-in:" + tenant.getTenantId() + ":" + System.currentTimeMillis()));
     }
 
     private Tenant find(String tenantId) {
