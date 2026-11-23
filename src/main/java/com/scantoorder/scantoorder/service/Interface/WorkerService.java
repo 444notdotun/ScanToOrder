@@ -10,4 +10,7 @@ public interface WorkerService {
     List<StaffResponse> getAllWorkers(String tenantId);
 
     void deleteWorker(String tenantId, String workerId);
+
+    // A new temporary password for a chef or waiter of this business, shown once. Their old sign-ins stop working.
+    StaffResponse resetPassword(String tenantId, String workerId);
 }

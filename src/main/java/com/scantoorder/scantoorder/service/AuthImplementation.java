@@ -77,6 +77,7 @@ public class AuthImplementation implements Auth {
         }
         worker.setPassword(passwordEncoder.encode(newPassword));
         worker.setMustChangePassword(false);
+        worker.setPasswordChangedAt(java.time.Instant.now());
         workerRepo.save(worker);
         return responseFor(worker);
     }

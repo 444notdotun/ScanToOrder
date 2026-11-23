@@ -61,7 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/t/*/e/*/tables/*/code").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/t/*/e/*/tables/*").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/seats/*/join").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/payments/webhook").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/refunds/*/guest").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/refunds/*/guest/*").permitAll()

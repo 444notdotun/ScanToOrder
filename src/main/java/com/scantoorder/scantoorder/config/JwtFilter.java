@@ -88,7 +88,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 } else if ("WORKER".equals(type)) {
                     String username = claims.getSubject();
                     UserDetails userDetails = auth.loadUserByUsername(username);
-                    if (jwtService.validateToken(jwt, userDetails) && userDetails.isEnabled()) {
+                    if (jwtService.validateToken(jwt, userDetails) && userDetails.isEnabled() && !issuedBeforePasswordChange(claims, (Worker) userDetails)) {
                         Worker worker = (Worker) userDetails;
                         if (worker.isMustChangePassword() && !CHANGE_PASSWORD_PATH.equals(request.getRequestURI()) && !LOGOUT_PATH.equals(request.getRequestURI())) {
                             writeForbidden(response, CHANGE_PASSWORD_MESSAGE);
@@ -116,6 +116,16 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    // A token issued before the last password change is a token for the old password. Compared in whole seconds, the precision a token keeps,
+    // so the token handed out with the change itself is still good.
+    private static boolean issuedBeforePasswordChange(Claims claims, Worker worker) {
+        if (worker.getPasswordChangedAt() == null) {
+            return false;
+        }
+        java.util.Date issued = claims.getIssuedAt();
+        return issued == null || issued.toInstant().getEpochSecond() < worker.getPasswordChangedAt().getEpochSecond();
     }
 
     // A customer token is only as good as its seat: once the guest has left or the session

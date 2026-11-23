@@ -36,6 +36,13 @@ public class WorkerController {
         return ResponseEntity.ok(new ApiResponse<>(workerService.getAllWorkers(CurrentTenant.id())));
     }
 
+    // Staff have no email, so the new temporary password comes back here, once.
+    @PostMapping("/{id}/reset-password")
+    public ResponseEntity<ApiResponse<StaffResponse>> resetPassword(
+            @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String id) {
+        return ResponseEntity.ok(new ApiResponse<>(workerService.resetPassword(CurrentTenant.id(), id)));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<String>> deleteWorker(
             @PathVariable @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "That link doesn't look right. Go back and try again.") String id) {
