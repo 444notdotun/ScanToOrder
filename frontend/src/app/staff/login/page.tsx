@@ -9,6 +9,9 @@ import { Button, Card, FailureCard, Field } from '@/components/plately/ui';
 import { dataOf, failureOf, http, type ApiFailure } from '@/lib/http';
 import { homeFor, useAuthStore, type WorkerProfile } from '@/store/authStore';
 
+// The server's own words for a business that has been paused.
+const SUSPENDED = 'This business is suspended on Plately. Contact us to sort it out.';
+
 function SignIn() {
   const router = useRouter();
   const ended = useSearchParams().get('ended');
@@ -45,7 +48,7 @@ function SignIn() {
 
         {ended ? (
           <p role="status" className="animate-fade text-[15px] leading-snug text-mustard">
-            You were signed out. Sign in again to carry on.
+            {ended === 'suspended' ? SUSPENDED : 'You were signed out. Sign in again to carry on.'}
           </p>
         ) : null}
 

@@ -43,25 +43,29 @@ export default function StaffShell({
     enabled: allowed,
     retry: false,
   });
-  const expired = today.isError && failureOf(today.error).status === 401;
+  const failedWith = today.isError ? failureOf(today.error) : null;
+  const expired = failedWith?.status === 401;
+  // A suspended business's staff are signed out by the server with its own words; the sign-in page repeats them.
+  const suspended = expired && /suspended on Plately/i.test(failedWith?.message ?? '');
 
   useEffect(() => {
     if (!hydrated) return;
+    // A sign-in that ran out is sent to the sign-in page with its own reason by the effect below; this one must not overwrite it.
     if (!profile) {
-      router.replace('/staff/login');
+      if (!expired) router.replace('/staff/login');
     } else if (profile.mustChangePassword) {
       router.replace('/staff/new-password');
     } else if (!allow.includes(profile.role) || !rightWorkspace) {
       router.replace(homeFor(profile));
     }
-  }, [hydrated, profile, allow, rightWorkspace, router]);
+  }, [hydrated, profile, allow, rightWorkspace, router, expired]);
 
   useEffect(() => {
     if (expired) {
       logout();
-      router.replace('/staff/login?ended=1');
+      router.replace(suspended ? '/staff/login?ended=suspended' : '/staff/login?ended=1');
     }
-  }, [expired, logout, router]);
+  }, [expired, suspended, logout, router]);
 
   const connection = useMemo(() => ({ lost: stream.lost }), [stream.lost]);
 
