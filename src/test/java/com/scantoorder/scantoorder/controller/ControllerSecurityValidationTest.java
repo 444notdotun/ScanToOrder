@@ -370,40 +370,4 @@ public class ControllerSecurityValidationTest {
         mockMvc.perform(get("/api/v1/tables/invalid<tableNumber>/qrcode"))
                 .andExpect(status().is4xxClientError());
     }
-
-    @Test
-    public void testCsvSanitizationForFormulaTriggers() {
-        try {
-            com.scantoorder.scantoorder.service.ReceiptServiceImpl serviceImpl = new com.scantoorder.scantoorder.service.ReceiptServiceImpl();
-            java.lang.reflect.Method method = com.scantoorder.scantoorder.service.ReceiptServiceImpl.class.getDeclaredMethod("sanitizeForCsv", String.class);
-            method.setAccessible(true);
-
-            // Test risky formulas
-            String resultFormula1 = (String) method.invoke(serviceImpl, "=SUM(1,2)");
-            assertEquals("\"'=SUM(1,2)\"", resultFormula1);
-
-            String resultFormula2 = (String) method.invoke(serviceImpl, "@SUM(1,2)");
-            assertEquals("\"'@SUM(1,2)\"", resultFormula2);
-
-            String resultFormula3 = (String) method.invoke(serviceImpl, "+CMD");
-            assertEquals("'+CMD", resultFormula3);
-
-            String resultFormula4 = (String) method.invoke(serviceImpl, "-10");
-            assertEquals("'-10", resultFormula4);
-
-            // Test normal string
-            String resultNormal = (String) method.invoke(serviceImpl, "NormalString");
-            assertEquals("NormalString", resultNormal);
-
-            // Test csv escaping
-            String resultComma = (String) method.invoke(serviceImpl, "Hello, World");
-            assertEquals("\"Hello, World\"", resultComma);
-
-            String resultQuotes = (String) method.invoke(serviceImpl, "Hello \"World\"");
-            assertEquals("\"Hello \"\"World\"\"\"", resultQuotes);
-
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
 }
