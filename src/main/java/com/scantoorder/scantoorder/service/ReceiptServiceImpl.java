@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -126,8 +125,10 @@ public class ReceiptServiceImpl implements ReceiptService {
                 .toList();
         java.util.List<EmailTemplate.Row> facts = new java.util.ArrayList<>();
         facts.add(new EmailTemplate.Row("Receipt", data.getReceiptNumber()));
-        if (data.getTableNumber() != null && !"N/A".equals(data.getTableNumber())) {
-            facts.add(new EmailTemplate.Row("Table", data.getTableNumber()));
+        // The receipt's table number is the table's own code. A guest knows it by the number on the card.
+        Integer shownTable = payment.getOrder().getTable() == null ? null : payment.getOrder().getTable().getDisplayNumber();
+        if (shownTable != null) {
+            facts.add(new EmailTemplate.Row("Table", String.valueOf(shownTable)));
         }
         if (when != null) {
             facts.add(new EmailTemplate.Row("Date", TimeText.dayAndClock(when)));
@@ -159,54 +160,5 @@ public class ReceiptServiceImpl implements ReceiptService {
         }
         LocalDateTime sentOn = refund.getSettledAt() != null ? refund.getSettledAt() : refund.getGuestConfirmedAt();
         return "Refund of " + amount + " sent by " + restaurant + " on " + sentOn.toLocalDate();
-    }
-
-    @Override
-    public byte[] generateReceiptCsv(String tenantId, String paymentReference) {
-        ReceiptResponse data = getReceiptData(tenantId, paymentReference);
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("--- Receipt Metadata ---\n");
-        sb.append("Receipt Number,").append(sanitizeForCsv(data.getReceiptNumber())).append("\n");
-        sb.append("Payment Reference,").append(sanitizeForCsv(data.getPaymentReference())).append("\n");
-        sb.append("Date,").append(data.getPaymentDate() != null ? data.getPaymentDate().toString() : "").append("\n");
-        sb.append("Table Number,").append(sanitizeForCsv(data.getTableNumber())).append("\n");
-        sb.append("Seat Label,").append(sanitizeForCsv(data.getSeatLabel())).append("\n");
-        sb.append("Order ID,").append(sanitizeForCsv(data.getOrderId())).append("\n\n");
-
-        sb.append("--- Line Items ---\n");
-        sb.append("Item Name,Quantity,Unit Price,Total Price,Special Instructions\n");
-        for (ReceiptItemDto item : data.getItems()) {
-            sb.append(sanitizeForCsv(item.getItemName())).append(",")
-                    .append(item.getQuantity()).append(",")
-                    .append(item.getUnitPrice()).append(",")
-                    .append(item.getTotalPrice()).append(",")
-                    .append(sanitizeForCsv(item.getSpecialInstructions())).append("\n");
-        }
-        sb.append("\n");
-
-        sb.append("--- Summary ---\n");
-        sb.append("Subtotal,").append(data.getSubtotal()).append("\n");
-        sb.append("Total Paid,").append(data.getTotalPaid()).append("\n");
-        sb.append("Payment Status,").append(data.getStatus().name()).append("\n");
-
-        return sb.toString().getBytes(StandardCharsets.UTF_8);
-    }
-
-    private String sanitizeForCsv(String val) {
-        if (val == null) {
-            return "";
-        }
-        String processed = val;
-        if (!processed.isEmpty()) {
-            char firstChar = processed.charAt(0);
-            if (firstChar == '=' || firstChar == '+' || firstChar == '-' || firstChar == '@' || firstChar == '\t' || firstChar == '\r') {
-                processed = "'" + processed;
-            }
-        }
-        if (processed.contains(",") || processed.contains("\"") || processed.contains("\n") || processed.contains("\r")) {
-            processed = "\"" + processed.replace("\"", "\"\"") + "\"";
-        }
-        return processed;
     }
 }

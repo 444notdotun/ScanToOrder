@@ -11,9 +11,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -45,20 +43,5 @@ public class ReceiptController {
             HttpServletRequest http) {
         String answer = receiptService.emailReceipt(CurrentTenant.id(), reference, request.getEmail(), ClientAddress.of(http));
         return ResponseEntity.ok(new ApiResponse<>(answer));
-    }
-
-    @GetMapping("/{reference}/download")
-    public ResponseEntity<byte[]> downloadReceiptCsv(
-            @NotNull(message = "We can't find that payment. Go back and try again.") 
-            @Pattern(regexp = "^[A-Za-z0-9_-]{5,64}$", message = "We can't find that payment. Go back and try again.")
-            @PathVariable String reference) {
-        byte[] csvBytes = receiptService.generateReceiptCsv(CurrentTenant.id(), reference);
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType("text/csv; charset=UTF-8"));
-        headers.set("X-Content-Type-Options", "nosniff");
-        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"receipt_" + reference + ".csv\"");
-        
-        return new ResponseEntity<>(csvBytes, headers, HttpStatus.OK);
     }
 }
