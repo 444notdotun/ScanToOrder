@@ -45,7 +45,7 @@ public class PasswordResetService {
     public static final String CHANGED = "Your password is changed. Sign in with it now.";
     static final Duration LIFETIME = Duration.ofMinutes(15);
     static final int PER_EMAIL = 3;
-    static final int PER_ADDRESS = 10;
+    static final int PER_ADDRESS = 20;
     private static final Duration WINDOW = Duration.ofHours(1);
     private static final SecureRandom RANDOM = new SecureRandom();
 

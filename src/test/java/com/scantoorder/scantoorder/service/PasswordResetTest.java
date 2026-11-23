@@ -62,6 +62,8 @@ class PasswordResetTest {
     @Autowired
     private PasswordResetService reset;
     @Autowired
+    private RateLimiter limiter;
+    @Autowired
     private TenantTestSupport tenants;
     @Autowired
     private TenantRepo tenantRepo;
@@ -283,15 +285,32 @@ class PasswordResetTest {
     }
 
     @Test
-    void testThatAtMostTenRequestsPerAddressAnHourSendAnEmail() {
-        List<Business> many = java.util.stream.IntStream.range(0, 12).mapToObj(i -> business()).toList();
+    void testThatAtMostTwentyRequestsPerAddressAnHourSendAnEmail() {
+        List<Business> many = java.util.stream.IntStream.range(0, 22).mapToObj(i -> business()).toList();
         outbox.clear();
 
         for (Business each : many) {
             assertEquals(PasswordResetService.ASKED, reset.ask(each.tenant().getEmail(), "10.2.2.2"));
         }
 
-        assertEquals(10, outbox.messages().size());
+        assertEquals(20, outbox.messages().size());
+    }
+
+    @Test
+    void testThatTwoClientsBehindTheSameEdgeAddressAreCountedApart() {
+        org.springframework.mock.web.MockHttpServletRequest first = new org.springframework.mock.web.MockHttpServletRequest();
+        first.addHeader("True-Client-IP", "203.0.113.7");
+        first.addHeader("X-Forwarded-For", "172.70.1.1");
+        org.springframework.mock.web.MockHttpServletRequest second = new org.springframework.mock.web.MockHttpServletRequest();
+        second.addHeader("True-Client-IP", "203.0.113.8");
+        second.addHeader("X-Forwarded-For", "172.70.1.1");
+
+        // The first client uses up its twenty; the second still gets through.
+        for (int i = 0; i < 20; i++) {
+            assertTrue(limiter.allow("reset-address", com.scantoorder.scantoorder.utils.ClientAddress.of(first), PasswordResetService.PER_ADDRESS, Duration.ofHours(1)));
+        }
+        assertFalse(limiter.allow("reset-address", com.scantoorder.scantoorder.utils.ClientAddress.of(first), PasswordResetService.PER_ADDRESS, Duration.ofHours(1)));
+        assertTrue(limiter.allow("reset-address", com.scantoorder.scantoorder.utils.ClientAddress.of(second), PasswordResetService.PER_ADDRESS, Duration.ofHours(1)));
     }
 
     // ---- choosing the new password
