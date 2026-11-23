@@ -4,3 +4,10 @@
 [build]
   command = "npm run build"
   publish = ".next"
+
+# The old Netlify address sends everyone to the site's own domain.
+[[redirects]]
+  from = "https://platelyy.netlify.app/*"
+  to = "https://www.platelyy.com/:splat"
+  status = 301
+  force = true
