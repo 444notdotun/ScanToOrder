@@ -1,7 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { Brand } from '@/components/plately/Logo';
+import { useStickyHeader } from '@/hooks/useStickyHeader';
 import type { WorkerProfile } from '@/store/authStore';
 
 export function roleLabel(profile: Pick<WorkerProfile, 'role' | 'tenantType'>): string {
@@ -41,12 +42,20 @@ export default function StaffHeader({
   nav?: ReactNode;
   onSignOut: () => void;
 }) {
+  const bar = useRef<HTMLElement>(null);
+  const scrolled = useStickyHeader(bar);
   const name = profile.fullName?.trim() || profile.username;
   const busy = profile.role === 'CHEF' || profile.role === 'WAITER';
   const where = profile.role === 'PLATFORM_ADMIN' ? 'Plately' : (profile.businessName ?? 'Plately');
 
   return (
-    <header className="mx-auto flex w-full max-w-6xl flex-wrap xl:max-w-[1360px] items-center gap-x-4 gap-y-3 xl:gap-x-3 px-5 pb-1 pt-5 print:hidden xl:flex-nowrap">
+    <header
+      ref={bar}
+      className={`sticky top-0 z-40 -mt-[env(safe-area-inset-top)] w-full border-b pt-[env(safe-area-inset-top)] transition-colors duration-200 print:hidden ${
+        scrolled ? 'border-[#F0B94A] bg-[#10281F]' : 'border-transparent'
+      }`}
+    >
+    <div className="mx-auto flex w-full max-w-6xl flex-wrap xl:max-w-[1360px] items-center gap-x-4 gap-y-3 xl:gap-x-3 px-5 pb-2 pt-5 xl:flex-nowrap">
       <div className="order-1 flex-none xl:mr-2">
         <Brand size={28} />
       </div>
@@ -78,6 +87,7 @@ export default function StaffHeader({
       </div>
 
       {nav ? <div className="order-4 hidden basis-full md:block xl:order-2 xl:min-w-0 xl:basis-auto xl:flex-1">{nav}</div> : null}
+    </div>
     </header>
   );
 }

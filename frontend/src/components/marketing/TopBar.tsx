@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Brand } from '@/components/plately/Logo';
+import { useStickyHeader } from '@/hooks/useStickyHeader';
 
 const LINKS = [
   { href: '#how-it-works', label: 'How it works' },
@@ -13,9 +14,12 @@ const LINKS = [
 const STAFF = 'flex min-h-[44px] items-center justify-center rounded-full border-[1.5px] border-cream/45 px-5 text-sm font-bold text-cream hover:bg-cream/10';
 const CTA = 'flex min-h-[44px] items-center justify-center rounded-full bg-tomato px-5 text-sm font-bold text-white hover:bg-[#a23420]';
 
-// The top bar. On a phone the three links fold into a menu.
+// The top bar, pinned while the page scrolls. At the very top it sits clear on the page; once scrolled it takes the deep green and a thin gold
+// line. It clears the phone's status bar. On a phone the three links fold into a menu.
 export default function TopBar() {
   const [open, setOpen] = useState(false);
+  const bar = useRef<HTMLElement>(null);
+  const scrolled = useStickyHeader(bar);
 
   useEffect(() => {
     if (!open) return;
@@ -27,11 +31,15 @@ export default function TopBar() {
   }, [open]);
 
   return (
-    <header className="relative z-20 mx-auto w-full max-w-6xl px-5 pt-5">
+    <header
+      ref={bar}
+      className={`sticky top-0 z-40 -mt-[env(safe-area-inset-top)] w-full border-b pt-[env(safe-area-inset-top)] transition-colors duration-200 ${
+        scrolled ? 'border-[#F0B94A] bg-[#10281F]' : 'border-transparent'
+      }`}
+    >
+      <div className="mx-auto w-full max-w-6xl px-5 pb-3 pt-5">
       <div className="flex items-center gap-4">
-        <Link href="/" aria-label="Plately home">
-          <Brand />
-        </Link>
+        <Brand />
         <nav aria-label="Sections" className="ml-auto hidden items-center gap-6 md:flex">
           {LINKS.map((link) => (
             <a key={link.href} href={link.href} className="text-[15px] font-bold text-soft hover:text-cream">
@@ -59,7 +67,7 @@ export default function TopBar() {
         </button>
       </div>
       {open ? (
-        <nav id="mk-menu" aria-label="Sections" className="mt-3 flex animate-rise flex-col gap-1 rounded-2xl bg-paper p-3 text-bottle md:hidden">
+        <nav id="mk-menu" aria-label="Sections" className="mt-3 flex max-h-[calc(100dvh-5.5rem-env(safe-area-inset-top))] animate-rise flex-col gap-1 overflow-y-auto rounded-2xl bg-paper p-3 text-bottle md:hidden">
           {LINKS.map((link) => (
             <a key={link.href} href={link.href} onClick={() => setOpen(false)} className="flex min-h-[48px] items-center rounded-xl px-3 text-base font-bold hover:bg-rule">
               {link.label}
@@ -73,6 +81,7 @@ export default function TopBar() {
           </Link>
         </nav>
       ) : null}
+      </div>
     </header>
   );
 }

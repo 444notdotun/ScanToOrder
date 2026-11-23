@@ -213,7 +213,7 @@ export default function MarketingPage() {
         <TopBar />
 
         <main>
-          <section aria-labelledby="hero-title" className="relative mx-auto w-full max-w-6xl px-5 pb-12 pt-12 md:pb-24 md:pt-16">
+          <section aria-labelledby="hero-title" className="relative mx-auto w-full max-w-6xl px-5 pb-12 pt-9 md:pb-24 md:pt-[52px]">
             <Watermark className="-right-28 top-6 hidden opacity-50 lg:block" opacity={0.05} />
             <div className="relative grid items-center gap-12 lg:grid-cols-2">
               <div className="animate-rise">
@@ -239,7 +239,7 @@ export default function MarketingPage() {
             </div>
           </section>
 
-          <section id="how-it-works" aria-labelledby="guests-title" className={`${SECTION} scroll-mt-6`}>
+          <section id="how-it-works" aria-labelledby="guests-title" className={`${SECTION} scroll-mt-[calc(var(--head-h,5.5rem)+1rem)]`}>
             <div className="grid items-center gap-10 lg:grid-cols-2">
               <Reveal>
                 <Heading id="guests-title" eyebrow="For your guests" title="Sit down. That's most of the work done.">
@@ -253,7 +253,7 @@ export default function MarketingPage() {
           </section>
 
           <div className="bg-[#10281F]">
-            <section id="restaurants" aria-labelledby="restaurants-title" className={`${SECTION} scroll-mt-6`}>
+            <section id="restaurants" aria-labelledby="restaurants-title" className={`${SECTION} scroll-mt-[calc(var(--head-h,5.5rem)+1rem)]`}>
               <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
                 <Reveal>
                   <Heading id="restaurants-title" eyebrow="For restaurants" title="Run your place on it.">
@@ -279,7 +279,7 @@ export default function MarketingPage() {
             </section>
           </div>
 
-          <section id="events" aria-labelledby="events-title" className={`${SECTION} scroll-mt-6`}>
+          <section id="events" aria-labelledby="events-title" className={`${SECTION} scroll-mt-[calc(var(--head-h,5.5rem)+1rem)]`}>
             <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
               <Reveal className="order-1">
                 <EventCard />

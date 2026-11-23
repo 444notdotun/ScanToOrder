@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 // The mark is a letter P made of a handle and a plate, with an inner ring in mustard on green or tomato on paper.
 
 export function Mark({ size = 34, ring = '#F0B94A', body = '#F4ECD8', spin = false }: { size?: number; ring?: string; body?: string; spin?: boolean }) {
@@ -28,13 +30,13 @@ export function Wordmark({ size = 30, className = '' }: { size?: number; classNa
   );
 }
 
-// The mark with the wordmark: in every header.
+// The mark with the wordmark, together one link home: in every header.
 export function Brand({ size = 30, ring = '#F0B94A', body = '#F4ECD8', className = '' }: { size?: number; ring?: string; body?: string; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`} style={{ color: body }}>
+    <Link href="/" aria-label="Plately home" className={`inline-flex min-h-[44px] items-center gap-2 rounded-lg ${className}`} style={{ color: body }}>
       <Mark size={Math.round(size * 1.1)} ring={ring} body={body} />
       <Wordmark size={size} />
-    </span>
+    </Link>
   );
 }
 
