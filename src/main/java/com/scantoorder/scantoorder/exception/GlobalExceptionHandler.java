@@ -121,6 +121,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
+    @ExceptionHandler(TryAgainLaterException.class)
+    public ResponseEntity<Object> handleTryAgainLater(TryAgainLaterException ex) {
+        return buildResponse(ex.getStatus(), ex.getMessage());
+    }
+
     @ExceptionHandler(InvalidRequestException.class)
     public ResponseEntity<Object> handleInvalidRequestException(InvalidRequestException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
