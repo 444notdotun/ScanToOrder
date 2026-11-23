@@ -1,6 +1,7 @@
+import { BACKEND_URL } from '@/lib/backendUrl';
 // The business or event a tab title names, for pages the server renders the head of. It asks the same public
 // endpoints the guest's pages do; if the answer is slow or missing the title simply drops the name.
-const BACKEND = (process.env.BACKEND_URL || 'https://scantoorder.onrender.com').replace(/\/+$/, '');
+const BACKEND = BACKEND_URL;
 
 async function nameFrom(path: string, field: string): Promise<string | undefined> {
   try {

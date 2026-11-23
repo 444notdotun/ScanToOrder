@@ -1,7 +1,8 @@
+import { BACKEND_URL } from "./src/lib/backendUrl";
 import type { NextConfig } from "next";
 
 // Where /api/v1 goes. Set BACKEND_URL to run against a backend of your own (for example http://localhost:8080).
-const backend = (process.env.BACKEND_URL || "https://scantoorder.onrender.com").replace(/\/+$/, "");
+const backend = BACKEND_URL;
 
 const nextConfig: NextConfig = {
   // Lets a second browser identity (127.0.0.1 next to localhost) use the dev server, to try two guests at one table.
