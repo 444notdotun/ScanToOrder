@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.service;
 
+import com.scantoorder.scantoorder.config.SuspendedTenants;
 import com.scantoorder.scantoorder.data.model.Tenant;
 import com.scantoorder.scantoorder.data.model.TenantStatus;
 import com.scantoorder.scantoorder.data.model.TenantType;
@@ -42,6 +43,8 @@ public class PlatformServiceImpl implements PlatformService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private Mailer mailer;
+    @Autowired
+    private SuspendedTenants suspendedTenants;
     @Autowired
     private MenuService menuService;
     @Autowired
@@ -158,6 +161,7 @@ public class PlatformServiceImpl implements PlatformService {
             found.setStatus(TenantStatus.SUSPENDED);
             return tenantRepo.save(found);
         });
+        suspendedTenants.add(tenant.getTenantId());
         EmailTemplate.Rendered paused = EmailTemplate.of(tenant.getName(), "Your account is paused")
                 .paragraph(tenant.getName() + " is paused on Plately. Guests can't order and your team can't sign in for now. Reply to this email and we'll sort it out with you.")
                 .render();
@@ -176,6 +180,7 @@ public class PlatformServiceImpl implements PlatformService {
             found.setStatus(TenantStatus.ACTIVE);
             return tenantRepo.save(found);
         });
+        suspendedTenants.remove(tenant.getTenantId());
         EmailTemplate.Rendered back = EmailTemplate.of(tenant.getName(), "Your account is back")
                 .paragraph(tenant.getName() + " is back on Plately. Your team can sign in and guests can order again.")
                 .button("Sign in", frontendUrl + "/staff/login")

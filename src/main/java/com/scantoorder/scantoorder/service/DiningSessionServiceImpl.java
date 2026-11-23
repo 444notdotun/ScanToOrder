@@ -62,6 +62,8 @@ public class DiningSessionServiceImpl implements DiningSessionService {
     private static final List<OrderStatus> PAID_UNDELIVERED = List.of(OrderStatus.PAID, OrderStatus.PREPARING, OrderStatus.READY);
 
     @Autowired
+    private TenantAccess tenantAccess;
+    @Autowired
     private DinningSessionRepo dinningSessionRepo;
     @Autowired
     private SessionSeatRepo sessionSeatRepo;
@@ -169,6 +171,7 @@ public class DiningSessionServiceImpl implements DiningSessionService {
         String seatId = targetSeatId == null || targetSeatId.isBlank() ? caller.getSeatId() : targetSeatId;
         lockWithOwnSeat(caller, Set.of(seatId));
         SessionSeat me = requireSeated(caller);
+        tenantAccess.requireNotSuspended(me.getTenant());
         if (seatId.equals(me.getSeat().getSeatId())) {
             return me;
         }

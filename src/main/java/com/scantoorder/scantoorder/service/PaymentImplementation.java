@@ -55,6 +55,8 @@ public class PaymentImplementation implements PaymentService {
     private AsyncPaymentService asyncPaymentService;
     @Autowired
     private EventPaymentService eventPaymentService;
+    @Autowired
+    private TenantAccess tenantAccess;
 
     @Value("${paystack.secret.key:}")
     private String paystackSecretKey;
@@ -73,6 +75,7 @@ public class PaymentImplementation implements PaymentService {
             throw new PaymentAlreadyProcessedException("Order is already paid");
         }
         Tenant tenant = order.getTenant();
+        tenantAccess.requireNotSuspended(tenant);
         String subaccount = tenant.getPaystackSubaccountCode();
         boolean unsplit = unsplitPayments.appliesTo(tenant);
         if ((subaccount == null || subaccount.isBlank()) && !unsplit) {
