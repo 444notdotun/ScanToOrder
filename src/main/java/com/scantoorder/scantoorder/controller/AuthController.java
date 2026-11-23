@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.AccessCookie;
 import com.scantoorder.scantoorder.data.model.WorkerPrincipal;
 import com.scantoorder.scantoorder.dtos.request.ChangePasswordRequest;
 import com.scantoorder.scantoorder.dtos.request.ForgotPasswordRequest;
@@ -33,6 +34,8 @@ public class AuthController {
     private Auth auth;
     @Autowired
     private PasswordResetService passwordReset;
+    @Autowired
+    private AccessCookie accessCookie;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login( @RequestBody @Valid LoginRequest request) {
@@ -62,26 +65,14 @@ public class AuthController {
     // Signing out ends the cookie here, because the page cannot reach an HttpOnly cookie to clear it.
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout() {
-        ResponseCookie expired = ResponseCookie.from("access_token", "")
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
-                .path("/")
-                .maxAge(0)
-                .build();
+        ResponseCookie expired = accessCookie.clear();
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, expired.toString())
                 .body(new ApiResponse<>("You are signed out"));
     }
 
     private ResponseEntity<ApiResponse<AuthResponse>> withCookie(AuthResponse response) {
-        ResponseCookie jwtCookie = ResponseCookie.from("access_token", response.getToken())
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
-                .path("/")
-                .maxAge(Duration.ofHours(8))
-                .build();
+        ResponseCookie jwtCookie = accessCookie.set(response.getToken(), Duration.ofHours(8));
         response.setToken(null);
         return ResponseEntity.status(HttpStatus.OK)
                 .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())

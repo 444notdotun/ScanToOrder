@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.AccessCookie;
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.dtos.request.EventCodeRequest;
 import com.scantoorder.scantoorder.dtos.request.EventOrderRequest;
@@ -34,6 +35,8 @@ import java.time.Duration;
 public class EventGuestController {
 
     @Autowired
+    private AccessCookie accessCookie;
+    @Autowired
     private EventSeatingService seatingService;
     @Autowired
     private EventOrderService orderService;
@@ -60,13 +63,7 @@ public class EventGuestController {
         if (response.getToken() == null) {
             return ResponseEntity.ok(new ApiResponse<>(response));
         }
-        ResponseCookie jwtCookie = ResponseCookie.from("access_token", response.getToken())
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
-                .path("/")
-                .maxAge(Duration.ofHours(8))
-                .build();
+        ResponseCookie jwtCookie = accessCookie.set(response.getToken(), Duration.ofHours(8));
         response.setToken(null);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())

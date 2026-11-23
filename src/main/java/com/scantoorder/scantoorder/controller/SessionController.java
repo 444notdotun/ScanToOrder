@@ -1,5 +1,6 @@
 package com.scantoorder.scantoorder.controller;
 
+import com.scantoorder.scantoorder.config.AccessCookie;
 import com.scantoorder.scantoorder.config.CurrentTenant;
 import com.scantoorder.scantoorder.data.model.CustomerPrincipal;
 import com.scantoorder.scantoorder.dtos.request.ConfirmGuestRequest;
@@ -29,6 +30,8 @@ import java.util.List;
 @Validated
 public class SessionController {
 
+    @Autowired
+    private AccessCookie accessCookie;
     @Autowired
     private DiningSessionService diningSessionService;
 
@@ -85,13 +88,7 @@ public class SessionController {
     public ResponseEntity<ApiResponse<LeaveSessionResponse>> leave(
             @AuthenticationPrincipal CustomerPrincipal principal) {
         LeaveSessionResponse response = diningSessionService.leave(principal);
-        ResponseCookie expiredCookie = ResponseCookie.from("access_token", "")
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
-                .path("/")
-                .maxAge(0)
-                .build();
+        ResponseCookie expiredCookie = accessCookie.clear();
         return ResponseEntity.status(HttpStatus.OK)
                 .header(HttpHeaders.SET_COOKIE, expiredCookie.toString())
                 .body(new ApiResponse<>(response));
