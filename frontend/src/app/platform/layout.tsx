@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { PlatformBar } from '@/components/staff/RoleBars';
 import StaffShell from '@/components/staff/StaffShell';
 import { useTenants } from '@/lib/platform';
 
@@ -43,6 +44,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   return (
     <StaffShell allow={['PLATFORM_ADMIN']} nav={<Nav />}>
       {children}
+      <PlatformBar />
     </StaffShell>
   );
 }

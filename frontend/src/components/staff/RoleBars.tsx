@@ -8,6 +8,7 @@ import { icons } from '@/components/plately/Icons';
 import { Button, Sheet } from '@/components/plately/ui';
 import StaffHeaderCard from '@/components/staff/StaffHeaderCard';
 import { useFloor } from '@/lib/manager';
+import { useProblemRefunds, useTenants } from '@/lib/platform';
 import { useCalls, useReady, useVisits } from '@/lib/staff';
 import { useAuthStore } from '@/store/authStore';
 import { useWaiterTab, type WaiterTab } from '@/store/waiterTab';
@@ -32,6 +33,21 @@ export function WaiterBar() {
 }
 
 // ---- the manager: Floor, Menu, Insights, Refunds, More (Tables, Team, Settings).
+
+// ---- the platform owner: Approvals, Tenants, Refunds to chase, Earnings.
+
+export function PlatformBar() {
+  const path = usePathname();
+  const waiting = useTenants('pending_approval').data?.length ?? 0;
+  const toChase = useProblemRefunds().data?.length ?? 0;
+  const items: BarItem[] = [
+    { key: 'approvals', label: 'Approvals', icon: icons.coverage, href: '/platform', current: path === '/platform', count: waiting },
+    { key: 'tenants', label: 'Tenants', icon: icons.floor, href: '/platform/tenants', current: path.startsWith('/platform/tenants') },
+    { key: 'refunds', label: 'Refunds', icon: icons.tag, href: '/platform/refunds', current: path.startsWith('/platform/refunds'), count: toChase },
+    { key: 'earnings', label: 'Earnings', icon: icons.chart, href: '/platform/earnings', current: path.startsWith('/platform/earnings') },
+  ];
+  return <BottomBar items={items} label="Platform sections" />;
+}
 
 export function ManagerBar() {
   const path = usePathname();
