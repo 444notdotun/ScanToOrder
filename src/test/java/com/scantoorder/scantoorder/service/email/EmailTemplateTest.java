@@ -26,16 +26,45 @@ class EmailTemplateTest {
         assertTrue(html.contains("background:#E9E2D2"));
         assertTrue(html.contains("background:#FBF7EF"));
         assertTrue(html.contains("border-radius:14px"));
-        assertTrue(html.contains("border-bottom:3px solid #F0B94A"));
+        assertTrue(html.contains("height:3px"));
         assertTrue(html.contains("<img src=\"https://www.platelyy.com/email/plately-logo.png\" width=\"150\" alt=\"Plately\""));
         assertEquals(1, html.split("<img ", -1).length - 1, "the logo is the only image");
-        assertFalse(html.contains("<style"));
+        assertEquals(1, html.split("<style>", -1).length - 1, "one style block, for the dark look");
         assertFalse(html.contains("<script"));
         assertFalse(html.contains("<link"));
         assertFalse(html.contains("@font-face"));
         assertFalse(html.contains("url("));
         assertTrue(html.contains("Georgia"));
         assertTrue(html.contains("Helvetica"));
+    }
+
+    @Test
+    void testThatTheEmailSaysItSupportsLightAndDarkAndCarriesADarkVersion() {
+        String html = sample().html();
+
+        assertTrue(html.contains("<meta name=\"color-scheme\" content=\"light dark\">"));
+        assertTrue(html.contains("<meta name=\"supported-color-schemes\" content=\"light dark\">"));
+        assertTrue(html.contains(":root{color-scheme:light dark;"));
+        assertTrue(html.contains("@media (prefers-color-scheme: dark)"));
+        assertTrue(html.contains("[data-ogsb] .pg-ground{background-color:#0F1C16"));
+        assertTrue(html.contains("[data-ogsc] .pg-text{color:#F4ECD8"));
+        for (String colour : List.of("#0F1C16", "#16261F", "#F4ECD8", "#E8C77A", "#C9D3C4", "#1E3229", "#2B4237", "#F0B94A", "#10281F")) {
+            assertTrue(html.contains(colour), colour);
+        }
+        // The inline styles stay the light email.
+        assertTrue(html.contains("background:#E9E2D2"));
+        assertTrue(html.contains("background:#FBF7EF"));
+    }
+
+    @Test
+    void testThatTheHeaderAndTheGoldKeepTheirColoursWhenAMailAppRepaintsBackgrounds() {
+        String html = sample().html();
+
+        assertTrue(html.contains("class=\"pg-header\" style=\"background:#10281F;background-image:linear-gradient(#10281F,#10281F);"));
+        assertEquals(2, html.split("background-image:linear-gradient\\(#F0B94A,#F0B94A\\);", -1).length - 1, "the 3px gold line and the button");
+        assertTrue(html.contains("class=\"pg-btncell\" style=\"background:#F0B94A;background-image:linear-gradient(#F0B94A,#F0B94A);border-radius:999px;"));
+        assertTrue(html.contains("class=\"pg-btn\" style=\"display:inline-block;padding:15px 28px;font-family:Helvetica, Arial, sans-serif;font-size:16px;font-weight:700;line-height:18px;color:#10281F;"));
+        assertTrue(html.contains("https://www.platelyy.com/email/plately-logo.png"));
     }
 
     @Test
